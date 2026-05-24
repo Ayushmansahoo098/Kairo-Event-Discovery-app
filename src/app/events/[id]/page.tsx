@@ -2,7 +2,6 @@
 
 import { useParams, useRouter } from "next/navigation";
 import Image from "next/image";
-import Link from "next/link";
 import {
   ArrowLeft,
   Calendar,
@@ -25,17 +24,17 @@ export default function EventDetailPage() {
   if (!event) {
     return (
       <div className="flex min-h-[70vh] flex-col items-center justify-center px-4 text-center">
-        <div className="mb-6 flex h-24 w-24 items-center justify-center rounded-full border border-white/10 bg-white/5">
-          <Calendar className="h-12 w-12 text-white/20" />
+        <div className="mb-6 flex h-24 w-24 items-center justify-center rounded-full bg-kairo-dark-gray border border-kairo-gray shadow-sm">
+          <Calendar className="h-10 w-10 text-kairo-gray" />
         </div>
-        <h1 className="mb-2 text-2xl font-bold">Event Not Found</h1>
-        <p className="mb-8 max-w-sm text-white/50">
+        <h1 className="mb-2 text-2xl font-bold text-kairo-white">Event Not Found</h1>
+        <p className="mb-8 max-w-sm text-kairo-light-gray">
           The event you&apos;re looking for doesn&apos;t exist or may have been
           removed.
         </p>
         <button
           onClick={() => router.push("/feed")}
-          className="inline-flex items-center gap-2 rounded-full bg-gradient-to-r from-purple-500 to-blue-500 px-6 py-3 text-sm font-semibold text-white shadow-lg shadow-purple-500/20 transition-all hover:brightness-110"
+          className="inline-flex items-center gap-2 rounded-full bg-kairo-orange px-8 py-4 text-sm font-bold text-kairo-white shadow-lg shadow-kairo-orange/20 transition-all hover:scale-105"
         >
           Browse Events
         </button>
@@ -51,7 +50,7 @@ export default function EventDetailPage() {
   });
 
   return (
-    <div className="relative pb-28">
+    <div className="relative pb-36 md:pb-28 bg-kairo-primary min-h-screen">
       {/* ── Banner ── */}
       <div className="relative h-[300px] w-full md:h-[400px]">
         <Image
@@ -63,69 +62,75 @@ export default function EventDetailPage() {
           sizes="100vw"
         />
 
-        {/* Gradient overlay */}
-        <div className="absolute inset-0 bg-gradient-to-t from-[#0a0a0b] via-[#0a0a0b]/60 to-transparent" />
+        {/* Gradient overlay for readability */}
+        <div className="absolute inset-0 bg-gradient-to-t from-kairo-primary/90 via-kairo-primary/40 to-transparent" />
 
         {/* Top controls */}
         <div className="absolute left-4 right-4 top-4 flex items-center justify-between">
           <button
             onClick={() => router.back()}
-            className="flex h-10 w-10 items-center justify-center rounded-full border border-white/20 bg-black/40 backdrop-blur-xl transition-all hover:border-white/30 hover:bg-black/60"
+            className="flex h-12 w-12 items-center justify-center rounded-full bg-kairo-dark-gray/90 shadow-sm backdrop-blur-xl transition-all hover:bg-kairo-gray text-kairo-light-gray hover:text-kairo-white hover:scale-105"
             aria-label="Go back"
           >
-            <ArrowLeft className="h-5 w-5" />
+            <ArrowLeft className="h-6 w-6" />
           </button>
 
-          <BookmarkButton eventId={event.id} />
+          <BookmarkButton eventId={event.id} className="bg-kairo-dark-gray/90 shadow-sm h-12 w-12 flex items-center justify-center hover:bg-kairo-gray" />
         </div>
 
         {/* Online/Offline badge on banner */}
         <div className="absolute bottom-6 left-4 md:left-6">
           <span
-            className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium backdrop-blur-md ${
+            className={`inline-flex items-center gap-1.5 rounded-full px-4 py-1.5 text-sm font-bold backdrop-blur-md shadow-lg text-kairo-white ${
               event.isOnline
-                ? "border border-emerald-500/30 bg-emerald-500/20 text-emerald-300"
-                : "border border-blue-500/30 bg-blue-500/20 text-blue-300"
+                ? "bg-kairo-orange"
+                : "bg-kairo-grad-2"
             }`}
           >
-            <Globe className="h-3 w-3" />
+            <Globe className="h-4 w-4" />
             {event.isOnline ? "Online" : "In Person"}
           </span>
         </div>
       </div>
 
       {/* ── Content ── */}
-      <div className="mx-auto max-w-3xl px-4 sm:px-6 lg:px-8">
+      <div className="mx-auto max-w-3xl px-4 sm:px-6 lg:px-8 mt-8">
         {/* Title */}
-        <h1 className="mt-6 text-3xl font-bold leading-tight tracking-tight md:text-4xl">
+        <h1 className="text-3xl font-extrabold leading-tight tracking-tight md:text-5xl text-kairo-white">
           {event.title}
         </h1>
 
         {/* Meta row */}
-        <div className="mt-6 flex flex-wrap gap-x-6 gap-y-3">
-          <div className="flex items-center gap-2 text-white/60">
-            <Calendar className="h-4 w-4 text-purple-400" />
-            <span className="text-sm">{formattedDate}</span>
+        <div className="mt-8 flex flex-wrap gap-x-8 gap-y-4">
+          <div className="flex items-center gap-3 text-kairo-light-gray font-medium">
+            <div className="w-10 h-10 rounded-full bg-kairo-dark-gray flex items-center justify-center text-kairo-orange">
+              <Calendar className="h-5 w-5" />
+            </div>
+            <span>{formattedDate}</span>
           </div>
-          <div className="flex items-center gap-2 text-white/60">
-            <MapPin className="h-4 w-4 text-blue-400" />
-            <span className="text-sm">{event.location}</span>
+          <div className="flex items-center gap-3 text-kairo-light-gray font-medium">
+            <div className="w-10 h-10 rounded-full bg-kairo-dark-gray flex items-center justify-center text-kairo-grad-4">
+              <MapPin className="h-5 w-5" />
+            </div>
+            <span>{event.location}</span>
           </div>
-          <div className="flex items-center gap-2 text-white/60">
-            <User className="h-4 w-4 text-cyan-400" />
-            <span className="text-sm">{event.organizer}</span>
+          <div className="flex items-center gap-3 text-kairo-light-gray font-medium">
+            <div className="w-10 h-10 rounded-full bg-kairo-dark-gray flex items-center justify-center text-kairo-orange">
+              <User className="h-5 w-5" />
+            </div>
+            <span>{event.organizer}</span>
           </div>
         </div>
 
         {/* Tags */}
         {event.tags && event.tags.length > 0 && (
-          <div className="mt-6 flex flex-wrap gap-2">
+          <div className="mt-8 flex flex-wrap gap-2">
             {event.tags.map((tag) => (
               <span
                 key={tag}
-                className="inline-flex items-center gap-1 rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs text-white/50"
+                className="inline-flex items-center gap-1.5 rounded-full bg-kairo-dark-gray border border-kairo-gray px-4 py-1.5 text-sm font-semibold text-kairo-light-gray shadow-sm"
               >
-                <Tag className="h-3 w-3" />
+                <Tag className="h-3.5 w-3.5 text-kairo-orange" />
                 {tag}
               </span>
             ))}
@@ -133,66 +138,69 @@ export default function EventDetailPage() {
         )}
 
         {/* Divider */}
-        <div className="my-8 h-px bg-gradient-to-r from-transparent via-white/10 to-transparent" />
+        <div className="my-10 h-px bg-kairo-gray/50" />
 
         {/* Description */}
         <div>
-          <h2 className="mb-4 text-lg font-semibold">About This Event</h2>
-          <p className="whitespace-pre-line leading-relaxed text-white/70">
+          <h2 className="mb-4 text-2xl font-bold text-kairo-white">About This Event</h2>
+          <p className="whitespace-pre-line leading-relaxed text-lg text-kairo-light-gray">
             {event.description}
           </p>
         </div>
 
         {/* Divider */}
-        <div className="my-8 h-px bg-gradient-to-r from-transparent via-white/10 to-transparent" />
+        <div className="my-10 h-px bg-kairo-gray/50" />
 
-        {/* Organizer Card */}
-        <div className="overflow-hidden rounded-2xl border border-white/10 bg-white/[0.03] p-6 backdrop-blur-xl">
-          <h3 className="mb-4 text-sm font-medium uppercase tracking-wider text-white/40">
-            Organized by
-          </h3>
-          <div className="flex items-center gap-4">
-            <div className="flex h-12 w-12 items-center justify-center rounded-full bg-gradient-to-br from-purple-500 to-blue-500">
-              <User className="h-5 w-5 text-white" />
-            </div>
-            <div>
-              <p className="font-semibold">{event.organizer}</p>
-              <p className="text-sm text-white/40">Event Organizer</p>
+        {/* Info Cards */}
+        <div className="grid md:grid-cols-2 gap-4">
+          {/* Organizer Card */}
+          <div className="rounded-2xl border border-kairo-gray bg-kairo-dark-gray p-6 shadow-sm">
+            <h3 className="mb-4 text-xs font-bold uppercase tracking-wider text-kairo-gray">
+              Organized by
+            </h3>
+            <div className="flex items-center gap-4">
+              <div className="flex h-14 w-14 items-center justify-center rounded-full bg-kairo-primary border border-kairo-gray">
+                <User className="h-6 w-6 text-kairo-orange" />
+              </div>
+              <div>
+                <p className="font-bold text-kairo-white text-lg">{event.organizer}</p>
+                <p className="text-sm font-medium text-kairo-light-gray">Event Organizer</p>
+              </div>
             </div>
           </div>
-        </div>
 
-        {/* Location Card */}
-        <div className="mt-4 overflow-hidden rounded-2xl border border-white/10 bg-white/[0.03] p-6 backdrop-blur-xl">
-          <h3 className="mb-4 text-sm font-medium uppercase tracking-wider text-white/40">
-            Location
-          </h3>
-          <div className="flex items-center gap-4">
-            <div className="flex h-12 w-12 items-center justify-center rounded-full bg-gradient-to-br from-blue-500 to-cyan-500">
-              <MapPin className="h-5 w-5 text-white" />
-            </div>
-            <div>
-              <p className="font-semibold">{event.location}</p>
-              <p className="text-sm text-white/40">
-                {event.city}
-                {event.isOnline ? " • Virtual Event" : ""}
-              </p>
+          {/* Location Card */}
+          <div className="rounded-2xl border border-kairo-gray bg-kairo-dark-gray p-6 shadow-sm">
+            <h3 className="mb-4 text-xs font-bold uppercase tracking-wider text-kairo-gray">
+              Location
+            </h3>
+            <div className="flex items-center gap-4">
+              <div className="flex h-14 w-14 items-center justify-center rounded-full bg-kairo-primary border border-kairo-gray">
+                <MapPin className="h-6 w-6 text-kairo-grad-4" />
+              </div>
+              <div>
+                <p className="font-bold text-kairo-white text-lg">{event.location}</p>
+                <p className="text-sm font-medium text-kairo-light-gray">
+                  {event.city}
+                  {event.isOnline ? " • Virtual" : ""}
+                </p>
+              </div>
             </div>
           </div>
         </div>
       </div>
 
       {/* ── Fixed Bottom CTA ── */}
-      <div className="fixed inset-x-0 bottom-0 z-50 border-t border-white/10 bg-[#0a0a0b]/80 px-4 py-4 backdrop-blur-xl md:px-6">
+      <div className="fixed inset-x-0 bottom-[60px] md:bottom-0 z-50 border-t border-kairo-dark-gray bg-kairo-primary/80 px-4 py-4 backdrop-blur-xl md:px-6 shadow-[0_-10px_40px_-15px_rgba(0,0,0,0.3)]">
         <div className="mx-auto max-w-3xl">
           <a
             href={event.registrationUrl}
             target="_blank"
             rel="noopener noreferrer"
-            className="flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-purple-500 via-blue-500 to-cyan-500 px-6 py-4 text-base font-semibold text-white shadow-lg shadow-purple-500/25 transition-all duration-300 hover:shadow-xl hover:shadow-purple-500/30 hover:brightness-110"
+            className="flex w-full items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-kairo-grad-2 via-kairo-orange to-kairo-grad-4 px-6 py-4 text-lg font-bold text-kairo-white shadow-lg shadow-kairo-orange/25 transition-all duration-300 hover:shadow-xl hover:shadow-kairo-orange/40 hover:scale-[1.02]"
           >
             Register Now
-            <ExternalLink className="h-4 w-4" />
+            <ExternalLink className="h-5 w-5" />
           </a>
         </div>
       </div>

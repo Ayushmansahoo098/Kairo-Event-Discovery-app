@@ -46,6 +46,17 @@
   --radius-2xl: calc(var(--radius) * 1.8);
   --radius-3xl: calc(var(--radius) * 2.2);
   --radius-4xl: calc(var(--radius) * 2.6);
+
+  --color-kairo-orange: #E85002;
+  --color-kairo-primary: #000000;
+  --color-kairo-white: #F9F9F9;
+  --color-kairo-light-gray: #A7A7A7;
+  --color-kairo-gray: #646464;
+  --color-kairo-dark-gray: #333333;
+  --color-kairo-grad-1: #000000;
+  --color-kairo-grad-2: #C10801;
+  --color-kairo-grad-3: #F16001;
+  --color-kairo-grad-4: #D9C3AB;
 }
 
 :root {

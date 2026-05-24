@@ -2,6 +2,7 @@
 
 import { useState, useMemo } from "react";
 import { Compass, X } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
 import { SearchBar } from "@/components/search-bar";
 import { CategoryFilter } from "@/components/category-filter";
 import { EventCard } from "@/components/event-card";
@@ -51,16 +52,16 @@ export default function FeedPage() {
   };
 
   return (
-    <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
+    <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
       {/* ── Header ── */}
-      <div className="mb-8">
-        <div className="flex items-center gap-3">
-          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-purple-500/20 to-blue-500/20 ring-1 ring-white/10">
-            <Compass className="h-5 w-5 text-purple-400" />
+      <div className="mb-10">
+        <div className="flex items-center gap-4">
+          <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-kairo-dark-gray shadow-sm border border-kairo-gray">
+            <Compass className="h-6 w-6 text-kairo-orange" />
           </div>
           <div>
-            <h1 className="text-3xl font-bold tracking-tight text-white">Discover</h1>
-            <p className="text-sm text-white/40">
+            <h1 className="text-3xl md:text-4xl font-extrabold tracking-tight text-kairo-white">Discover</h1>
+            <p className="text-base text-kairo-light-gray font-medium">
               Find events that match your vibe
             </p>
           </div>
@@ -76,7 +77,7 @@ export default function FeedPage() {
       />
 
       {/* ── Category Filter ── */}
-      <div className="mb-6">
+      <div className="mb-8">
         <CategoryFilter
           selectedCategory={selectedCategory}
           onSelectCategory={setSelectedCategory}
@@ -85,9 +86,9 @@ export default function FeedPage() {
 
       {/* ── Results Count ── */}
       <div className="mb-6 flex items-center justify-between">
-        <p className="text-sm text-white/40">
+        <p className="text-sm font-medium text-kairo-light-gray">
           Showing{" "}
-          <span className="font-medium text-white/70">
+          <span className="font-bold text-kairo-white">
             {filteredEvents.length}
           </span>{" "}
           event{filteredEvents.length !== 1 ? "s" : ""}
@@ -96,9 +97,9 @@ export default function FeedPage() {
         {hasActiveFilters && (
           <button
             onClick={clearFilters}
-            className="inline-flex items-center gap-1.5 rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs text-white/50 transition-colors hover:border-white/20 hover:text-white/80"
+            className="inline-flex items-center gap-1.5 rounded-full border border-kairo-gray bg-kairo-dark-gray px-3 py-1.5 text-xs font-semibold text-kairo-light-gray shadow-sm transition-colors hover:border-kairo-orange hover:text-kairo-orange hover:bg-kairo-gray"
           >
-            <X className="h-3 w-3" />
+            <X className="h-3.5 w-3.5" />
             Clear filters
           </button>
         )}
@@ -106,33 +107,38 @@ export default function FeedPage() {
 
       {/* ── Event Grid ── */}
       {filteredEvents.length > 0 ? (
-        <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
-          {filteredEvents.map((event, index) => (
-            <div
-              key={event.id}
-              className="animate-in fade-in slide-in-from-bottom-4 fill-mode-both"
-              style={{ animationDelay: `${index * 60}ms`, animationDuration: "500ms" }}
-            >
-              <EventCard event={event} />
-            </div>
-          ))}
-        </div>
+        <motion.div layout className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
+          <AnimatePresence mode="popLayout">
+            {filteredEvents.map((event) => (
+              <motion.div
+                layout
+                key={event.id}
+                initial={{ opacity: 0, scale: 0.8, filter: "blur(10px)" }}
+                animate={{ opacity: 1, scale: 1, filter: "blur(0px)" }}
+                exit={{ opacity: 0, scale: 0.8, filter: "blur(10px)" }}
+                transition={{ type: "spring", stiffness: 350, damping: 25, mass: 1 }}
+              >
+                <EventCard event={event} />
+              </motion.div>
+            ))}
+          </AnimatePresence>
+        </motion.div>
       ) : (
         /* ── Empty State ── */
-        <div className="flex flex-col items-center justify-center py-24 text-center">
-          <div className="mb-6 flex h-20 w-20 items-center justify-center rounded-full border border-white/10 bg-white/5">
-            <Compass className="h-10 w-10 text-white/20" />
+        <div className="flex flex-col items-center justify-center py-24 text-center bg-kairo-dark-gray rounded-3xl border border-kairo-gray shadow-sm">
+          <div className="mb-6 flex h-20 w-20 items-center justify-center rounded-full bg-kairo-primary border border-kairo-dark-gray">
+            <Compass className="h-10 w-10 text-kairo-gray" />
           </div>
-          <h3 className="mb-2 text-xl font-semibold text-white/80">
+          <h3 className="mb-2 text-xl font-bold text-kairo-white">
             No events found
           </h3>
-          <p className="mb-8 max-w-sm text-white/40">
+          <p className="mb-8 max-w-sm text-kairo-light-gray text-lg">
             We couldn&apos;t find any events matching your filters. Try
             adjusting your search or browse all events.
           </p>
           <button
             onClick={clearFilters}
-            className="inline-flex items-center gap-2 rounded-full bg-gradient-to-r from-purple-500 to-blue-500 px-6 py-3 text-sm font-semibold text-white shadow-lg shadow-purple-500/20 transition-all hover:shadow-xl hover:brightness-110"
+            className="inline-flex items-center gap-2 rounded-full bg-kairo-orange px-8 py-4 text-base font-bold text-kairo-white shadow-lg shadow-kairo-orange/25 transition-all hover:shadow-xl hover:scale-105"
           >
             Reset Filters
           </button>

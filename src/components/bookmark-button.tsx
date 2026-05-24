@@ -28,8 +28,8 @@ export function BookmarkButton({ eventId, className }: BookmarkButtonProps) {
       onClick={handleClick}
       className={cn(
         "p-2 rounded-full transition-all duration-300",
-        "hover:bg-white/10 active:scale-95",
-        bookmarked ? "text-rose-500" : "text-white/60 hover:text-white",
+        "hover:scale-110 active:scale-95",
+        bookmarked ? "text-kairo-grad-2 hover:text-kairo-grad-2/80" : "text-kairo-gray hover:text-kairo-grad-2",
         isAnimating && "animate-ping-once",
         className
       )}

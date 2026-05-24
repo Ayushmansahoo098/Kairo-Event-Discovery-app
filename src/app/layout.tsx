@@ -1,15 +1,16 @@
 import type { Metadata, Viewport } from "next";
-import { Inter, Geist } from "next/font/google";
+import { Plus_Jakarta_Sans } from "next/font/google";
 import "./globals.css";
 import { BookmarkProvider } from "@/context/bookmark-context";
+import { AuthProvider } from "@/context/auth-context";
 import { Navbar } from "@/components/navbar";
+import { CustomCursor } from "@/components/custom-cursor";
+import { InitialLoader } from "@/components/initial-loader";
 import { cn } from "@/lib/utils";
 
-const geist = Geist({subsets:['latin'],variable:'--font-sans'});
-
-const inter = Inter({
+const plusJakarta = Plus_Jakarta_Sans({
   subsets: ["latin"],
-  variable: "--font-inter",
+  variable: "--font-sans",
 });
 
 export const metadata: Metadata = {
@@ -33,12 +34,16 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className={cn("dark", inter.variable, "font-sans", geist.variable)}>
-      <body className="min-h-screen bg-[#0a0a0b] font-sans text-white antialiased">
-        <BookmarkProvider>
-          <Navbar />
-          <main className="pb-20 md:pb-0">{children}</main>
-        </BookmarkProvider>
+    <html lang="en" className={cn(plusJakarta.variable, "font-sans")}>
+      <body className="min-h-screen bg-kairo-primary font-sans text-kairo-white antialiased cursor-default">
+        <InitialLoader />
+        <CustomCursor />
+        <AuthProvider>
+          <BookmarkProvider>
+            <Navbar />
+            <main className="pb-20 md:pb-0 md:pt-16">{children}</main>
+          </BookmarkProvider>
+        </AuthProvider>
       </body>
     </html>
   );

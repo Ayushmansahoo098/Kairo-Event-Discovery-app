@@ -2,23 +2,23 @@ import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 
 /**
- * Kairo — Next.js Edge Middleware for Admin Route Protection.
+ * Kairo — Next.js Proxy for admin and scraper route protection.
  *
  * Protects:
  *  - /admin/*     (observability dashboard, admin tools)
  *  - /api/sync/*  (scraper sync triggers)
  *  - /api/scrape/* (individual scraper triggers)
  *
- * Authorization Methods:
- *  1. Session Cookie: `kairo_user_email` set by the client-side AuthProvider on login.
+ * Authorization methods:
+ *  1. Session cookie: `kairo_user_email` set by the client-side AuthProvider on login.
  *     The cookie value must match `ADMIN_EMAIL` env var.
- *  2. Cron Secret Header: `x-kairo-sync-key` must match `CRON_SECRET` env var.
- *     This allows automated cron jobs (e.g., Vercel Cron) to trigger syncs without browser auth.
+ *  2. Cron secret header: `x-kairo-sync-key` must match `CRON_SECRET` env var.
+ *     This allows automated schedulers to trigger syncs without browser auth.
  */
-export function middleware(request: NextRequest) {
+export function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
-  // Only gate admin and sync API routes
+  // Only gate admin and sync API routes.
   const isAdminRoute = pathname.startsWith("/admin");
   const isSyncRoute = pathname.startsWith("/api/sync") || pathname.startsWith("/api/scrape");
 
@@ -29,40 +29,38 @@ export function middleware(request: NextRequest) {
   const adminEmail = process.env.ADMIN_EMAIL || "";
   const cronSecret = process.env.CRON_SECRET || "";
 
-  // --- Method 1: Check for programmatic cron secret header (API routes only) ---
+  // Method 1: Check for programmatic cron secret header (API routes only).
   if (isSyncRoute && cronSecret) {
     const requestSecret = request.headers.get("x-kairo-sync-key");
     if (requestSecret === cronSecret) {
-      return NextResponse.next(); // Authorized cron caller
+      return NextResponse.next();
     }
   }
 
-  // --- Method 2: Check for session cookie (browser admin users) ---
+  // Method 2: Check for session cookie (browser admin users).
   const userEmail = request.cookies.get("kairo_user_email")?.value;
 
   if (!userEmail) {
-    // Not authenticated at all — redirect to login page for admin routes,
-    // return 401 for API routes
     if (isAdminRoute) {
       const loginUrl = new URL("/login", request.url);
       loginUrl.searchParams.set("redirect", pathname);
       return NextResponse.redirect(loginUrl);
     }
+
     return NextResponse.json(
       { success: false, message: "Unauthorized. Authentication required." },
       { status: 401 }
     );
   }
 
-  // Check if the authenticated user is in the admin whitelist
   if (adminEmail) {
-    const allowedEmails = adminEmail.split(",").map((e) => e.trim().toLowerCase());
+    const allowedEmails = adminEmail.split(",").map((email) => email.trim().toLowerCase());
     if (!allowedEmails.includes(userEmail.toLowerCase())) {
-      // User is authenticated but NOT an admin
       if (isAdminRoute) {
         const homeUrl = new URL("/", request.url);
         return NextResponse.redirect(homeUrl);
       }
+
       return NextResponse.json(
         { success: false, message: "Forbidden. Admin access required." },
         { status: 403 }
@@ -70,7 +68,6 @@ export function middleware(request: NextRequest) {
     }
   }
 
-  // Authorized — allow through
   return NextResponse.next();
 }
 

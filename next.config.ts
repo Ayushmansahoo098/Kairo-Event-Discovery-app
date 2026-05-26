@@ -8,6 +8,7 @@ const withSerwist = withSerwistInit({
 });
 
 const nextConfig: NextConfig = {
+  outputFileTracingRoot: process.cwd(),
   serverExternalPackages: ["firebase-admin"],
   images: {
     remotePatterns: [

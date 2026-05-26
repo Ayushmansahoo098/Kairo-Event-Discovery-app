@@ -1,5 +1,6 @@
 "use client";
 
+import { useState, useEffect } from "react";
 import { Search, SlidersHorizontal } from "lucide-react";
 import { getCities } from "@/lib/mock-data";
 
@@ -11,7 +12,19 @@ interface SearchBarProps {
 }
 
 export function SearchBar({ searchQuery, onSearchChange, selectedCity, onCityChange }: SearchBarProps) {
-  const cities = getCities();
+  const [cities, setCities] = useState<string[]>([]);
+
+  useEffect(() => {
+    const fetchCities = async () => {
+      try {
+        const list = await getCities();
+        setCities(list);
+      } catch (err) {
+        console.error("Failed to load cities in SearchBar:", err);
+      }
+    };
+    fetchCities();
+  }, []);
 
   return (
     <div className="flex flex-col sm:flex-row gap-4 mb-6">

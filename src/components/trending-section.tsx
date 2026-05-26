@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useRef, useState, useEffect } from "react";
 import { getTrendingEvents } from "@/lib/mock-data";
 import Link from "next/link";
 import Image from "next/image";
@@ -13,7 +13,19 @@ interface TrendingSectionProps {
 
 export function TrendingSection({ onHoverEvent }: TrendingSectionProps) {
   const containerRef = useRef(null);
-  const trendingEvents = getTrendingEvents();
+  const [trendingEvents, setTrendingEvents] = useState<any[]>([]);
+
+  useEffect(() => {
+    const fetchTrending = async () => {
+      try {
+        const list = await getTrendingEvents();
+        setTrendingEvents(list);
+      } catch (err) {
+        console.error("TrendingSection trending events fetch failed:", err);
+      }
+    };
+    fetchTrending();
+  }, []);
 
   const { scrollYProgress } = useScroll({
     target: containerRef,

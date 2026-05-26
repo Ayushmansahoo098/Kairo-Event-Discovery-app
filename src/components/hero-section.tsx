@@ -2,13 +2,47 @@
 
 import { useRef, useEffect, useState } from "react";
 import Link from "next/link";
-import { ArrowRight, Sparkles, ChevronDown } from "lucide-react";
-import { motion, useScroll, useTransform, useSpring, Variants } from "framer-motion";
+import { useRouter } from "next/navigation";
+import { ArrowRight, Sparkles, ChevronDown, X, Mail, Lock, Loader2 } from "lucide-react";
+import { motion, useScroll, useTransform, useSpring, Variants, AnimatePresence } from "framer-motion";
 import { getTrendingEvents } from "@/lib/mock-data";
 import Image from "next/image";
+import { useAuthContext } from "@/context/auth-context";
 
 export function HeroSection() {
   const containerRef = useRef<HTMLDivElement>(null);
+  const { user, login } = useAuthContext();
+  const router = useRouter();
+
+  const [showAuthModal, setShowAuthModal] = useState(false);
+  const [authEmail, setAuthEmail] = useState("");
+  const [authPassword, setAuthPassword] = useState("");
+  const [isAuthSubmitting, setIsAuthSubmitting] = useState(false);
+  const [authError, setAuthError] = useState("");
+
+  const handleExploreClick = (e: React.MouseEvent) => {
+    if (!user) {
+      e.preventDefault();
+      setShowAuthModal(true);
+    }
+  };
+
+  const handleAuthSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!authEmail || !authPassword) return;
+
+    setIsAuthSubmitting(true);
+    setAuthError("");
+    try {
+      await login(authEmail, authPassword);
+      setShowAuthModal(false);
+      router.push("/feed");
+    } catch (error: any) {
+      console.error("Hero Auth failed:", error);
+      setAuthError(error.message || "Failed to authenticate. Please check your credentials.");
+      setIsAuthSubmitting(false);
+    }
+  };
   
   // Mouse position for subtle interactive background movement
   const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
@@ -41,7 +75,19 @@ export function HeroSection() {
   const introY = useTransform(smoothScroll, [0, 0.25], [0, -50]);
 
   // Data
-  const trendingEvents = getTrendingEvents().slice(0, 3);
+  const [trendingEvents, setTrendingEvents] = useState<any[]>([]);
+
+  useEffect(() => {
+    const fetchTrending = async () => {
+      try {
+        const list = await getTrendingEvents();
+        setTrendingEvents(list.slice(0, 3));
+      } catch (err) {
+        console.error("HeroSection trending events fetch failed:", err);
+      }
+    };
+    fetchTrending();
+  }, []);
 
   // Stagger reveal animations for the main text
   const textContainerVariants: Variants = {
@@ -139,6 +185,7 @@ export function HeroSection() {
         >
           <Link
             href="/feed"
+            onClick={handleExploreClick}
             className="group relative overflow-hidden inline-flex items-center justify-center gap-3 bg-kairo-orange text-kairo-white px-8 sm:px-10 py-4 sm:py-5 rounded-full font-bold text-base sm:text-lg transition-all duration-300 hover:scale-105 hover:shadow-[0_0_40px_rgba(232,80,2,0.4)]"
           >
             <span className="relative z-10 flex items-center gap-2">
@@ -254,6 +301,7 @@ export function HeroSection() {
             <div className="pt-4">
               <Link
                 href="/feed"
+                onClick={handleExploreClick}
                 className="group relative overflow-hidden inline-flex items-center justify-center gap-3 bg-kairo-orange text-kairo-white px-8 py-4 rounded-full font-bold text-base transition-all duration-300 hover:scale-105 hover:shadow-[0_0_40px_rgba(232,80,2,0.4)] animate-pulse"
               >
                 <span className="relative z-10 flex items-center gap-2">
@@ -297,6 +345,113 @@ export function HeroSection() {
           </div>
         </div>
       </div>
+
+      <AnimatePresence>
+        {showAuthModal && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-kairo-primary/80 backdrop-blur-xl"
+          >
+            {/* Modal Container */}
+            <motion.div
+              initial={{ scale: 0.9, y: 20, opacity: 0 }}
+              animate={{ scale: 1, y: 0, opacity: 1 }}
+              exit={{ scale: 0.9, y: 20, opacity: 0 }}
+              transition={{ type: "spring", duration: 0.5 }}
+              className="relative w-full max-w-md bg-kairo-dark-gray border border-kairo-gray rounded-3xl p-8 shadow-2xl text-left"
+            >
+              {/* Close Button */}
+              <button
+                onClick={() => setShowAuthModal(false)}
+                className="absolute top-5 right-5 text-kairo-gray hover:text-kairo-white p-2 rounded-full hover:bg-kairo-primary/50 transition-all duration-300 cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+
+              {/* Header */}
+              <div className="flex flex-col items-center text-center mb-6">
+                <div className="w-12 h-12 bg-kairo-orange/10 border border-kairo-orange/20 rounded-2xl flex items-center justify-center text-kairo-orange mb-4">
+                  <Sparkles className="w-6 h-6 animate-pulse" />
+                </div>
+                <h3 className="text-3xl font-extrabold tracking-tight text-kairo-white">
+                  Step Into Kairo
+                </h3>
+                <p className="mt-2 text-sm text-kairo-light-gray">
+                  Sign in or auto-create an account instantly to explore dynamic concerts, hackathons, and exclusive enclaves.
+                </p>
+              </div>
+
+              {/* Form */}
+              <form onSubmit={handleAuthSubmit} className="space-y-4">
+                {authError && (
+                  <div className="p-3 bg-red-500/10 border border-red-500/20 text-red-400 text-xs rounded-xl font-medium">
+                    {authError}
+                  </div>
+                )}
+
+                <div>
+                  <label className="block text-xs font-semibold text-kairo-gray uppercase tracking-wider mb-1">
+                    Email Address
+                  </label>
+                  <div className="relative">
+                    <span className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-kairo-gray">
+                      <Mail className="w-4 h-4" />
+                    </span>
+                    <input
+                      type="email"
+                      required
+                      value={authEmail}
+                      onChange={(e) => setAuthEmail(e.target.value)}
+                      placeholder="alex@kairo.com"
+                      className="block w-full pl-10 pr-4 py-3 bg-kairo-primary border border-kairo-gray rounded-2xl text-kairo-white placeholder-kairo-gray focus:outline-none focus:border-kairo-orange focus:ring-4 focus:ring-kairo-orange/10 transition-all text-sm"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-kairo-gray uppercase tracking-wider mb-1">
+                    Password
+                  </label>
+                  <div className="relative">
+                    <span className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-kairo-gray">
+                      <Lock className="w-4 h-4" />
+                    </span>
+                    <input
+                      type="password"
+                      required
+                      value={authPassword}
+                      onChange={(e) => setAuthPassword(e.target.value)}
+                      placeholder="••••••••"
+                      className="block w-full pl-10 pr-4 py-3 bg-kairo-primary border border-kairo-gray rounded-2xl text-kairo-white placeholder-kairo-gray focus:outline-none focus:border-kairo-orange focus:ring-4 focus:ring-kairo-orange/10 transition-all text-sm"
+                    />
+                  </div>
+                </div>
+
+                <button
+                  type="submit"
+                  disabled={isAuthSubmitting || !authEmail || !authPassword}
+                  className="group relative w-full flex justify-center py-4 px-4 border border-transparent text-base font-bold rounded-2xl text-kairo-white bg-kairo-orange hover:bg-kairo-grad-2 hover:shadow-xl hover:shadow-kairo-orange/20 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed mt-6 cursor-pointer"
+                >
+                  {isAuthSubmitting ? (
+                    <Loader2 className="w-5 h-5 animate-spin" />
+                  ) : (
+                    <>
+                      Enter the Enclave
+                      <ArrowRight className="absolute right-6 top-1/2 -translate-y-1/2 w-5 h-5 group-hover:translate-x-1 transition-transform" />
+                    </>
+                  )}
+                </button>
+              </form>
+
+              <p className="text-center text-kairo-gray text-xs mt-4">
+                Any email/password combination will auto-create an account!
+              </p>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
     </div>
   );

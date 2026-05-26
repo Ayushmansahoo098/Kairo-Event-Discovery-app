@@ -8,7 +8,39 @@ const withSerwist = withSerwistInit({
 });
 
 const nextConfig: NextConfig = {
-  // Add image configuration so Next.js allows images from the required domains if any
+  serverExternalPackages: ["firebase-admin"],
+  images: {
+    remotePatterns: [
+      {
+        protocol: "https",
+        hostname: "media.hackerearth.com",
+      },
+      {
+        protocol: "https",
+        hostname: "d8it4huxumps7.cloudfront.net",
+      },
+      {
+        protocol: "https",
+        hostname: "**.devfolio.co",
+      },
+      {
+        protocol: "https",
+        hostname: "devfolio.co",
+      },
+      {
+        protocol: "https",
+        hostname: "img.evbuc.com",
+      },
+      {
+        protocol: "https",
+        hostname: "images.unsplash.com",
+      },
+      {
+        protocol: "https",
+        hostname: "api.dicebear.com",
+      },
+    ],
+  },
 };
 
 export default withSerwist(nextConfig);

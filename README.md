@@ -107,7 +107,7 @@ Finding the right hackathon or tech event means checking **4+ platforms daily**.
 
 | Feature | Description |
 |---------|-------------|
-| **Edge Middleware** | Route protection for `/admin/*` and `/api/sync/*` endpoints |
+| **Proxy Guard** | Route protection for `/admin/*` and `/api/sync/*` endpoints |
 | **Admin Whitelist** | Email-based access control via session cookies |
 | **Cron Authorization** | Secret header support for automated sync triggers |
 | **Concurrency Lock** | Firestore-based mutex prevents overlapping scraper runs |
@@ -229,7 +229,7 @@ src/
 │   │   └── normalize.ts        # Schema normalizer + expired pruner
 │   └── search/
 │       └── search.ts           # Fuzzy search + filters
-└── middleware.ts               # 🛡️ Edge route protection
+└── proxy.ts                    # 🛡️ Route protection
 ```
 
 ---
@@ -300,7 +300,7 @@ src/
 
 | Protection | Mechanism |
 |-----------|-----------|
-| **Admin Routes** | Edge middleware reads `kairo_user_email` cookie → checks against `ADMIN_EMAIL` whitelist |
+| **Admin Routes** | Proxy reads `kairo_user_email` cookie → checks against `ADMIN_EMAIL` whitelist |
 | **Sync API** | Validates `x-kairo-sync-key` header against `CRON_SECRET` env var |
 | **Session Management** | Cookie set on Firebase Auth login, cleared on logout (7-day TTL) |
 | **Concurrency** | Firestore document lock (`/locks/sync`) with 20-min stale threshold |
@@ -324,29 +324,34 @@ src/
 
 ## 🚢 Deployment
 
-### Vercel (Recommended)
+### Docker / Node Server (Recommended)
 
-1. Push to GitHub
-2. Import in [Vercel Dashboard](https://vercel.com/new)
-3. Add all `.env.local` variables to Vercel Environment Variables
-4. Deploy — Vercel auto-detects Next.js
+This app is best deployed as a containerized Node server because the scrapers use Playwright.
 
-### Cron Setup (Vercel)
+1. Build locally with Docker:
 
-Add to `vercel.json`:
-
-```json
-{
-  "crons": [
-    {
-      "path": "/api/sync/all",
-      "schedule": "0 */6 * * *"
-    }
-  ]
-}
+```bash
+docker build -t kairo .
 ```
 
-This syncs events every 6 hours. Include `CRON_SECRET` in your Vercel env.
+2. Run it locally with your environment variables:
+
+```bash
+docker run --rm -p 3000:3000 --env-file .env.local kairo
+```
+
+3. Deploy the same `Dockerfile` to Railway, Render, Cloud Run, Fly.io, or any host that supports Docker.
+
+4. Set the same environment variables from `.env.local` in the platform dashboard.
+
+5. Trigger sync jobs with your platform scheduler or an external cron service:
+
+```bash
+curl -X POST https://your-domain.com/api/sync/all \
+  -H "x-kairo-sync-key: your_cron_secret_here"
+```
+
+If you want a scheduled sync, run that request every 6 hours from your host's scheduler, GitHub Actions, or an external cron service.
 
 ---
 
@@ -356,7 +361,7 @@ This syncs events every 6 hours. Include `CRON_SECRET` in your Vercel env.
 - [x] Deduplication + ranking + trending engine
 - [x] Firebase Auth with glassmorphic login modal
 - [x] Admin observability dashboard
-- [x] Edge middleware route protection
+- [x] Proxy route protection
 - [x] Concurrency lock for sync jobs
 - [x] Mobile UX with urgency badges & source pills
 - [x] Interaction analytics telemetry

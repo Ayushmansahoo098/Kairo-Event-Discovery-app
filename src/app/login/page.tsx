@@ -24,10 +24,14 @@ export default function LoginPage() {
     if (!email || !password) return;
 
     setIsSubmitting(true);
-    // Simulate network delay
-    await new Promise((resolve) => setTimeout(resolve, 800));
-    login(email);
-    router.push("/profile");
+    try {
+      await login(email, password);
+      router.push("/profile");
+    } catch (error: any) {
+      console.error("Login failed:", error);
+      alert(error.message || "Authentication failed. Please verify your credentials.");
+      setIsSubmitting(false);
+    }
   };
 
   if (isLoading || user) {

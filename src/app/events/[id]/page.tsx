@@ -1,5 +1,6 @@
 "use client";
 
+import { useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Image from "next/image";
 import {
@@ -10,15 +11,43 @@ import {
   ExternalLink,
   Globe,
   Tag,
+  Loader2,
 } from "lucide-react";
 import { getEventById } from "@/lib/mock-data";
 import { BookmarkButton } from "@/components/bookmark-button";
+import { Event } from "@/lib/types";
 
 export default function EventDetailPage() {
   const params = useParams();
   const router = useRouter();
   const eventId = params.id as string;
-  const event = getEventById(eventId);
+  const [event, setEvent] = useState<Event | null | undefined>(undefined);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchEvent = async () => {
+      try {
+        const data = await getEventById(eventId);
+        setEvent(data);
+      } catch (err) {
+        console.error("Failed to fetch event:", err);
+        setEvent(null);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchEvent();
+  }, [eventId]);
+
+  /* ── Loading State ── */
+  if (loading) {
+    return (
+      <div className="min-h-[80vh] flex flex-col items-center justify-center bg-kairo-primary">
+        <Loader2 className="w-8 h-8 animate-spin text-kairo-orange" />
+        <p className="mt-4 text-kairo-light-gray font-bold tracking-widest text-xs uppercase">Decoding Event...</p>
+      </div>
+    );
+  }
 
   /* ── Not Found ── */
   if (!event) {

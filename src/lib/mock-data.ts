@@ -1,6 +1,12 @@
+import { collection, doc, getDoc, getDocs, query, where } from "firebase/firestore";
+import { db } from "./firebase";
 import { Category, CategoryInfo, Event } from "./types";
+import { dedupeEvents } from "./feed/dedupe";
+import { rankEvents } from "./feed/ranking";
+import { updateTrendingEvents } from "./feed/trending";
 
-export const events: Event[] = [
+// Keeping static mock events for seeding and initial guest fallback
+export const staticEvents: Event[] = [
   // Hackathons
   {
     id: "hack-01",
@@ -373,6 +379,9 @@ export const events: Event[] = [
   },
 ];
 
+// Deprecated exported events array (retained for types & fallback)
+export const events: Event[] = staticEvents;
+
 export const categories: CategoryInfo[] = [
   { id: "hackathon", name: "Hackathons", icon: "Code", color: "text-violet-500", count: 3 },
   { id: "workshop", name: "Workshops", icon: "GraduationCap", color: "text-blue-500", count: 3 },
@@ -383,25 +392,113 @@ export const categories: CategoryInfo[] = [
   { id: "startup", name: "Startups", icon: "Rocket", color: "text-cyan-500", count: 3 },
 ];
 
-export function getEventById(id: string): Event | undefined {
-  return events.find((e) => e.id === id);
+/**
+ * Helper to check if client Firestore config is loaded and valid.
+ */
+function isFirebaseConfigured(): boolean {
+  return !!process.env.NEXT_PUBLIC_FIREBASE_API_KEY && process.env.NEXT_PUBLIC_FIREBASE_API_KEY !== "YOUR_API_KEY_HERE";
 }
 
-export function getEventsByCategory(category: Category): Event[] {
-  return events.filter((e) => e.category === category);
+/**
+ * Fetches all events from Cloud Firestore with staticEvents fallback.
+ */
+export async function getEvents(): Promise<Event[]> {
+  let list: Event[] = [];
+  if (!isFirebaseConfigured()) {
+    list = staticEvents;
+  } else {
+    try {
+      const querySnapshot = await getDocs(collection(db, "events"));
+      if (querySnapshot.empty) {
+        list = []; // NO demo fallback, return empty representing uncompleted scrapes
+      } else {
+        querySnapshot.forEach((doc) => {
+          list.push({ id: doc.id, ...doc.data() } as Event);
+        });
+      }
+    } catch (error) {
+      console.error("Firestore getEvents error:", error);
+      list = []; // Return empty on DB error
+    }
+  }
+
+  // Execute Ingestion & Intelligence Feed Pipeline
+  try {
+    const cleanList = dedupeEvents(list);
+    const trendingList = updateTrendingEvents(cleanList);
+    const rankedList = rankEvents(trendingList);
+    return rankedList;
+  } catch (pipeErr) {
+    console.error("Feed Pipeline execution failed, returning raw list:", pipeErr);
+    return list;
+  }
 }
 
-export function getTrendingEvents(): Event[] {
-  return events.filter((e) => e.isTrending);
+/**
+ * Fetches a single event document by ID.
+ */
+export async function getEventById(id: string): Promise<Event | undefined> {
+  if (!isFirebaseConfigured()) {
+    return staticEvents.find((e) => e.id === id);
+  }
+  try {
+    const docSnap = await getDoc(doc(db, "events", id));
+    if (docSnap.exists()) {
+      return { id: docSnap.id, ...docSnap.data() } as Event;
+    }
+    return undefined; // Only display scraped events
+  } catch (error) {
+    console.error(`Firestore getEventById(${id}) error:`, error);
+    return undefined;
+  }
 }
 
-export function getEventsByCity(city: string): Event[] {
-  return events.filter((e) => e.city.toLowerCase() === city.toLowerCase());
+/**
+ * Fetches events filtered by category using the ranked/deduped pipeline.
+ */
+export async function getEventsByCategory(category: Category): Promise<Event[]> {
+  try {
+    const all = await getEvents();
+    return all.filter((e) => e.category === category);
+  } catch (error) {
+    console.error("getEventsByCategory error, falling back:", error);
+    return staticEvents.filter((e) => e.category === category);
+  }
 }
 
-export function searchEvents(query: string): Event[] {
-  const q = query.toLowerCase();
-  return events.filter(
+/**
+ * Fetches trending events dynamically determined by the pipeline.
+ */
+export async function getTrendingEvents(): Promise<Event[]> {
+  try {
+    const all = await getEvents();
+    return all.filter((e) => e.isTrending);
+  } catch (error) {
+    console.error("getTrendingEvents error, falling back:", error);
+    return staticEvents.filter((e) => e.isTrending);
+  }
+}
+
+/**
+ * Fetches events in a given city using the ranked/deduped pipeline.
+ */
+export async function getEventsByCity(city: string): Promise<Event[]> {
+  try {
+    const all = await getEvents();
+    return all.filter((e) => e.city.toLowerCase() === city.toLowerCase());
+  } catch (error) {
+    console.error("Firestore getEventsByCity error, falling back:", error);
+    return staticEvents.filter((e) => e.city.toLowerCase() === city.toLowerCase());
+  }
+}
+
+/**
+ * Performs client-side filtering over retrieved database events.
+ */
+export async function searchEvents(queryStr: string): Promise<Event[]> {
+  const q = queryStr.toLowerCase();
+  const all = await getEvents();
+  return all.filter(
     (e) =>
       e.title.toLowerCase().includes(q) ||
       e.description.toLowerCase().includes(q) ||
@@ -411,6 +508,10 @@ export function searchEvents(query: string): Event[] {
   );
 }
 
-export function getCities(): string[] {
-  return [...new Set(events.map((e) => e.city))];
+/**
+ * Gets unique cities represented in the database.
+ */
+export async function getCities(): Promise<string[]> {
+  const all = await getEvents();
+  return [...new Set(all.map((e) => e.city))];
 }

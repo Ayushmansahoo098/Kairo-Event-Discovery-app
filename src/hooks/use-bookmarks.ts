@@ -1,6 +1,18 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
+import { useAuthContext } from '@/context/auth-context';
+import { db } from '@/lib/firebase';
+import {
+  collection,
+  doc,
+  onSnapshot,
+  setDoc,
+  deleteDoc,
+  serverTimestamp,
+  writeBatch,
+  getDocs,
+} from 'firebase/firestore';
 
 const STORAGE_KEY = 'kairo-bookmarks';
 
@@ -15,26 +27,62 @@ function readBookmarks(): string[] {
 }
 
 export function useBookmarks() {
+  const { user } = useAuthContext();
   const [bookmarks, setBookmarks] = useState<string[]>([]);
 
+  // Synchronize state from LocalStorage (Guest) or Firestore (Authenticated)
   useEffect(() => {
-    setBookmarks(readBookmarks());
-  }, []);
+    if (!user) {
+      // Guest mode fallback
+      setBookmarks(readBookmarks());
+      return;
+    }
 
-  const persist = useCallback((next: string[]) => {
-    setBookmarks(next);
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
-  }, []);
+    // Authenticated mode: Sync from Firestore subcollection in real time
+    const bookmarksColRef = collection(db, 'users', user.id, 'bookmarks');
+
+    const unsubscribe = onSnapshot(
+      bookmarksColRef,
+      (snapshot) => {
+        const ids = snapshot.docs.map((doc) => doc.id);
+        setBookmarks(ids);
+      },
+      (error) => {
+        console.error('Error listening to Firestore bookmarks snapshot:', error);
+      }
+    );
+
+    return () => unsubscribe();
+  }, [user]);
 
   const toggleBookmark = useCallback(
-    (id: string) => {
-      const current = readBookmarks();
-      const next = current.includes(id)
-        ? current.filter((b) => b !== id)
-        : [...current, id];
-      persist(next);
+    async (id: string) => {
+      if (!user) {
+        // Guest mode update
+        const current = readBookmarks();
+        const next = current.includes(id)
+          ? current.filter((b) => b !== id)
+          : [...current, id];
+        setBookmarks(next);
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
+        return;
+      }
+
+      // Authenticated mode update
+      try {
+        const bookmarkDocRef = doc(db, 'users', user.id, 'bookmarks', id);
+        if (bookmarks.includes(id)) {
+          await deleteDoc(bookmarkDocRef);
+        } else {
+          await setDoc(bookmarkDocRef, {
+            savedAt: serverTimestamp(),
+          });
+        }
+      } catch (error) {
+        console.error('Failed to toggle Firestore bookmark:', error);
+      }
     },
-    [persist]
+    [user, bookmarks]
   );
 
   const isBookmarked = useCallback(
@@ -42,9 +90,29 @@ export function useBookmarks() {
     [bookmarks]
   );
 
-  const clearBookmarks = useCallback(() => {
-    persist([]);
-  }, [persist]);
+  const clearBookmarks = useCallback(async () => {
+    if (!user) {
+      // Guest mode clear
+      setBookmarks([]);
+      localStorage.setItem(STORAGE_KEY, JSON.stringify([]));
+      return;
+    }
+
+    // Authenticated mode clear
+    try {
+      const bookmarksColRef = collection(db, 'users', user.id, 'bookmarks');
+      const snapshot = await getDocs(bookmarksColRef);
+      const batch = writeBatch(db);
+
+      snapshot.docs.forEach((doc) => {
+        batch.delete(doc.ref);
+      });
+
+      await batch.commit();
+    } catch (error) {
+      console.error('Failed to clear Firestore bookmarks:', error);
+    }
+  }, [user]);
 
   return { bookmarks, toggleBookmark, isBookmarked, clearBookmarks } as const;
 }

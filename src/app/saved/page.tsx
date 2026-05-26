@@ -1,21 +1,35 @@
 "use client";
 
-import { useMemo } from "react";
+import { useMemo, useState, useEffect } from "react";
 import Link from "next/link";
-import { Heart, Compass } from "lucide-react";
+import { Heart, Compass, Loader2 } from "lucide-react";
 import { EventCard } from "@/components/event-card";
 import { useBookmarkContext } from "@/context/bookmark-context";
-import { getEventById } from "@/lib/mock-data";
+import { getEvents } from "@/lib/mock-data";
+import { Event } from "@/lib/types";
 
 export default function SavedPage() {
   const { bookmarks } = useBookmarkContext();
+  const [allEvents, setAllEvents] = useState<Event[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchEvents = async () => {
+      try {
+        const list = await getEvents();
+        setAllEvents(list);
+      } catch (err) {
+        console.error("Failed to fetch events for bookmarks page:", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchEvents();
+  }, []);
 
   const savedEvents = useMemo(
-    () =>
-      bookmarks
-        .map((id) => getEventById(id))
-        .filter((event): event is NonNullable<typeof event> => event != null),
-    [bookmarks]
+    () => allEvents.filter((e) => bookmarks.includes(e.id)),
+    [allEvents, bookmarks]
   );
 
   return (
@@ -36,7 +50,12 @@ export default function SavedPage() {
       </div>
 
       {/* ── Content ── */}
-      {savedEvents.length > 0 ? (
+      {loading ? (
+        <div className="flex flex-col items-center justify-center py-32 bg-kairo-dark-gray/30 border border-kairo-gray/50 rounded-3xl">
+          <Loader2 className="w-10 h-10 animate-spin text-kairo-orange" />
+          <p className="mt-4 text-kairo-light-gray font-bold tracking-widest text-xs uppercase">Syncing Saved Events...</p>
+        </div>
+      ) : savedEvents.length > 0 ? (
         <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
           {savedEvents.map((event, index) => (
             <div

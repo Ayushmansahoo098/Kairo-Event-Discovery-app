@@ -1,17 +1,33 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { useAuthContext } from "@/context/auth-context";
 import { useBookmarkContext } from "@/context/bookmark-context";
-import { LogOut, Settings, Ticket, Heart, CalendarCheck, Loader2, Edit3 } from "lucide-react";
+import {
+  LogOut,
+  Settings,
+  Ticket,
+  Heart,
+  CalendarCheck,
+  Loader2,
+  Edit3,
+  RefreshCw,
+  Database,
+} from "lucide-react";
 import { cn } from "@/lib/utils";
 
 export default function ProfilePage() {
   const { user, logout, isLoading } = useAuthContext();
   const { bookmarks } = useBookmarkContext();
   const router = useRouter();
+  
+  const [isSyncing, setIsSyncing] = useState(false);
+  const [isSeeding, setIsSeeding] = useState(false);
+  const [isScraping, setIsScraping] = useState(false);
+  const [isScrapingUnstop, setIsScrapingUnstop] = useState(false);
+  const [isScrapingHackerEarth, setIsScrapingHackerEarth] = useState(false);
 
   useEffect(() => {
     if (!isLoading && !user) {
@@ -30,6 +46,96 @@ export default function ProfilePage() {
   const handleLogout = () => {
     logout();
     router.push("/login");
+  };
+
+  const handleSyncEventbrite = async () => {
+    setIsSyncing(true);
+    try {
+      const res = await fetch("/api/ingest", { method: "POST" });
+      const data = await res.json();
+      if (data.success) {
+        alert(data.message || "Eventbrite events synced successfully!");
+      } else {
+        alert("Sync failed: " + (data.error || "Unknown error"));
+      }
+    } catch (err) {
+      console.error(err);
+      alert("Sync failed. Please verify your internet connection.");
+    } finally {
+      setIsSyncing(false);
+    }
+  };
+
+  const handleSeedDatabase = async () => {
+    setIsSeeding(true);
+    try {
+      const { seedDatabase } = await import("@/lib/seed");
+      const res = await seedDatabase();
+      if (res.success) {
+        alert(`Database successfully seeded with ${res.count} events!`);
+      } else {
+        alert("Seeding failed: " + res.error);
+      }
+    } catch (err) {
+      console.error(err);
+      alert("Seeding failed. Please verify your Firestore credentials.");
+    } finally {
+      setIsSeeding(false);
+    }
+  };
+
+  const handleScrapeDevfolio = async () => {
+    setIsScraping(true);
+    try {
+      const res = await fetch("/api/scrape/devfolio", { method: "POST" });
+      const data = await res.json();
+      if (data.success) {
+        alert(data.message || `Successfully synced ${data.count} hackathons from Devfolio!`);
+      } else {
+        alert("Scrape failed: " + (data.error || "Unknown error"));
+      }
+    } catch (err) {
+      console.error(err);
+      alert("Scrape failed. Please verify your connection.");
+    } finally {
+      setIsScraping(false);
+    }
+  };
+
+  const handleScrapeUnstop = async () => {
+    setIsScrapingUnstop(true);
+    try {
+      const res = await fetch("/api/scrape/unstop", { method: "POST" });
+      const data = await res.json();
+      if (data.success) {
+        alert(data.message || `Successfully synced ${data.count} events from Unstop!`);
+      } else {
+        alert("Scrape failed: " + (data.error || "Unknown error"));
+      }
+    } catch (err) {
+      console.error(err);
+      alert("Scrape failed. Please verify your connection.");
+    } finally {
+      setIsScrapingUnstop(false);
+    }
+  };
+
+  const handleScrapeHackerEarth = async () => {
+    setIsScrapingHackerEarth(true);
+    try {
+      const res = await fetch("/api/scrape/hackerearth", { method: "POST" });
+      const data = await res.json();
+      if (data.success) {
+        alert(data.message || `Successfully synced ${data.count} events from HackerEarth!`);
+      } else {
+        alert("Scrape failed: " + (data.error || "Unknown error"));
+      }
+    } catch (err) {
+      console.error(err);
+      alert("Scrape failed. Please verify your connection.");
+    } finally {
+      setIsScrapingHackerEarth(false);
+    }
   };
 
   const stats = [
@@ -89,10 +195,116 @@ export default function ProfilePage() {
       {/* ── Settings & Actions ── */}
       <div className="mt-8 rounded-2xl border border-kairo-gray bg-kairo-dark-gray overflow-hidden">
         <div className="p-4 border-b border-kairo-gray">
-          <h2 className="text-lg font-bold text-kairo-white">Account Settings</h2>
+          <h2 className="text-lg font-bold text-kairo-white">Dashboard & Actions</h2>
         </div>
         
         <div className="divide-y divide-kairo-gray">
+          {/* Sync Eventbrite */}
+          <button
+            onClick={handleSyncEventbrite}
+            disabled={isSyncing}
+            className="w-full flex items-center justify-between p-4 hover:bg-kairo-primary transition-colors text-left group disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            <div className="flex items-center gap-3 text-kairo-white group-hover:text-kairo-orange transition-colors">
+              {isSyncing ? (
+                <Loader2 className="w-5 h-5 animate-spin text-kairo-orange" />
+              ) : (
+                <RefreshCw className="w-5 h-5 text-kairo-light-gray group-hover:text-kairo-orange" />
+              )}
+              <span className="font-medium">
+                {isSyncing ? "Syncing Eventbrite..." : "Sync Live Eventbrite Catalog"}
+              </span>
+            </div>
+            <span className="text-[10px] uppercase font-bold tracking-widest text-kairo-orange bg-kairo-orange/10 px-2.5 py-1 rounded-full">
+              Real-time Ingest
+            </span>
+          </button>
+
+          {/* Seed Database */}
+          <button
+            onClick={handleSeedDatabase}
+            disabled={isSeeding}
+            className="w-full flex items-center justify-between p-4 hover:bg-kairo-primary transition-colors text-left group disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            <div className="flex items-center gap-3 text-kairo-white group-hover:text-kairo-orange transition-colors">
+              {isSeeding ? (
+                <Loader2 className="w-5 h-5 animate-spin text-kairo-orange" />
+              ) : (
+                <Database className="w-5 h-5 text-kairo-light-gray group-hover:text-kairo-orange" />
+              )}
+              <span className="font-medium">
+                {isSeeding ? "Seeding Database..." : "Seed Local Mock Database"}
+              </span>
+            </div>
+            <span className="text-[10px] uppercase font-bold tracking-widest text-kairo-light-gray bg-white/5 px-2.5 py-1 rounded-full">
+              Demo Sandbox
+            </span>
+          </button>
+
+          {/* Sync Devfolio */}
+          <button
+            onClick={handleScrapeDevfolio}
+            disabled={isScraping}
+            className="w-full flex items-center justify-between p-4 hover:bg-kairo-primary transition-colors text-left group disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            <div className="flex items-center gap-3 text-kairo-white group-hover:text-kairo-orange transition-colors">
+              {isScraping ? (
+                <Loader2 className="w-5 h-5 animate-spin text-kairo-orange" />
+              ) : (
+                <RefreshCw className="w-5 h-5 text-kairo-light-gray group-hover:text-kairo-orange" />
+              )}
+              <span className="font-medium">
+                {isScraping ? "Syncing Devfolio..." : "Sync Live Devfolio Hackathons"}
+              </span>
+            </div>
+            <span className="text-[10px] uppercase font-bold tracking-widest text-kairo-orange bg-kairo-orange/10 px-2.5 py-1 rounded-full">
+              Playwright Crawl
+            </span>
+          </button>
+
+          {/* Sync Unstop */}
+          <button
+            onClick={handleScrapeUnstop}
+            disabled={isScrapingUnstop}
+            className="w-full flex items-center justify-between p-4 hover:bg-kairo-primary transition-colors text-left group disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            <div className="flex items-center gap-3 text-kairo-white group-hover:text-kairo-orange transition-colors">
+              {isScrapingUnstop ? (
+                <Loader2 className="w-5 h-5 animate-spin text-kairo-orange" />
+              ) : (
+                <RefreshCw className="w-5 h-5 text-kairo-light-gray group-hover:text-kairo-orange" />
+              )}
+              <span className="font-medium">
+                {isScrapingUnstop ? "Syncing Unstop..." : "Sync Live Unstop Events"}
+              </span>
+            </div>
+            <span className="text-[10px] uppercase font-bold tracking-widest text-kairo-orange bg-kairo-orange/10 px-2.5 py-1 rounded-full">
+              Playwright Crawl
+            </span>
+          </button>
+
+          {/* Sync HackerEarth */}
+          <button
+            onClick={handleScrapeHackerEarth}
+            disabled={isScrapingHackerEarth}
+            className="w-full flex items-center justify-between p-4 hover:bg-kairo-primary transition-colors text-left group disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            <div className="flex items-center gap-3 text-kairo-white group-hover:text-kairo-orange transition-colors">
+              {isScrapingHackerEarth ? (
+                <Loader2 className="w-5 h-5 animate-spin text-kairo-orange" />
+              ) : (
+                <RefreshCw className="w-5 h-5 text-kairo-light-gray group-hover:text-kairo-orange" />
+              )}
+              <span className="font-medium">
+                {isScrapingHackerEarth ? "Syncing HackerEarth..." : "Sync Live HackerEarth Challenges"}
+              </span>
+            </div>
+            <span className="text-[10px] uppercase font-bold tracking-widest text-kairo-orange bg-kairo-orange/10 px-2.5 py-1 rounded-full">
+              Playwright Crawl
+            </span>
+          </button>
+
+          {/* Preferences */}
           <button className="w-full flex items-center justify-between p-4 hover:bg-kairo-primary transition-colors text-left group">
             <div className="flex items-center gap-3 text-kairo-white group-hover:text-kairo-orange transition-colors">
               <Settings className="w-5 h-5 text-kairo-light-gray group-hover:text-kairo-orange" />
@@ -100,6 +312,7 @@ export default function ProfilePage() {
             </div>
           </button>
           
+          {/* Sign Out */}
           <button 
             onClick={handleLogout}
             className="w-full flex items-center justify-between p-4 hover:bg-kairo-primary transition-colors text-left group"

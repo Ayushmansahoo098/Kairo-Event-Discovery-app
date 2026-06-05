@@ -90,7 +90,7 @@ export function normalizeHackathon(raw: RawScrapedHackathon): Event & { lastUpda
       } else {
         slug = urlObj.hostname.split(".")[0];
       }
-    } catch (e) {
+    } catch {
       // Ignore
     }
   }
@@ -138,7 +138,7 @@ export function normalizeUnstopEvent(raw: RawScrapedUnstopEvent): Event & { last
         slug = paths[paths.length - 1];
         sourceId = slug;
       }
-    } catch (e) {
+    } catch {
       // Ignore
     }
   }
@@ -208,7 +208,7 @@ export function normalizeHackerEarthEvent(raw: RawScrapedHackerEarthEvent): Even
         slug = paths[paths.length - 1];
         sourceId = slug;
       }
-    } catch (e) {
+    } catch {
       // Ignore
     }
   }

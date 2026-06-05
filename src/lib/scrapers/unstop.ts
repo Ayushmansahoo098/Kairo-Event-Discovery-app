@@ -1,13 +1,14 @@
 import { chromium } from "playwright";
 import { RawScrapedUnstopEvent, normalizeUnstopEvent, cleanupExpiredEvents } from "./normalize";
 import { adminDb } from "../firebase-admin";
+import { Event } from "../types";
 
 /**
  * Headless browser scraper that crawls live hackathons and coding competitions structurally
  * from https://unstop.com/hackathons, maps them into standard schemas, and saves to Cloud Firestore.
  * Triggers the Expired Events Cleanup sweep post-sync.
  */
-export async function syncUnstopEvents() {
+export async function syncUnstopEvents({ writeToDb = true }: { writeToDb?: boolean } = {}) {
   console.log("Starting Playwright headless Chromium Unstop scraper...");
   let browser;
   const startTime = Date.now();
@@ -46,7 +47,7 @@ export async function syncUnstopEvents() {
 
     // Scrape loaded card wrappers
     const scrapedList: RawScrapedUnstopEvent[] = await page.evaluate(() => {
-      const list: any[] = [];
+      const list: RawScrapedUnstopEvent[] = [];
       const anchors = Array.from(document.querySelectorAll("a"));
 
       anchors.forEach((a: HTMLAnchorElement) => {
@@ -71,7 +72,7 @@ export async function syncUnstopEvents() {
         // Extract tags and badges relative to this link card
         const tags: string[] = [];
         const spans = Array.from(a.querySelectorAll("span, div[class*='badge'], div[class*='chip'], .badge"));
-        spans.forEach((span: any) => {
+        spans.forEach((span: Element) => {
           const text = span.textContent?.trim() || "";
           if (
             text &&
@@ -144,7 +145,7 @@ export async function syncUnstopEvents() {
 
     console.log(`Scraper discovered ${scrapedList.length} Unstop events. Normalizing and syncing...`);
 
-    const syncedEvents: any[] = [];
+    const syncedEvents: Event[] = [];
 
     // Use Firestore writeBatch for atomic bulk writes (max 500 per batch)
     const BATCH_SIZE = 500;
@@ -161,32 +162,39 @@ export async function syncUnstopEvents() {
     }
 
     // Commit in batch chunks
-    for (let i = 0; i < allNormalized.length; i += BATCH_SIZE) {
-      const chunk = allNormalized.slice(i, i + BATCH_SIZE);
-      const batch = adminDb.batch();
-      for (const event of chunk) {
-        const docRef = adminDb.collection("events").doc(event.id);
-        batch.set(docRef, event);
+    let cleanupCount = 0;
+    if (writeToDb) {
+      for (let i = 0; i < allNormalized.length; i += BATCH_SIZE) {
+        const chunk = allNormalized.slice(i, i + BATCH_SIZE);
+        const batch = adminDb.batch();
+        for (const event of chunk) {
+          const docRef = adminDb.collection("events").doc(event.id);
+          batch.set(docRef, event);
+        }
+        await batch.commit();
+        successCount += chunk.length;
+        syncedEvents.push(...chunk);
+        console.log(`Batch committed: ${chunk.length} Unstop events (total: ${successCount})`);
       }
-      await batch.commit();
-      successCount += chunk.length;
-      syncedEvents.push(...chunk);
-      console.log(`Batch committed: ${chunk.length} Unstop events (total: ${successCount})`);
+      // Trigger central database expired events pruning sweeper post-sync!
+      const cleanupRes = await cleanupExpiredEvents();
+      cleanupCount = cleanupRes.count ?? 0;
+    } else {
+      successCount = allNormalized.length;
+      syncedEvents.push(...allNormalized);
     }
 
-    // Trigger central database expired events pruning sweeper post-sync!
-    const cleanupRes = await cleanupExpiredEvents();
     const duration = Math.round((Date.now() - startTime) / 1000);
 
     return {
       success: true,
       count: successCount,
       failureCount,
-      cleanupCount: cleanupRes.success ? cleanupRes.count : 0,
+      cleanupCount,
       duration,
       events: syncedEvents,
     };
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Playwright Unstop scraper encountered a terminal error:", error);
     return {
       success: false,

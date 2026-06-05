@@ -21,7 +21,7 @@ interface EventbriteSearchItem {
  * Polls Eventbrite API for conferences, startups, and webinars, standardizes data models,
  * saves synchronized entries directly to Firestore, runs cleaning sweeps, and logs sync stats.
  */
-export async function syncEventbriteEvents() {
+export async function syncEventbriteEvents({ writeToDb = true }: { writeToDb?: boolean } = {}) {
   console.log("Triggering Eventbrite Event Ingestion Layer...");
   const startTime = Date.now();
   let successCount = 0;
@@ -119,18 +119,14 @@ export async function syncEventbriteEvents() {
             registrationUrl: raw.url,
             tags: raw.tags?.slice(0, 4).map((t) => t.display_name.toLowerCase()) || [item.query],
             isTrending: false,
-            // Extended schema properties
-            ...({
-              source: "Eventbrite",
-              expiresAt: date,
-              lastUpdated: new Date().toISOString(),
-            } as any)
+            source: "Eventbrite",
+            expiresAt: date,
+            lastUpdated: new Date().toISOString(),
           };
 
-          await adminDb.collection("events").doc(mappedEvent.id).set(mappedEvent);
           successCount++;
           ingestedEvents.push(mappedEvent);
-          console.log(`Successfully ingested Eventbrite: ${mappedEvent.title} (${mappedEvent.id})`);
+          console.log(`Successfully parsed Eventbrite: ${mappedEvent.title} (${mappedEvent.id})`);
         } catch (eventErr) {
           failureCount++;
           console.error(`Failed to ingest Eventbrite event ${raw.id}:`, eventErr);
@@ -138,43 +134,47 @@ export async function syncEventbriteEvents() {
       }
     }
 
-    // Batch commit all collected events for write efficiency
-    if (ingestedEvents.length > 0) {
-      try {
-        const BATCH_SIZE = 500;
-        for (let i = 0; i < ingestedEvents.length; i += BATCH_SIZE) {
-          const chunk = ingestedEvents.slice(i, i + BATCH_SIZE);
-          const batch = adminDb.batch();
-          for (const event of chunk) {
-            const docRef = adminDb.collection("events").doc(event.id);
-            batch.set(docRef, event);
-          }
-          await batch.commit();
-          console.log(`Eventbrite batch committed: ${chunk.length} events`);
-        }
-      } catch (batchErr) {
-        console.error("Eventbrite batch commit failed:", batchErr);
-      }
-    }
-
-    const cleanupRes = await cleanupExpiredEvents();
+    let cleanupCount = 0;
     const duration = Math.round((Date.now() - startTime) / 1000);
-    const cleanupCount = cleanupRes.success ? cleanupRes.count : 0;
 
-    // Telemetry log to 'scrape_logs'
-    try {
-      await adminDb.collection("scrape_logs").add({
-        source: "Eventbrite",
-        startedAt: new Date(startTime).toISOString(),
-        completedAt: new Date().toISOString(),
-        successCount,
-        failureCount,
-        cleanupCount,
-        duration,
-        status: "success",
-      });
-    } catch (logErr) {
-      console.error("Telemetry failed to write for Eventbrite:", logErr);
+    if (writeToDb) {
+      // Batch commit all collected events for write efficiency
+      if (ingestedEvents.length > 0) {
+        try {
+          const BATCH_SIZE = 500;
+          for (let i = 0; i < ingestedEvents.length; i += BATCH_SIZE) {
+            const chunk = ingestedEvents.slice(i, i + BATCH_SIZE);
+            const batch = adminDb.batch();
+            for (const event of chunk) {
+              const docRef = adminDb.collection("events").doc(event.id);
+              batch.set(docRef, event);
+            }
+            await batch.commit();
+            console.log(`Eventbrite batch committed: ${chunk.length} events`);
+          }
+        } catch (batchErr) {
+          console.error("Eventbrite batch commit failed:", batchErr);
+        }
+      }
+
+      const cleanupRes = await cleanupExpiredEvents();
+      cleanupCount = cleanupRes.count ?? 0;
+
+      // Telemetry log to 'scrape_logs'
+      try {
+        await adminDb.collection("scrape_logs").add({
+          source: "Eventbrite",
+          startedAt: new Date(startTime).toISOString(),
+          completedAt: new Date().toISOString(),
+          successCount,
+          failureCount,
+          cleanupCount,
+          duration,
+          status: "success",
+        });
+      } catch (logErr) {
+        console.error("Telemetry failed to write for Eventbrite:", logErr);
+      }
     }
 
     return {
@@ -185,23 +185,25 @@ export async function syncEventbriteEvents() {
       duration,
       events: ingestedEvents,
     };
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Eventbrite sync crashed:", error);
     const duration = Math.round((Date.now() - startTime) / 1000);
-    try {
-      await adminDb.collection("scrape_logs").add({
-        source: "Eventbrite",
-        startedAt: new Date(startTime).toISOString(),
-        completedAt: new Date().toISOString(),
-        successCount: 0,
-        failureCount: 1,
-        cleanupCount: 0,
-        duration,
-        status: "failed",
-        error: String(error),
-      });
-    } catch (logErr) {
-      console.error("Telemetry log write failed for Eventbrite crash:", logErr);
+    if (writeToDb) {
+      try {
+        await adminDb.collection("scrape_logs").add({
+          source: "Eventbrite",
+          startedAt: new Date(startTime).toISOString(),
+          completedAt: new Date().toISOString(),
+          successCount: 0,
+          failureCount: 1,
+          cleanupCount: 0,
+          duration,
+          status: "failed",
+          error: String(error),
+        });
+      } catch (logErr) {
+        console.error("Telemetry log write failed for Eventbrite crash:", logErr);
+      }
     }
 
     return {

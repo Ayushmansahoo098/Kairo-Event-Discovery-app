@@ -1,4 +1,4 @@
-import { collection, doc, getDoc, getDocs, query, where } from "firebase/firestore";
+import { collection, doc, getDoc, getDocs } from "firebase/firestore";
 import { db } from "./firebase";
 import { Category, CategoryInfo, Event } from "./types";
 import { dedupeEvents } from "./feed/dedupe";
@@ -413,7 +413,10 @@ export async function getEvents(): Promise<Event[]> {
         list = []; // NO demo fallback, return empty representing uncompleted scrapes
       } else {
         querySnapshot.forEach((doc) => {
-          list.push({ id: doc.id, ...doc.data() } as Event);
+          const data = doc.data() as Event;
+          if (data.status !== "expired" && data.status !== "archived") {
+            list.push({ ...data, id: doc.id });
+          }
         });
       }
     } catch (error) {
@@ -444,7 +447,11 @@ export async function getEventById(id: string): Promise<Event | undefined> {
   try {
     const docSnap = await getDoc(doc(db, "events", id));
     if (docSnap.exists()) {
-      return { id: docSnap.id, ...docSnap.data() } as Event;
+      const data = docSnap.data() as Event;
+      if (data.status === "expired" || data.status === "archived") {
+        return undefined;
+      }
+      return { ...data, id: docSnap.id };
     }
     return undefined; // Only display scraped events
   } catch (error) {

@@ -12,10 +12,14 @@ import {
   Globe,
   Tag,
   Loader2,
+  Share2,
 } from "lucide-react";
-import { getEventById } from "@/lib/mock-data";
+import { getEventById, getEvents } from "@/lib/mock-data";
 import { BookmarkButton } from "@/components/bookmark-button";
 import { Event } from "@/lib/types";
+import { useAuthContext } from "@/context/auth-context";
+import { logInteractionEvent } from "@/lib/analytics";
+import { EventCard } from "@/components/event-card";
 
 export default function EventDetailPage() {
   const params = useParams();
@@ -23,6 +27,12 @@ export default function EventDetailPage() {
   const eventId = params.id as string;
   const [event, setEvent] = useState<Event | null | undefined>(undefined);
   const [loading, setLoading] = useState(true);
+  const { user } = useAuthContext();
+
+  // Similar events & Recently Viewed states
+  const [similarEvents, setSimilarEvents] = useState<Event[]>([]);
+  const [loadingSimilar, setLoadingSimilar] = useState(false);
+  const [toastMessage, setToastMessage] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchEvent = async () => {
@@ -38,6 +48,121 @@ export default function EventDetailPage() {
     };
     fetchEvent();
   }, [eventId]);
+
+  // Track page dwell time and log event views
+  useEffect(() => {
+    if (!event) return;
+    const startTime = Date.now();
+
+    const logOnExit = () => {
+      const elapsedSeconds = Math.round((Date.now() - startTime) / 1000);
+      if (elapsedSeconds >= 1) {
+        logInteractionEvent({
+          userId: user?.id,
+          eventId: event.id,
+          action: "view",
+          category: event.category,
+          source: event.source,
+          tags: event.tags,
+          dwellTime: elapsedSeconds,
+        });
+      }
+    };
+
+    window.addEventListener("beforeunload", logOnExit);
+
+    return () => {
+      window.removeEventListener("beforeunload", logOnExit);
+      logOnExit();
+    };
+  }, [event, user]);
+
+  // Track Recently Viewed in LocalStorage
+  useEffect(() => {
+    if (!event) return;
+    try {
+      const raw = localStorage.getItem("kairo-recently-viewed");
+      const current = raw ? JSON.parse(raw) : [];
+      const next = [event.id, ...current.filter((id: string) => id !== event.id)].slice(0, 6);
+      localStorage.setItem("kairo-recently-viewed", JSON.stringify(next));
+    } catch (err) {
+      console.error("Failed to track recently viewed event:", err);
+    }
+  }, [event]);
+
+  // Fetch Similar Events from FastAPI
+  useEffect(() => {
+    if (!event) return;
+
+    const fetchSimilar = async () => {
+      setLoadingSimilar(true);
+      try {
+        const res = await fetch("http://localhost:8000/similar", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            eventId: event.id,
+            limit: 3,
+          }),
+        });
+
+        if (res.ok) {
+          const data = await res.json();
+          const sims = data.similarEvents || [];
+
+          // Map scores and match details
+          const all = await getEvents();
+          const mappedSims = sims
+            .map((s: { eventId: string; score: number }) => {
+              const found = all.find((e) => e.id === s.eventId);
+              if (found) {
+                return {
+                  ...found,
+                  matchScore: Math.round(s.score * 100),
+                };
+              }
+              return null;
+            })
+            .filter(Boolean) as Event[];
+
+          setSimilarEvents(mappedSims);
+        }
+      } catch (err) {
+        console.error("Failed to fetch similar events from FastAPI:", err);
+      } finally {
+        setLoadingSimilar(false);
+      }
+    };
+
+    fetchSimilar();
+  }, [event]);
+
+  const handleShare = async () => {
+    if (!event) return;
+    const shareData = {
+      title: event.title,
+      text: `Check out ${event.title} on KAIRO Events!`,
+      url: window.location.href,
+    };
+
+    if (navigator.share && navigator.canShare && navigator.canShare(shareData)) {
+      try {
+        await navigator.share(shareData);
+      } catch (err) {
+        console.error("Web Share failed:", err);
+      }
+    } else {
+      try {
+        await navigator.clipboard.writeText(window.location.href);
+        setToastMessage("Event link copied to clipboard!");
+        setTimeout(() => setToastMessage(null), 3000);
+      } catch (err) {
+        console.error("Clipboard copy failed:", err);
+      }
+    }
+  };
 
   /* ── Loading State ── */
   if (loading) {
@@ -104,7 +229,16 @@ export default function EventDetailPage() {
             <ArrowLeft className="h-6 w-6" />
           </button>
 
-          <BookmarkButton eventId={event.id} className="bg-kairo-dark-gray/90 shadow-sm h-12 w-12 flex items-center justify-center hover:bg-kairo-gray" />
+          <div className="flex gap-2">
+            <button
+              onClick={handleShare}
+              className="flex h-12 w-12 items-center justify-center rounded-full bg-kairo-dark-gray/90 shadow-sm backdrop-blur-xl transition-all hover:bg-kairo-gray text-kairo-light-gray hover:text-kairo-white hover:scale-105 cursor-pointer"
+              aria-label="Share event"
+            >
+              <Share2 className="h-5 w-5" />
+            </button>
+            <BookmarkButton eventId={event.id} className="bg-kairo-dark-gray/90 shadow-sm h-12 w-12 flex items-center justify-center hover:bg-kairo-gray" />
+          </div>
         </div>
 
         {/* Online/Offline badge on banner */}
@@ -217,6 +351,32 @@ export default function EventDetailPage() {
             </div>
           </div>
         </div>
+
+        {/* Divider */}
+        <div className="my-10 h-px bg-kairo-gray/50" />
+
+        {/* Similar Events Carousel */}
+        <div className="mb-12">
+          <h2 className="mb-6 text-2xl font-bold text-kairo-white">Similar Events You Might Like</h2>
+          {loadingSimilar ? (
+            <div className="flex h-[200px] items-center justify-center rounded-2xl border border-kairo-gray bg-kairo-dark-gray/50">
+              <Loader2 className="w-6 h-6 animate-spin text-kairo-orange" />
+              <span className="ml-3 text-sm font-medium text-kairo-light-gray">Finding similar events...</span>
+            </div>
+          ) : similarEvents.length > 0 ? (
+            <div className="flex gap-6 overflow-x-auto pb-4 scrollbar-thin scrollbar-thumb-kairo-gray scrollbar-track-transparent snap-x snap-mandatory -mx-4 px-4 sm:-mx-6 sm:px-6 lg:-mx-8 lg:px-8">
+              {similarEvents.map((simEvent) => (
+                <div key={simEvent.id} className="w-[280px] sm:w-[320px] flex-shrink-0 snap-start">
+                  <EventCard event={simEvent} />
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="flex h-[150px] flex-col items-center justify-center rounded-2xl border border-kairo-gray bg-kairo-dark-gray/50 p-6 text-center">
+              <p className="text-sm font-medium text-kairo-light-gray">No similar events found at the moment.</p>
+            </div>
+          )}
+        </div>
       </div>
 
       {/* ── Fixed Bottom CTA ── */}
@@ -226,6 +386,16 @@ export default function EventDetailPage() {
             href={event.registrationUrl}
             target="_blank"
             rel="noopener noreferrer"
+            onClick={() => {
+              logInteractionEvent({
+                userId: user?.id,
+                eventId: event.id,
+                action: "register",
+                category: event.category,
+                source: event.source,
+                tags: event.tags,
+              });
+            }}
             className="flex w-full items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-kairo-grad-2 via-kairo-orange to-kairo-grad-4 px-6 py-4 text-lg font-bold text-kairo-white shadow-lg shadow-kairo-orange/25 transition-all duration-300 hover:shadow-xl hover:shadow-kairo-orange/40 hover:scale-[1.02]"
           >
             Register Now
@@ -233,6 +403,14 @@ export default function EventDetailPage() {
           </a>
         </div>
       </div>
+
+      {/* Toast Notification */}
+      {toastMessage && (
+        <div className="fixed bottom-28 left-1/2 -translate-x-1/2 z-55 px-6 py-3 bg-kairo-dark-gray/90 border border-kairo-gray/50 rounded-full text-sm font-bold text-kairo-white backdrop-blur-xl shadow-2xl flex items-center gap-2 animate-in fade-in slide-in-from-bottom-4 duration-300">
+          <span className="h-2 w-2 rounded-full bg-kairo-orange animate-ping" />
+          {toastMessage}
+        </div>
+      )}
     </div>
   );
 }

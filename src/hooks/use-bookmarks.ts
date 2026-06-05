@@ -13,6 +13,7 @@ import {
   writeBatch,
   getDocs,
 } from 'firebase/firestore';
+import { logInteractionEvent } from '@/lib/analytics';
 
 const STORAGE_KEY = 'kairo-bookmarks';
 
@@ -33,9 +34,11 @@ export function useBookmarks() {
   // Synchronize state from LocalStorage (Guest) or Firestore (Authenticated)
   useEffect(() => {
     if (!user) {
-      // Guest mode fallback
-      setBookmarks(readBookmarks());
-      return;
+      // Guest mode fallback - use requestAnimationFrame to avoid synchronous cascading renders
+      const handle = requestAnimationFrame(() => {
+        setBookmarks(readBookmarks());
+      });
+      return () => cancelAnimationFrame(handle);
     }
 
     // Authenticated mode: Sync from Firestore subcollection in real time
@@ -65,6 +68,14 @@ export function useBookmarks() {
           : [...current, id];
         setBookmarks(next);
         localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
+
+        if (!current.includes(id)) {
+          logInteractionEvent({
+            userId: "anonymous",
+            eventId: id,
+            action: "save",
+          });
+        }
         return;
       }
 
@@ -76,6 +87,11 @@ export function useBookmarks() {
         } else {
           await setDoc(bookmarkDocRef, {
             savedAt: serverTimestamp(),
+          });
+          logInteractionEvent({
+            userId: user.id,
+            eventId: id,
+            action: "save",
           });
         }
       } catch (error) {

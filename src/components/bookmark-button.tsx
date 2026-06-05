@@ -26,7 +26,7 @@ export function BookmarkButton({ eventId, className }: BookmarkButtonProps) {
     // Fire analytics event (non-blocking)
     logInteractionEvent({
       eventId,
-      action: "bookmark",
+      action: "save",
     });
   };
 

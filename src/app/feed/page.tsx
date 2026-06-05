@@ -1,15 +1,29 @@
 "use client";
 
 import { useState, useMemo, useEffect } from "react";
-import { Compass, X, Loader2, SlidersHorizontal, RefreshCw } from "lucide-react";
+import {
+  Compass,
+  X,
+  SlidersHorizontal,
+  RefreshCw,
+  Flame,
+  MapPin,
+  Sparkles,
+  CalendarRange,
+  Bookmark,
+} from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { SearchBar } from "@/components/search-bar";
 import { CategoryFilter } from "@/components/category-filter";
 import { EventCard } from "@/components/event-card";
-import { getEvents } from "@/lib/mock-data";
-import { Category, Event } from "@/lib/types";
+import { getEvents, getEventById } from "@/lib/mock-data";
+import { Event } from "@/lib/types";
 import { searchEvents } from "@/lib/search/search";
 import { cn } from "@/lib/utils";
+import { db } from "@/lib/firebase";
+import { collection, doc, getDoc, getDocs } from "firebase/firestore";
+import { useAuthContext } from "@/context/auth-context";
+import { logInteractionEvent } from "@/lib/analytics";
 
 function EventCardSkeleton() {
   return (
@@ -46,7 +60,17 @@ export default function FeedPage() {
   const [eventsList, setEventsList] = useState<Event[]>([]);
   const [loading, setLoading] = useState(true);
   const [visibleCount, setVisibleCount] = useState(12);
+  const { user } = useAuthContext();
   
+  // Tab & Recommendations States
+  const [selectedTab, setSelectedTab] = useState<"all" | "recommended" | "trending" | "near_you" | "upcoming" | "because_saved">("all");
+  const [recommendations, setRecommendations] = useState<{ eventId: string; score: number }[]>([]);
+  const [similarToSaved, setSimilarToSaved] = useState<{ eventId: string; score: number }[]>([]);
+  const [savedReferenceTitle, setSavedReferenceTitle] = useState<string | null>(null);
+  const [loadingRecommendations, setLoadingRecommendations] = useState(false);
+  const [userPreferredCities, setUserPreferredCities] = useState<string[]>([]);
+  const [userGeoCity, setUserGeoCity] = useState<string | null>(null);
+
   // Filtering & searching states
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [searchVal, setSearchVal] = useState("");
@@ -59,14 +83,19 @@ export default function FeedPage() {
   useEffect(() => {
     const handler = setTimeout(() => {
       setSearchQuery(searchVal);
+      setVisibleCount(12);
+
+      // Track search query events in telemetry
+      if (searchVal.trim().length > 1) {
+        logInteractionEvent({
+          userId: user?.id,
+          action: "search",
+          query: searchVal.trim(),
+        });
+      }
     }, 300);
     return () => clearTimeout(handler);
-  }, [searchVal]);
-
-  // Reset pagination on filter mutations
-  useEffect(() => {
-    setVisibleCount(12);
-  }, [selectedCategory, selectedCity, selectedOnline, selectedSource, searchQuery]);
+  }, [searchVal, user]);
 
   // Fetch events from Firestore
   useEffect(() => {
@@ -83,8 +112,106 @@ export default function FeedPage() {
     fetchEvents();
   }, []);
 
+  // Fetch user location preferences
+  useEffect(() => {
+    if (!user) return;
+    const fetchUserLocation = async () => {
+      try {
+        const userDoc = await getDoc(doc(db, "users", user.id));
+        if (userDoc.exists()) {
+          const data = userDoc.data();
+          setUserPreferredCities(data.preferredCities || []);
+          if (data.lastLocation?.city) {
+            setUserGeoCity(data.lastLocation.city);
+          }
+        }
+      } catch (err) {
+        console.error("Error fetching user location for feed:", err);
+      }
+    };
+    fetchUserLocation();
+  }, [user]);
+
+  // Fetch recommendations or similar events when tab changes
+  useEffect(() => {
+    if (!user) return;
+
+    const fetchRecommendations = async () => {
+      setLoadingRecommendations(true);
+      try {
+        const res = await fetch("http://localhost:8000/recommendations", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            userId: user.id,
+            limit: 30,
+          }),
+        });
+        if (res.ok) {
+          const data = await res.json();
+          setRecommendations(data.recommendedEvents || []);
+        }
+      } catch (err) {
+        console.error("Failed to fetch AI recommendations:", err);
+      } finally {
+        setLoadingRecommendations(false);
+      }
+    };
+
+    const fetchBecauseSaved = async () => {
+      try {
+        const bookmarksColRef = collection(db, "users", user.id, "bookmarks");
+        const bookmarksSnap = await getDocs(bookmarksColRef);
+        if (bookmarksSnap.empty) {
+          setSimilarToSaved([]);
+          setSavedReferenceTitle(null);
+          return;
+        }
+
+        const docs = bookmarksSnap.docs;
+        const latestBookmarkId = docs[docs.length - 1].id;
+
+        // Fetch event title
+        const refEvent = eventsList.find((e) => e.id === latestBookmarkId) || await getEventById(latestBookmarkId);
+        if (refEvent) {
+          setSavedReferenceTitle(refEvent.title);
+        }
+
+        setLoadingRecommendations(true);
+        const res = await fetch("http://localhost:8000/similar", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            eventId: latestBookmarkId,
+            limit: 6,
+          }),
+        });
+        if (res.ok) {
+          const data = await res.json();
+          setSimilarToSaved(data.similarEvents || []);
+        }
+      } catch (err) {
+        console.error("Failed to fetch similar events for because_saved tab:", err);
+      } finally {
+        setLoadingRecommendations(false);
+      }
+    };
+
+    if (selectedTab === "recommended" && recommendations.length === 0) {
+      fetchRecommendations();
+    }
+    if (selectedTab === "because_saved") {
+      fetchBecauseSaved();
+    }
+  }, [selectedTab, user, eventsList, recommendations.length]);
+
   const filteredEvents = useMemo(() => {
-    return searchEvents(
+    // 1. Apply standard filters (search query, category, city, mode, source)
+    let baseList = searchEvents(
       searchQuery,
       {
         category: selectedCategory,
@@ -94,7 +221,79 @@ export default function FeedPage() {
       },
       eventsList
     );
-  }, [eventsList, selectedCategory, selectedCity, selectedOnline, selectedSource, searchQuery]);
+
+    // 2. Apply Tab Filter and Sorts
+    if (selectedTab === "recommended") {
+      if (recommendations.length > 0) {
+        return baseList
+          .map((event) => {
+            const rScore = recommendations.find((r) => r.eventId === event.id);
+            return {
+              ...event,
+              matchScore: rScore ? Math.round(rScore.score * 100) : undefined,
+            };
+          })
+          .filter((event) => event.matchScore !== undefined)
+          .sort((a, b) => (b.matchScore || 0) - (a.matchScore || 0));
+      }
+      return baseList; // fallback
+    }
+
+    if (selectedTab === "trending") {
+      // Sort by popularityScore descending
+      return [...baseList].sort((a, b) => (b.popularityScore || 0) - (a.popularityScore || 0));
+    }
+
+    if (selectedTab === "near_you") {
+      const targetCities = [...userPreferredCities];
+      if (userGeoCity) targetCities.push(userGeoCity);
+      
+      const targetCitiesLower = targetCities.map((c) => c.toLowerCase());
+      if (targetCitiesLower.length === 0) {
+        return baseList; // fallback
+      }
+      return baseList.filter((e) => targetCitiesLower.includes(e.city.toLowerCase()));
+    }
+
+    if (selectedTab === "upcoming") {
+      const today = new Date().toISOString().split("T")[0];
+      const nextWeek = new Date();
+      nextWeek.setDate(nextWeek.getDate() + 7);
+      const nextWeekStr = nextWeek.toISOString().split("T")[0];
+      
+      return baseList.filter((e) => e.date >= today && e.date <= nextWeekStr);
+    }
+
+    if (selectedTab === "because_saved") {
+      if (similarToSaved.length > 0) {
+        return baseList
+          .map((event) => {
+            const sScore = similarToSaved.find((s) => s.eventId === event.id);
+            return {
+              ...event,
+              matchScore: sScore ? Math.round(sScore.score * 100) : undefined,
+            };
+          })
+          .filter((event) => event.matchScore !== undefined)
+          .sort((a, b) => (b.matchScore || 0) - (a.matchScore || 0));
+      }
+      return []; // Empty if no similarities fetched
+    }
+
+    return baseList;
+  }, [
+    eventsList,
+    selectedCategory,
+    selectedCity,
+    selectedOnline,
+    selectedSource,
+    searchQuery,
+    selectedTab,
+    recommendations,
+    similarToSaved,
+    userPreferredCities,
+    userGeoCity,
+  ]);
 
   const hasActiveFilters =
     selectedCategory !== null || 
@@ -130,12 +329,51 @@ export default function FeedPage() {
         </div>
       </div>
 
+      {/* ── Feed Sections Tabs ── */}
+      <div className="flex overflow-x-auto gap-2 pb-4 mb-8 -mx-4 px-4 sm:-mx-6 sm:px-6 lg:-mx-8 lg:px-8 scrollbar-thin scrollbar-thumb-kairo-gray scrollbar-track-transparent">
+        {[
+          { id: "all", label: "All Events", icon: Compass },
+          { id: "recommended", label: "Recommended For You", icon: Sparkles },
+          { id: "trending", label: "Trending", icon: Flame },
+          { id: "near_you", label: "Near You", icon: MapPin },
+          { id: "upcoming", label: "Upcoming This Week", icon: CalendarRange },
+          { id: "because_saved", label: `Because You Saved${savedReferenceTitle ? `: ${savedReferenceTitle}` : ''}`, icon: Bookmark },
+        ].map((tab) => {
+          const isSelected = selectedTab === tab.id;
+          const Icon = tab.icon;
+          
+          if (tab.id === "because_saved" && !user) return null;
+
+          return (
+            <button
+              key={tab.id}
+              onClick={() => {
+                setSelectedTab(tab.id as any);
+                setVisibleCount(12);
+              }}
+              className={cn(
+                "flex items-center gap-2 px-5 py-3 rounded-2xl text-xs font-black uppercase tracking-wider transition-all duration-300 border cursor-pointer whitespace-nowrap shrink-0",
+                isSelected
+                  ? "bg-gradient-to-r from-kairo-orange to-kairo-grad-2 text-kairo-white shadow-lg shadow-kairo-orange/20 border-transparent scale-105"
+                  : "bg-kairo-dark-gray border-kairo-gray text-kairo-light-gray hover:text-kairo-white hover:border-white/20"
+              )}
+            >
+              <Icon className={cn("w-4 h-4", isSelected ? "text-kairo-white" : "text-kairo-orange")} />
+              {tab.label}
+            </button>
+          );
+        })}
+      </div>
+
       {/* ── Search & City ── */}
       <SearchBar
         searchQuery={searchVal}
         onSearchChange={setSearchVal}
         selectedCity={selectedCity}
-        onCityChange={setSelectedCity}
+        onCityChange={(city) => {
+          setSelectedCity(city);
+          setVisibleCount(12);
+        }}
       />
 
       {/* ── Additional Filter Row ── */}
@@ -143,7 +381,10 @@ export default function FeedPage() {
         {/* Online/Offline Filter Pills */}
         <div className="flex bg-kairo-dark-gray border border-kairo-gray rounded-2xl p-1 gap-1">
           <button
-            onClick={() => setSelectedOnline(null)}
+            onClick={() => {
+              setSelectedOnline(null);
+              setVisibleCount(12);
+            }}
             className={cn(
               "px-4 py-2 rounded-xl text-xs font-bold transition-all uppercase tracking-wider",
               selectedOnline === null
@@ -154,7 +395,10 @@ export default function FeedPage() {
             All Formats
           </button>
           <button
-            onClick={() => setSelectedOnline(true)}
+            onClick={() => {
+              setSelectedOnline(true);
+              setVisibleCount(12);
+            }}
             className={cn(
               "px-4 py-2 rounded-xl text-xs font-bold transition-all uppercase tracking-wider",
               selectedOnline === true
@@ -165,7 +409,10 @@ export default function FeedPage() {
             Online Only
           </button>
           <button
-            onClick={() => setSelectedOnline(false)}
+            onClick={() => {
+              setSelectedOnline(false);
+              setVisibleCount(12);
+            }}
             className={cn(
               "px-4 py-2 rounded-xl text-xs font-bold transition-all uppercase tracking-wider",
               selectedOnline === false
@@ -181,7 +428,10 @@ export default function FeedPage() {
         <div className="relative min-w-[200px]">
           <select
             value={selectedSource || ""}
-            onChange={(e) => setSelectedSource(e.target.value || null)}
+            onChange={(e) => {
+              setSelectedSource(e.target.value || null);
+              setVisibleCount(12);
+            }}
             className="w-full appearance-none bg-kairo-dark-gray border border-kairo-gray rounded-2xl py-3 px-4 pr-10 text-kairo-white focus:outline-none focus:border-kairo-orange focus:ring-4 focus:ring-kairo-orange/10 shadow-sm transition-all duration-300 [&>option]:bg-kairo-dark-gray [&>option]:text-kairo-white font-bold text-xs uppercase tracking-wider"
           >
             <option value="">All Sources</option>
@@ -200,7 +450,17 @@ export default function FeedPage() {
       <div className="mb-8">
         <CategoryFilter
           selectedCategory={selectedCategory}
-          onSelectCategory={setSelectedCategory}
+          onSelectCategory={(cat) => {
+            setSelectedCategory(cat);
+            setVisibleCount(12);
+            if (cat) {
+              logInteractionEvent({
+                userId: user?.id,
+                action: "category_click",
+                category: cat,
+              });
+            }
+          }}
         />
       </div>
 
@@ -226,7 +486,7 @@ export default function FeedPage() {
       </div>
 
       {/* ── Event Grid ── */}
-      {loading ? (
+      {(loading || loadingRecommendations) ? (
         <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
           {Array.from({ length: 6 }).map((_, i) => (
             <EventCardSkeleton key={i} />

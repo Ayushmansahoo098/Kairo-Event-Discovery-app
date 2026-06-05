@@ -9,8 +9,6 @@ export function sha256(ascii: string): string {
     return (value >>> amount) | (value << (32 - amount));
   }
   
-  const mathPow = Math.pow;
-  const maxWord = mathPow(2, 32);
   const lengthProperty = 'length';
   let i, j;
 
@@ -32,7 +30,7 @@ export function sha256(ascii: string): string {
     0x748f82ee, 0x78a5636f, 0x84c87814, 0x8cc70208, 0x90befffa, 0xa4506ceb, 0xbef9a3f7, 0xc67178f2
   ];
 
-  let asciiBitCount = asciiLength * 8;
+  const asciiBitCount = asciiLength * 8;
   words[asciiLength >> 2] |= 128 << (24 - (asciiLength % 4) * 8);
   words[(((asciiLength + 8) >> 6) << 4) + 15] = asciiBitCount;
 
@@ -42,7 +40,7 @@ export function sha256(ascii: string): string {
 
   for (i = 0; i < words[lengthProperty]; i += 16) {
     const w = words.slice(i, i + 16);
-    let oldHash = hash.slice(0);
+    const oldHash = hash.slice(0);
 
     for (j = 0; j < 64; j++) {
       if (j >= 16) {
@@ -77,10 +75,11 @@ export function sha256(ascii: string): string {
       hash[0] = (temp1 + temp2) | 0;
     }
 
-    for (i = 0; i < 8; i++) {
-      hash[i] = (hash[i] + oldHash[i]) | 0;
+    for (let l = 0; l < 8; l++) {
+      hash[l] = (hash[l] + oldHash[l]) | 0;
     }
   }
+
 
   let finalHex = '';
   for (i = 0; i < 8; i++) {
@@ -191,8 +190,8 @@ export function dedupeEvents(events: Event[]): Event[] {
     } else {
       // Sort cluster to select the highest-quality source
       duplicates.sort((a, b) => {
-        const sourceA = (a as any).source || "";
-        const sourceB = (b as any).source || "";
+        const sourceA = a.source || "";
+        const sourceB = b.source || "";
         return getSourcePriority(sourceB) - getSourcePriority(sourceA);
       });
 
@@ -210,22 +209,19 @@ export function dedupeEvents(events: Event[]): Event[] {
       const earliestDate = allDates.sort()[0] || base.date;
 
       // Extract expiresAt dates
-      const allExpires = [(base as any).expiresAt, ...otherDuplicates.map((d) => (d as any).expiresAt)].filter(Boolean);
-      const earliestExpires = allExpires.sort()[0] || earliestDate;
+      const allExpires = [base.expiresAt, ...otherDuplicates.map((d) => d.expiresAt)].filter(Boolean);
+      const earliestExpires = (allExpires as string[]).sort()[0] || earliestDate;
 
       // Standardize content hash
-      const sourceName = (base as any).source || "Unknown";
+      const sourceName = base.source || "Unknown";
       const contentHash = sha256(base.title + earliestDate + sourceName);
 
       const mergedEvent: Event = {
         ...base,
         date: earliestDate,
         tags: mergedTags,
-        // Carry along extended schema attributes
-        ...({
-          expiresAt: earliestExpires,
-          contentHash,
-        } as any)
+        expiresAt: earliestExpires,
+        contentHash,
       };
 
       deduped.push(mergedEvent);

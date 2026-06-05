@@ -1,13 +1,14 @@
 import { chromium } from "playwright";
 import { RawScrapedHackerEarthEvent, normalizeHackerEarthEvent, cleanupExpiredEvents } from "./normalize";
 import { adminDb } from "../firebase-admin";
+import { Event } from "../types";
 
 /**
  * Headless browser scraper that crawls live hackathons, competitive programming, and hiring challenges
  * from https://www.hackerearth.com/challenges/, maps them to Kairo Event schemas, and saves to Firestore.
  * Triggers the Expired Events Cleanup sweeper and writes telemetry logs to the 'scrape_logs' collection.
  */
-export async function syncHackerEarthEvents() {
+export async function syncHackerEarthEvents({ writeToDb = true }: { writeToDb?: boolean } = {}) {
   console.log("Starting Playwright headless Chromium HackerEarth scraper...");
   let browser;
   const startTime = Date.now();
@@ -46,7 +47,7 @@ export async function syncHackerEarthEvents() {
 
     // Extract raw events from elements
     const scrapedList: RawScrapedHackerEarthEvent[] = await page.evaluate(() => {
-      const list: any[] = [];
+      const list: RawScrapedHackerEarthEvent[] = [];
       const anchors = Array.from(document.querySelectorAll("a"));
 
       anchors.forEach((a: HTMLAnchorElement) => {
@@ -76,7 +77,7 @@ export async function syncHackerEarthEvents() {
         // Collect tags and badges inside the card
         const tags: string[] = [];
         const spans = Array.from(a.querySelectorAll("span, div[class*='badge'], div[class*='chip'], .challenge-type, .challenge-status"));
-        spans.forEach((span: any) => {
+        spans.forEach((span: Element) => {
           const text = span.textContent?.trim() || "";
           if (
             text &&
@@ -154,7 +155,7 @@ export async function syncHackerEarthEvents() {
 
     console.log(`Scraper discovered ${scrapedList.length} HackerEarth events. Normalizing and syncing...`);
 
-    const syncedEvents: any[] = [];
+    const syncedEvents: Event[] = [];
 
     // Use Firestore writeBatch for atomic bulk writes (max 500 per batch)
     const BATCH_SIZE = 500;
@@ -170,40 +171,47 @@ export async function syncHackerEarthEvents() {
       }
     }
 
-    // Commit in batch chunks
-    for (let i = 0; i < allNormalized.length; i += BATCH_SIZE) {
-      const chunk = allNormalized.slice(i, i + BATCH_SIZE);
-      const batch = adminDb.batch();
-      for (const event of chunk) {
-        const docRef = adminDb.collection("events").doc(event.id);
-        batch.set(docRef, event);
-      }
-      await batch.commit();
-      successCount += chunk.length;
-      syncedEvents.push(...chunk);
-      console.log(`Batch committed: ${chunk.length} HackerEarth events (total: ${successCount})`);
-    }
-
-    // Trigger cleanup sweeper post-sync
-    const cleanupRes = await cleanupExpiredEvents();
+    let cleanupCount = 0;
     const duration = Math.round((Date.now() - startTime) / 1000);
-    const cleanupCount = cleanupRes.success ? cleanupRes.count : 0;
 
-    // Observability Logging
-    try {
-      await adminDb.collection("scrape_logs").add({
-        source: "HackerEarth",
-        startedAt: new Date(startTime).toISOString(),
-        completedAt: new Date().toISOString(),
-        successCount,
-        failureCount,
-        cleanupCount,
-        duration,
-        status: successCount > 0 ? "success" : "failed",
-      });
-      console.log("Scrape telemetry log recorded successfully in Firestore.");
-    } catch (logErr) {
-      console.error("Telemetry logger failed to save log document:", logErr);
+    // Commit in batch chunks
+    if (writeToDb) {
+      for (let i = 0; i < allNormalized.length; i += BATCH_SIZE) {
+        const chunk = allNormalized.slice(i, i + BATCH_SIZE);
+        const batch = adminDb.batch();
+        for (const event of chunk) {
+          const docRef = adminDb.collection("events").doc(event.id);
+          batch.set(docRef, event);
+        }
+        await batch.commit();
+        successCount += chunk.length;
+        syncedEvents.push(...chunk);
+        console.log(`Batch committed: ${chunk.length} HackerEarth events (total: ${successCount})`);
+      }
+
+      // Trigger cleanup sweeper post-sync
+      const cleanupRes = await cleanupExpiredEvents();
+      cleanupCount = cleanupRes.count ?? 0;
+
+      // Observability Logging
+      try {
+        await adminDb.collection("scrape_logs").add({
+          source: "HackerEarth",
+          startedAt: new Date(startTime).toISOString(),
+          completedAt: new Date().toISOString(),
+          successCount,
+          failureCount,
+          cleanupCount,
+          duration,
+          status: successCount > 0 ? "success" : "failed",
+        });
+        console.log("Scrape telemetry log recorded successfully in Firestore.");
+      } catch (logErr) {
+        console.error("Telemetry logger failed to save log document:", logErr);
+      }
+    } else {
+      successCount = allNormalized.length;
+      syncedEvents.push(...allNormalized);
     }
 
     return {
@@ -214,25 +222,27 @@ export async function syncHackerEarthEvents() {
       duration,
       events: syncedEvents,
     };
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("HackerEarth Playwright crawler crashed:", error);
     const duration = Math.round((Date.now() - startTime) / 1000);
 
-    // Fail telemetry logging
-    try {
-      await adminDb.collection("scrape_logs").add({
-        source: "HackerEarth",
-        startedAt: new Date(startTime).toISOString(),
-        completedAt: new Date().toISOString(),
-        successCount: 0,
-        failureCount: 1,
-        cleanupCount: 0,
-        duration,
-        status: "failed",
-        error: String(error),
-      });
-    } catch (logErr) {
-      console.error("Telemetry failed log write:", logErr);
+    if (writeToDb) {
+      // Fail telemetry logging
+      try {
+        await adminDb.collection("scrape_logs").add({
+          source: "HackerEarth",
+          startedAt: new Date(startTime).toISOString(),
+          completedAt: new Date().toISOString(),
+          successCount: 0,
+          failureCount: 1,
+          cleanupCount: 0,
+          duration,
+          status: "failed",
+          error: String(error),
+        });
+      } catch (logErr) {
+        console.error("Telemetry failed log write:", logErr);
+      }
     }
 
     return {

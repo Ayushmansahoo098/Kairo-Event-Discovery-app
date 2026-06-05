@@ -22,6 +22,24 @@ export interface Event {
   registrationUrl: string;
   tags: string[];
   isTrending: boolean;
+  source?: string;
+  expiresAt?: string;
+  contentHash?: string;
+  lastUpdated?: string;
+  trendingScore?: number;
+  sourceId?: string;
+  isExpired?: boolean;
+  image?: string;
+  popularityScore?: number;
+  matchScore?: number;
+  viewsCount?: number;
+  savesCount?: number;
+  registrationsCount?: number;
+  embedding?: number[];
+  status?: "active" | "expired" | "archived";
+  expiredAt?: string;
+  sources?: string[];
+  sourceUrls?: Record<string, string>;
 }
 
 export interface CategoryInfo {

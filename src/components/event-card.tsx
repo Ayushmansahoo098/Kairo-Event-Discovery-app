@@ -68,7 +68,7 @@ export function EventCard({ event }: { event: Event }) {
     logInteractionEvent({
       userId,
       eventId: event.id,
-      action: "click",
+      action: "view",
       category: event.category,
       source: source,
       tags: extendedEvent.tags,
@@ -121,9 +121,18 @@ export function EventCard({ event }: { event: Event }) {
         {/* Trending Badge */}
         {event.isTrending && (
           <div className="absolute top-12 right-3 z-10">
-            <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-[10px] font-bold bg-gradient-to-r from-kairo-orange to-kairo-grad-2 text-white shadow-lg">
+            <span className="inline-flex inline-items gap-1 px-3 py-1 rounded-full text-[10px] font-bold bg-gradient-to-r from-kairo-orange to-kairo-grad-2 text-white shadow-lg">
               <Zap className="w-3 h-3" />
               TRENDING
+            </span>
+          </div>
+        )}
+
+        {/* Match Score Badge */}
+        {(event as any).matchScore !== undefined && (
+          <div className="absolute top-12 left-3 z-10">
+            <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[10px] font-black bg-gradient-to-r from-emerald-500 to-teal-600 text-white shadow-xl border border-emerald-400/20 uppercase tracking-widest">
+              🎯 {(event as any).matchScore}% Match
             </span>
           </div>
         )}

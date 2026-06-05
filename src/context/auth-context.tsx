@@ -7,6 +7,9 @@ import {
   signInWithEmailAndPassword,
   createUserWithEmailAndPassword,
   signOut,
+  GoogleAuthProvider,
+  GithubAuthProvider,
+  signInWithPopup,
 } from "firebase/auth";
 import { doc, getDoc, setDoc } from "firebase/firestore";
 
@@ -22,6 +25,8 @@ interface AuthContextType {
   user: User | null;
   isLoading: boolean;
   login: (email: string, password?: string) => Promise<void>;
+  loginWithGoogle: () => Promise<void>;
+  loginWithGithub: () => Promise<void>;
   logout: () => Promise<void>;
 }
 
@@ -50,13 +55,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
               id: firebaseUser.uid,
               name: data.name || firebaseUser.displayName || "Alex Kairo",
               email: email,
-              avatar: data.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${email}`,
+              avatar: data.avatar || firebaseUser.photoURL || `https://api.dicebear.com/7.x/avataaars/svg?seed=${email}`,
               role: data.role || "user",
             });
           } else {
             // Profile doesn't exist in Firestore yet (fallback creation)
-            const defaultName = email.split("@")[0].replace(/[._-]/g, " ").replace(/\b\w/g, l => l.toUpperCase()) || "Alex Kairo";
-            const defaultAvatar = `https://api.dicebear.com/7.x/avataaars/svg?seed=${email}`;
+            const defaultName = firebaseUser.displayName || email.split("@")[0].replace(/[._-]/g, " ").replace(/\b\w/g, l => l.toUpperCase()) || "Alex Kairo";
+            const defaultAvatar = firebaseUser.photoURL || `https://api.dicebear.com/7.x/avataaars/svg?seed=${email}`;
             
             await setDoc(userDocRef, {
               name: defaultName,
@@ -99,11 +104,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     try {
       // Try logging in
       await signInWithEmailAndPassword(auth, email, password);
-    } catch (error: any) {
+    } catch (error: unknown) {
       // If user does not exist or credentials incorrect, auto-create account for seamless demo experience
+      const authError = error as { code?: string };
       if (
-        error.code === "auth/user-not-found" ||
-        error.code === "auth/invalid-credential"
+        authError.code === "auth/user-not-found" ||
+        authError.code === "auth/invalid-credential"
       ) {
         try {
           const userCredential = await createUserWithEmailAndPassword(auth, email, password);
@@ -131,6 +137,34 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
+  /**
+   * Login via Google Provider
+   */
+  const loginWithGoogle = async () => {
+    setIsLoading(true);
+    try {
+      const provider = new GoogleAuthProvider();
+      await signInWithPopup(auth, provider);
+    } catch (error) {
+      setIsLoading(false);
+      throw error;
+    }
+  };
+
+  /**
+   * Login via GitHub Provider
+   */
+  const loginWithGithub = async () => {
+    setIsLoading(true);
+    try {
+      const provider = new GithubAuthProvider();
+      await signInWithPopup(auth, provider);
+    } catch (error) {
+      setIsLoading(false);
+      throw error;
+    }
+  };
+
   const logout = async () => {
     setIsLoading(true);
     try {
@@ -145,7 +179,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   return (
-    <AuthContext.Provider value={{ user, isLoading, login, logout }}>
+    <AuthContext.Provider
+      value={{
+        user,
+        isLoading,
+        login,
+        loginWithGoogle,
+        loginWithGithub,
+        logout,
+      }}
+    >
       {children}
     </AuthContext.Provider>
   );

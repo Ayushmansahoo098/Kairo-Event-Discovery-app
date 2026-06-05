@@ -13,7 +13,7 @@ export function calculateTrendingScore(
   let score = 0;
 
   // 1. Ingestion Recency Freshness (up to 50 points)
-  const lastUpdatedStr = (event as any).lastUpdated;
+  const lastUpdatedStr = event.lastUpdated;
   if (lastUpdatedStr) {
     try {
       const lastUpdatedTime = new Date(lastUpdatedStr).getTime();
@@ -39,7 +39,7 @@ export function calculateTrendingScore(
   }
 
   // 3. Source Quality (up to 30 points)
-  const sourceName = (event as any).source || "";
+  const sourceName = event.source || "";
   const sourcePriority = getSourcePriority(sourceName);
   score += sourcePriority * 3;
 

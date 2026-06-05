@@ -1,0 +1,25 @@
+services:
+  - type: web
+    name: kairo-web
+    runtime: docker
+    branch: main
+    plan: starter
+    healthCheckPath: /
+    dockerfilePath: ./Dockerfile
+    envVars:
+      - key: PORT
+        value: 10000
+
+  - type: cron
+    name: kairo-sync
+    runtime: node
+    branch: main
+    plan: starter
+    schedule: "0 */6 * * *"
+    buildCommand: "true"
+    startCommand: "node scripts/render-sync.mjs"
+    envVars:
+      - key: APP_URL
+        sync: false
+      - key: CRON_SECRET
+        sync: false

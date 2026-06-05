@@ -324,34 +324,33 @@ src/
 
 ## 🚢 Deployment
 
-### Docker / Node Server (Recommended)
+### Render (Recommended)
 
-This app is best deployed as a containerized Node server because the scrapers use Playwright.
+This repo is ready for a Render Web Service + Render Cron Job setup.
 
-1. Build locally with Docker:
+1. In Render, create a new Blueprint and point it at this repository.
+2. Render will use `render.yaml` to create:
+   - a Docker-based web service from [Dockerfile](/Users/ayushmansahoo/Documents/GitHub/Kairo-Event-Discovery-app/Dockerfile)
+   - a cron job that calls `/api/sync/all` every 6 hours
+3. Add the environment variables from `.env.local` to the Render web service.
+4. Set the cron job variables:
+   - `APP_URL` to your Render web service URL, such as `https://kairo-web.onrender.com`
+   - `CRON_SECRET` to the same secret used by the web service
+5. Deploy the Blueprint.
+
+If you prefer manual setup instead of a Blueprint:
+
+1. Create a `Web Service`.
+2. Choose `Docker` as the runtime.
+3. Point it at the repo's root `Dockerfile`.
+4. Set `PORT=10000`.
+5. Create a `Cron Job` with this command:
 
 ```bash
-docker build -t kairo .
+node scripts/render-sync.mjs
 ```
 
-2. Run it locally with your environment variables:
-
-```bash
-docker run --rm -p 3000:3000 --env-file .env.local kairo
-```
-
-3. Deploy the same `Dockerfile` to Railway, Render, Cloud Run, Fly.io, or any host that supports Docker.
-
-4. Set the same environment variables from `.env.local` in the platform dashboard.
-
-5. Trigger sync jobs with your platform scheduler or an external cron service:
-
-```bash
-curl -X POST https://your-domain.com/api/sync/all \
-  -H "x-kairo-sync-key: your_cron_secret_here"
-```
-
-If you want a scheduled sync, run that request every 6 hours from your host's scheduler, GitHub Actions, or an external cron service.
+6. Set `APP_URL` and `CRON_SECRET` on the cron job.
 
 ---
 

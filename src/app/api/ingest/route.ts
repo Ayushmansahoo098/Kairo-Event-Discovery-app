@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { syncEventbriteEvents } from "@/lib/scrapers/eventbrite";
+import { Event } from "@/lib/types";
 
 // Set dynamic configuration to ensure this runs server-side on request without static caching
 export const dynamic = "force-dynamic";
@@ -16,7 +17,7 @@ export async function POST() {
         failureCount: result.failureCount,
         cleanupCount: result.cleanupCount,
         duration: result.duration,
-        events: result.events?.map((e: any) => ({ id: e.id, title: e.title, category: e.category })),
+        events: result.events?.map((e: Event) => ({ id: e.id, title: e.title, category: e.category })),
       });
     } else {
       return NextResponse.json(
@@ -27,12 +28,13 @@ export async function POST() {
         { status: 500 }
       );
     }
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Eventbrite Ingestion API Route failed:", error);
+    const errorMessage = error instanceof Error ? error.message : "Failed to trigger Eventbrite ingestion process";
     return NextResponse.json(
       {
         success: false,
-        error: error.message || "Failed to trigger Eventbrite ingestion process",
+        error: errorMessage,
       },
       { status: 500 }
     );

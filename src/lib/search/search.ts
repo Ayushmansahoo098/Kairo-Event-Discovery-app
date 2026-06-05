@@ -39,7 +39,7 @@ export function searchEvents(
   // 4. Source Filter (Devfolio, Unstop, HackerEarth, Eventbrite)
   if (filters.source) {
     result = result.filter((e) => {
-      const src = (e as any).source || "";
+      const src = e.source || "";
       return src.toLowerCase() === filters.source!.toLowerCase();
     });
   }

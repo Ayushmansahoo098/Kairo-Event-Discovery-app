@@ -9,13 +9,13 @@ export function calculateEventScore(event: Event): number {
   let score = 0;
 
   // 1. Source Quality Score (up to 100 points)
-  const sourceName = (event as any).source || "";
+  const sourceName = event.source || "";
   const sourcePriority = getSourcePriority(sourceName);
   score += sourcePriority * 10;
 
   // 2. Freshness Score (up to 72 points)
   // Events scraped/updated very recently are given a boost
-  const lastUpdatedStr = (event as any).lastUpdated;
+  const lastUpdatedStr = event.lastUpdated;
   if (lastUpdatedStr) {
     try {
       const lastUpdatedTime = new Date(lastUpdatedStr).getTime();
@@ -44,7 +44,7 @@ export function calculateEventScore(event: Event): number {
   }
 
   // 4. Trending Score (50 points boost)
-  if (event.isTrending || (event as any).trendingScore > 0) {
+  if (event.isTrending || (event.trendingScore || 0) > 0) {
     score += 50;
   }
 

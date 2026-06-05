@@ -5,6 +5,7 @@ import { getTrendingEvents } from "@/lib/mock-data";
 import Link from "next/link";
 import Image from "next/image";
 import { Flame, MapPin, Calendar } from "lucide-react";
+import { Event } from "@/lib/types";
 import { motion, useScroll, useTransform } from "framer-motion";
 
 interface TrendingSectionProps {
@@ -13,7 +14,7 @@ interface TrendingSectionProps {
 
 export function TrendingSection({ onHoverEvent }: TrendingSectionProps) {
   const containerRef = useRef(null);
-  const [trendingEvents, setTrendingEvents] = useState<any[]>([]);
+  const [trendingEvents, setTrendingEvents] = useState<Event[]>([]);
 
   useEffect(() => {
     const fetchTrending = async () => {

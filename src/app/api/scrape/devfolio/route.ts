@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { syncDevfolioEvents } from "@/lib/scrapers/devfolio";
+import { Event } from "@/lib/types";
 
 // Set dynamic configuration to ensure this runs server-side on request without static caching
 export const dynamic = "force-dynamic";
@@ -14,7 +15,7 @@ export async function POST() {
         success: true,
         message: `Successfully synchronized ${result.count} hackathons from Devfolio.`,
         count: result.count,
-        events: result.events?.map((e: any) => ({ id: e.id, title: e.title, city: e.city })),
+        events: result.events?.map((e: Event) => ({ id: e.id, title: e.title, city: e.city })),
       });
     } else {
       return NextResponse.json(
@@ -25,12 +26,13 @@ export async function POST() {
         { status: 500 }
       );
     }
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Scraper API Route failed:", error);
+    const errorMessage = error instanceof Error ? error.message : "Failed to trigger scraper sync process";
     return NextResponse.json(
       {
         success: false,
-        error: error.message || "Failed to trigger scraper sync process",
+        error: errorMessage,
       },
       { status: 500 }
     );

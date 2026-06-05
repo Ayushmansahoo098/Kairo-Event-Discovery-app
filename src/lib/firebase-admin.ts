@@ -28,18 +28,18 @@ export const adminDb = (() => {
   }
   
   // Return a proxy that intercepts database calls to prevent build crashes
-  const handler: ProxyHandler<any> = {
+  const handler: ProxyHandler<object> = {
     get(target, prop) {
       if (prop === "then") {
         return undefined; // Avoid blocking promise-like checks
       }
-      return (...args: any[]) => {
+      return () => {
         console.warn(`Firestore Admin DB method "${String(prop)}" was called but firebase-admin is not initialized. Please configure your FIREBASE_ env variables in .env.local.`);
         return new Proxy({}, handler);
       };
     }
   };
 
-  return new Proxy({} as any, handler);
+  return new Proxy({} as object, handler) as unknown as admin.firestore.Firestore;
 })();
 

@@ -34,44 +34,72 @@ Finding the right tech event means hopping across 5+ fragmented directories dail
 
 ## 🏗️ Architecture
 
-```
-                          ┌─────────────────────────┐
-                          │    Kairo Frontend        │
-                          │    (Next.js 16 + React)  │
-                          └────────────┬────────────┘
-                                       │
-                    ┌──────────────────┼──────────────────┐
-                    │                  │                   │
-              ┌─────▼─────┐    ┌──────▼──────┐    ┌──────▼──────┐
-              │  Landing   │    │  Discovery  │    │   Admin     │
-              │  + Auth    │    │  Feed       │    │  Dashboard  │
-              │  Modal     │    │  + Search   │    │  + Telemetry│
-              └────────────┘    └──────┬──────┘    └─────────────┘
-                                       │
-                          ┌────────────▼────────────┐
-                          │   Intelligence Layer     │
-                          ├──────────────────────────┤
-                          │ • Deduplication Engine   │
-                          │ • Relevance Ranking      │
-                          │ • Trending Calculator    │
-                          │ • Fuzzy Search           │
-                          │ • Interaction Analytics  │
-                          └────────────┬────────────┘
-                                       │
-              ┌────────────────────────▼────────────────────────┐
-              │             Firestore Database                  │
-              │  events │ users │ scrape_logs │ analytics_events│
-              └────────────────────────┬────────────────────────┘
-                                       │
-              ┌────────────────────────▼────────────────────────┐
-              │          Scraper Orchestrator                    │
-              │              /api/sync/all                       │
-              │  ┌─────────┬─────────┬───────────┬─────────┬───┐│
-              │  │Devfolio │ Unstop  │HackerEarth│Eventb...│Met││
-              │  │(Browser)│(Browser)│ (Browser) │  (API)  │Met││
-              │  └─────────┴─────────┴───────────┴─────────┴───┘│
-              │         + Concurrency Lock + Batch Writes       │
-              └─────────────────────────────────────────────────┘
+The platform follows a layered microservices and serverless database architecture designed for scaling, reliability, and real-time processing:
+
+```mermaid
+graph TD
+    %% Define Styles
+    classDef client fill:#1E293B,stroke:#38BDF8,stroke-width:2px,color:#fff;
+    classDef server fill:#0F172A,stroke:#F97316,stroke-width:2px,color:#fff;
+    classDef database fill:#022C22,stroke:#10B981,stroke-width:2px,color:#fff;
+    classDef scrapers fill:#3B0764,stroke:#A855F7,stroke-width:2px,color:#fff;
+    classDef external fill:#1C1917,stroke:#A8A29E,stroke-width:2px,color:#fff;
+
+    %% Frontend Layer
+    subgraph UI_Layer [Client Application - Next.js 16 App Router]
+        A["Dashboard & Landing Page (Framer Motion)"]
+        B["Personalized Feeds (Trending, Near You, Recommended)"]
+        C["Admin Observability Panel (Telemetry Dashboard)"]
+    end
+    class UI_Layer,A,B,C client;
+
+    %% Backend Layer
+    subgraph Ingestion_Layer [Serverless Backend Orchestrator]
+        D["Unified Ingest API (/api/sync/all)"]
+        E["Distributed Concurrency Lock (Firestore Mutex)"]
+        F["Fuzzy Jaccard Deduplication Engine (>=70% Overlap)"]
+        G["Content Hash Change-Detection (SHA-256)"]
+        H["Soft-Expiry Lifecycle Manager (30-day Retention)"]
+    end
+    class Ingestion_Layer,D,E,F,G,H server;
+
+    %% Scrapers Layer
+    subgraph Crawler_Layer [Headless Scrapers & APIs]
+        I["Devfolio Crawler (Playwright)"]
+        J["Unstop Crawler (Playwright)"]
+        K["HackerEarth Crawler (Playwright)"]
+        L["Meetup.com Crawler (Playwright)"]
+        M["Eventbrite Poller (REST API)"]
+    end
+    class Crawler_Layer,I,J,K,L,M scrapers;
+
+    %% Storage Layer
+    subgraph Storage_Layer [Cloud Firestore Database]
+        N[("events (Canonical Events)")]
+        O[("users (Profiles & Preferences)")]
+        P[("scrape_logs (Crawler Telemetry)")]
+        Q[("analytics_events (Dwell Time & Interactions)")]
+    end
+    class Storage_Layer,N,O,P,Q database;
+
+    %% External Recommendation System
+    subgraph AI_Layer [External Recommendation Engine]
+        R["FastAPI Recommendation Microservice"]
+        S["Sentence-Transformers (all-MiniLM-L6-v2)"]
+    end
+    class AI_Layer,R,S external;
+
+    %% Connections
+    A & B & C <-->|Firebase Client SDK / REST API| Storage_Layer
+    D -->|Firestore Transaction| E
+    D -->|Executes In-Memory| Crawler_Layer
+    Crawler_Layer -->|Returns Event Array| F
+    F -->|Computes Hashes| G
+    G -->|Compares & Writes Changes| N
+    H -->|Flags Stale Events & Prunes| N
+    R <-->|Fetches Telemetry & Events| N & Q
+    R -->|Caches Embeddings| N
+    B <-->|Similarity Vectors| R
 ```
 
 ---

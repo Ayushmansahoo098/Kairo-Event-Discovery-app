@@ -1,16 +1,23 @@
 import type { Metadata, Viewport } from "next";
-import { Plus_Jakarta_Sans } from "next/font/google";
+import { Plus_Jakarta_Sans, Cormorant_Garamond } from "next/font/google";
 import "./globals.css";
 import { BookmarkProvider } from "@/context/bookmark-context";
 import { AuthProvider } from "@/context/auth-context";
 import { Navbar } from "@/components/navbar";
-import { CustomCursor } from "@/components/custom-cursor";
 import { InitialLoader } from "@/components/initial-loader";
+import { VisualGrid } from "@/components/visual-grid";
 import { cn } from "@/lib/utils";
 
 const plusJakarta = Plus_Jakarta_Sans({
   subsets: ["latin"],
   variable: "--font-sans",
+});
+
+const cormorantGaramond = Cormorant_Garamond({
+  subsets: ["latin"],
+  weight: ["300", "400", "500", "600", "700"],
+  style: ["normal", "italic"],
+  variable: "--font-serif",
 });
 
 export const metadata: Metadata = {
@@ -23,7 +30,7 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  themeColor: "#8b5cf6",
+  themeColor: "#b8a88a",
   width: "device-width",
   initialScale: 1,
 };
@@ -34,17 +41,18 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className={cn(plusJakarta.variable, "font-sans")}>
-      <body className="min-h-screen bg-kairo-primary font-sans text-kairo-white antialiased cursor-default">
+    <html lang="en" className={cn(plusJakarta.variable, cormorantGaramond.variable, "font-sans")}>
+      <body className="min-h-screen bg-kairo-primary font-sans text-kairo-white antialiased cursor-default relative overflow-x-hidden">
         <InitialLoader />
-        <CustomCursor />
+        <VisualGrid />
         <AuthProvider>
           <BookmarkProvider>
             <Navbar />
-            <main className="pb-20 md:pb-0 md:pt-16">{children}</main>
+            <main className="pb-20 md:pb-0 md:pt-16 relative z-10">{children}</main>
           </BookmarkProvider>
         </AuthProvider>
       </body>
     </html>
   );
 }
+

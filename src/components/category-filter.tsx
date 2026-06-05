@@ -32,21 +32,21 @@ export function CategoryFilter({ selectedCategory, onSelectCategory }: CategoryF
         <button
           onClick={() => onSelectCategory(null)}
           className={cn(
-            "relative px-4 py-2 rounded-full text-sm font-semibold transition-colors duration-300",
+            "relative px-4.5 py-2 border transition-all duration-300 text-xs font-bold uppercase tracking-wider rounded-none",
             selectedCategory === null
-              ? "text-kairo-white"
-              : "text-kairo-light-gray hover:text-kairo-white"
+              ? "text-kairo-primary border-kairo-orange"
+              : "text-kairo-light-gray border-kairo-orange/10 hover:border-kairo-orange/30 hover:text-kairo-white"
           )}
         >
           {selectedCategory === null && (
             <motion.div
               layoutId="active-pill"
-              className="absolute inset-0 bg-kairo-orange rounded-full shadow-md shadow-kairo-orange/30"
-              transition={{ type: "spring", stiffness: 400, damping: 30 }}
+              className="absolute inset-0 bg-kairo-orange -z-10 rounded-none"
+              transition={{ type: "spring", stiffness: 450, damping: 32 }}
             />
           )}
-          <span className="relative z-10 flex items-center gap-2 whitespace-nowrap">
-            <LayoutGrid className="w-4 h-4" />
+          <span className="relative z-10 flex items-center gap-2.5 whitespace-nowrap">
+            <LayoutGrid className="w-3.5 h-3.5" />
             All Events
           </span>
         </button>
@@ -56,20 +56,20 @@ export function CategoryFilter({ selectedCategory, onSelectCategory }: CategoryF
             key={cat.id}
             onClick={() => onSelectCategory(cat.id)}
             className={cn(
-              "relative px-4 py-2 rounded-full text-sm font-semibold transition-colors duration-300",
+              "relative px-4.5 py-2 border transition-all duration-300 text-xs font-bold uppercase tracking-wider rounded-none",
               selectedCategory === cat.id
-                ? "text-kairo-white"
-                : "text-kairo-light-gray hover:text-kairo-white"
+                ? "text-kairo-primary border-kairo-orange"
+                : "text-kairo-light-gray border-kairo-orange/10 hover:border-kairo-orange/30 hover:text-kairo-white"
             )}
           >
             {selectedCategory === cat.id && (
               <motion.div
                 layoutId="active-pill"
-                className="absolute inset-0 bg-kairo-orange rounded-full shadow-md shadow-kairo-orange/30"
-                transition={{ type: "spring", stiffness: 400, damping: 30 }}
+                className="absolute inset-0 bg-kairo-orange -z-10 rounded-none"
+                transition={{ type: "spring", stiffness: 450, damping: 32 }}
               />
             )}
-            <span className="relative z-10 flex items-center gap-2 whitespace-nowrap">
+            <span className="relative z-10 flex items-center gap-2.5 whitespace-nowrap">
               {iconMap[cat.id]}
               {cat.name}
             </span>

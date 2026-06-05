@@ -33,16 +33,16 @@ export default function SavedPage() {
   );
 
   return (
-    <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
+    <div className="mx-auto max-w-7xl px-6 py-10 sm:px-10">
       {/* ── Header ── */}
-      <div className="mb-10 flex items-center gap-4">
-        <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-kairo-dark-gray shadow-sm border border-kairo-gray">
-          <Heart className="h-6 w-6 text-kairo-grad-2 fill-kairo-grad-2" />
+      <div className="mb-12 flex items-center gap-4">
+        <div className="flex h-11 w-11 items-center justify-center rounded-none bg-kairo-primary border border-kairo-orange/20 shadow-md">
+          <Heart className="h-5 w-5 text-kairo-orange fill-kairo-orange/20" />
         </div>
         <div className="flex items-center gap-4">
-          <h1 className="text-3xl md:text-4xl font-extrabold tracking-tight text-kairo-white">Saved Events</h1>
+          <h1 className="text-3xl md:text-4xl font-serif font-light tracking-wide uppercase text-kairo-white">Saved Events</h1>
           {savedEvents.length > 0 && (
-            <span className="inline-flex h-8 min-w-8 items-center justify-center rounded-full bg-kairo-orange/20 px-3 text-sm font-bold text-kairo-orange">
+            <span className="inline-flex h-7 min-w-7 items-center justify-center rounded-none bg-kairo-orange text-kairo-primary border border-kairo-orange px-2 text-xs font-bold">
               {savedEvents.length}
             </span>
           )}
@@ -51,9 +51,9 @@ export default function SavedPage() {
 
       {/* ── Content ── */}
       {loading ? (
-        <div className="flex flex-col items-center justify-center py-32 bg-kairo-dark-gray/30 border border-kairo-gray/50 rounded-3xl">
-          <Loader2 className="w-10 h-10 animate-spin text-kairo-orange" />
-          <p className="mt-4 text-kairo-light-gray font-bold tracking-widest text-xs uppercase">Syncing Saved Events...</p>
+        <div className="flex flex-col items-center justify-center py-32 bg-kairo-dark-gray/10 border border-kairo-orange/15 rounded-none">
+          <Loader2 className="w-8 h-8 animate-spin text-kairo-orange" />
+          <p className="mt-4 text-kairo-light-gray font-bold tracking-[0.2em] text-xs uppercase">Syncing Saved Events...</p>
         </div>
       ) : savedEvents.length > 0 ? (
         <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
@@ -69,22 +69,21 @@ export default function SavedPage() {
         </div>
       ) : (
         /* ── Empty State ── */
-        <div className="flex flex-col items-center justify-center py-32 text-center bg-kairo-dark-gray rounded-3xl border border-kairo-gray shadow-sm">
-          <div className="mb-6 flex h-24 w-24 items-center justify-center rounded-full bg-kairo-primary border border-kairo-dark-gray">
-            <Heart className="h-10 w-10 text-kairo-gray" />
+        <div className="flex flex-col items-center justify-center py-24 text-center bg-kairo-dark-gray/10 rounded-none border border-kairo-orange/15 shadow-md">
+          <div className="mb-6 flex h-16 w-16 items-center justify-center rounded-none bg-kairo-primary border border-kairo-orange/20">
+            <Heart className="h-6 w-6 text-kairo-gray" />
           </div>
-          <h2 className="mb-2 text-2xl font-bold text-kairo-white">
+          <h2 className="mb-2 text-2xl font-serif uppercase tracking-wider text-kairo-white">
             No saved events yet
           </h2>
-          <p className="mb-10 max-w-md text-kairo-light-gray text-lg">
-            Start exploring and bookmark events you&apos;re interested in.
-            They&apos;ll show up here so you never lose track.
+          <p className="mb-10 max-w-sm text-kairo-light-gray text-xs font-light tracking-wide leading-relaxed">
+            Start exploring and bookmark events you&apos;re interested in. They&apos;ll show up here so you never lose track.
           </p>
           <Link
             href="/feed"
-            className="group inline-flex items-center gap-2 rounded-full bg-kairo-orange px-8 py-4 text-base font-bold text-kairo-white shadow-lg shadow-kairo-orange/25 transition-all duration-300 hover:shadow-xl hover:shadow-kairo-orange/30 hover:scale-105"
+            className="group inline-flex items-center gap-3 bg-kairo-orange text-kairo-primary px-8 py-4 text-xs font-bold uppercase tracking-[0.25em] transition-all duration-300 hover:scale-105 rounded-none border border-kairo-orange cursor-pointer"
           >
-            <Compass className="h-5 w-5" />
+            <Compass className="h-4 w-4" />
             Explore Events
           </Link>
         </div>

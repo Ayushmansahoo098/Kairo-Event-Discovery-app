@@ -37,7 +37,7 @@ export function SearchBar({ searchQuery, onSearchChange, selectedCity, onCityCha
           value={searchQuery}
           onChange={(e) => onSearchChange(e.target.value)}
           placeholder="Search for events, organizers, or topics..."
-          className="w-full bg-kairo-dark-gray border border-kairo-gray rounded-2xl py-3 pl-12 pr-4 text-kairo-white placeholder-kairo-gray focus:outline-none focus:border-kairo-orange focus:ring-4 focus:ring-kairo-orange/10 shadow-sm transition-all duration-300"
+          className="w-full bg-kairo-dark-gray/20 border border-kairo-orange/15 rounded-none py-3.5 pl-12 pr-4 text-kairo-white placeholder-kairo-gray/50 focus:outline-none focus:border-kairo-orange transition-all duration-300 text-sm font-light tracking-wide shadow-md"
         />
       </div>
 
@@ -45,7 +45,7 @@ export function SearchBar({ searchQuery, onSearchChange, selectedCity, onCityCha
         <select
           value={selectedCity || ""}
           onChange={(e) => onCityChange(e.target.value || null)}
-          className="w-full appearance-none bg-kairo-dark-gray border border-kairo-gray rounded-2xl py-3 px-4 pr-10 text-kairo-white focus:outline-none focus:border-kairo-orange focus:ring-4 focus:ring-kairo-orange/10 shadow-sm transition-all duration-300 [&>option]:bg-kairo-dark-gray [&>option]:text-kairo-white font-medium"
+          className="w-full appearance-none bg-kairo-dark-gray/20 border border-kairo-orange/15 rounded-none py-3.5 px-4 pr-10 text-kairo-white focus:outline-none focus:border-kairo-orange transition-all duration-300 [&>option]:bg-kairo-primary [&>option]:text-kairo-white text-sm font-light tracking-wide shadow-md"
         >
           <option value="">All Cities</option>
           {cities.map((city) => (
@@ -53,7 +53,7 @@ export function SearchBar({ searchQuery, onSearchChange, selectedCity, onCityCha
           ))}
         </select>
         <div className="absolute inset-y-0 right-0 flex items-center pr-4 pointer-events-none">
-          <SlidersHorizontal className="w-5 h-5 text-kairo-light-gray" />
+          <SlidersHorizontal className="w-4 h-4 text-kairo-light-gray" />
         </div>
       </div>
     </div>

@@ -224,34 +224,34 @@ export default function EventDetailPage() {
         <div className="absolute left-4 right-4 top-4 flex items-center justify-between">
           <button
             onClick={() => router.back()}
-            className="flex h-12 w-12 items-center justify-center rounded-full bg-kairo-dark-gray/90 shadow-sm backdrop-blur-xl transition-all hover:bg-kairo-gray text-kairo-light-gray hover:text-kairo-white hover:scale-105"
+            className="flex h-11 w-11 items-center justify-center rounded-none bg-kairo-primary border border-kairo-orange/20 shadow-md backdrop-blur-md transition-all hover:border-kairo-orange text-kairo-light-gray hover:text-kairo-white hover:scale-105"
             aria-label="Go back"
           >
-            <ArrowLeft className="h-6 w-6" />
+            <ArrowLeft className="h-5 w-5" />
           </button>
 
           <div className="flex gap-2">
             <button
               onClick={handleShare}
-              className="flex h-12 w-12 items-center justify-center rounded-full bg-kairo-dark-gray/90 shadow-sm backdrop-blur-xl transition-all hover:bg-kairo-gray text-kairo-light-gray hover:text-kairo-white hover:scale-105 cursor-pointer"
+              className="flex h-11 w-11 items-center justify-center rounded-none bg-kairo-primary border border-kairo-orange/20 shadow-md backdrop-blur-md transition-all hover:border-kairo-orange text-kairo-light-gray hover:text-kairo-white hover:scale-105 cursor-pointer"
               aria-label="Share event"
             >
-              <Share2 className="h-5 w-5" />
+              <Share2 className="h-4 w-4" />
             </button>
-            <BookmarkButton eventId={event.id} className="bg-kairo-dark-gray/90 shadow-sm h-12 w-12 flex items-center justify-center hover:bg-kairo-gray" />
+            <BookmarkButton eventId={event.id} className="bg-kairo-primary shadow-md border border-kairo-orange/20 h-11 w-11 flex items-center justify-center hover:border-kairo-orange rounded-none text-kairo-orange" />
           </div>
         </div>
 
         {/* Online/Offline badge on banner */}
         <div className="absolute bottom-6 left-4 md:left-6">
           <span
-            className={`inline-flex items-center gap-1.5 rounded-full px-4 py-1.5 text-sm font-bold backdrop-blur-md shadow-lg text-kairo-white ${
+            className={`inline-flex items-center gap-1.5 rounded-none px-4 py-1.5 text-xs font-bold uppercase tracking-widest backdrop-blur-md shadow-md text-kairo-white border border-kairo-orange/20 ${
               event.isOnline
-                ? "bg-kairo-orange"
-                : "bg-kairo-grad-2"
+                ? "bg-kairo-primary/95 text-kairo-orange"
+                : "bg-kairo-primary/95 text-kairo-white"
             }`}
           >
-            <Globe className="h-4 w-4" />
+            <Globe className="h-3.5 w-3.5" />
             {event.isOnline ? "Online" : "In Person"}
           </span>
         </div>
@@ -260,27 +260,27 @@ export default function EventDetailPage() {
       {/* ── Content ── */}
       <div className="mx-auto max-w-3xl px-4 sm:px-6 lg:px-8 mt-8">
         {/* Title */}
-        <h1 className="text-3xl font-extrabold leading-tight tracking-tight md:text-5xl text-kairo-white">
+        <h1 className="text-3xl font-serif font-light leading-tight tracking-wide md:text-5xl text-kairo-white uppercase">
           {event.title}
         </h1>
 
         {/* Meta row */}
         <div className="mt-8 flex flex-wrap gap-x-8 gap-y-4">
-          <div className="flex items-center gap-3 text-kairo-light-gray font-medium">
-            <div className="w-10 h-10 rounded-full bg-kairo-dark-gray flex items-center justify-center text-kairo-orange">
-              <Calendar className="h-5 w-5" />
+          <div className="flex items-center gap-3 text-kairo-light-gray font-light text-sm tracking-wide">
+            <div className="w-9 h-9 rounded-none bg-kairo-dark-gray/30 border border-kairo-orange/15 flex items-center justify-center text-kairo-orange">
+              <Calendar className="h-4 w-4" />
             </div>
             <span>{formattedDate}</span>
           </div>
-          <div className="flex items-center gap-3 text-kairo-light-gray font-medium">
-            <div className="w-10 h-10 rounded-full bg-kairo-dark-gray flex items-center justify-center text-kairo-grad-4">
-              <MapPin className="h-5 w-5" />
+          <div className="flex items-center gap-3 text-kairo-light-gray font-light text-sm tracking-wide">
+            <div className="w-9 h-9 rounded-none bg-kairo-dark-gray/30 border border-kairo-orange/15 flex items-center justify-center text-kairo-orange">
+              <MapPin className="h-4 w-4" />
             </div>
             <span>{event.location}</span>
           </div>
-          <div className="flex items-center gap-3 text-kairo-light-gray font-medium">
-            <div className="w-10 h-10 rounded-full bg-kairo-dark-gray flex items-center justify-center text-kairo-orange">
-              <User className="h-5 w-5" />
+          <div className="flex items-center gap-3 text-kairo-light-gray font-light text-sm tracking-wide">
+            <div className="w-9 h-9 rounded-none bg-kairo-dark-gray/30 border border-kairo-orange/15 flex items-center justify-center text-kairo-orange">
+              <User className="h-4 w-4" />
             </div>
             <span>{event.organizer}</span>
           </div>
@@ -292,9 +292,9 @@ export default function EventDetailPage() {
             {event.tags.map((tag) => (
               <span
                 key={tag}
-                className="inline-flex items-center gap-1.5 rounded-full bg-kairo-dark-gray border border-kairo-gray px-4 py-1.5 text-sm font-semibold text-kairo-light-gray shadow-sm"
+                className="inline-flex items-center gap-1.5 rounded-none bg-kairo-dark-gray/20 border border-kairo-orange/10 px-3.5 py-1 text-xs font-light text-kairo-light-gray tracking-wide shadow-sm"
               >
-                <Tag className="h-3.5 w-3.5 text-kairo-orange" />
+                <Tag className="h-3 w-3 text-kairo-orange" />
                 {tag}
               </span>
             ))}
@@ -302,49 +302,49 @@ export default function EventDetailPage() {
         )}
 
         {/* Divider */}
-        <div className="my-10 h-px bg-kairo-gray/50" />
+        <div className="my-10 h-px bg-kairo-orange/10" />
 
         {/* Description */}
         <div>
-          <h2 className="mb-4 text-2xl font-bold text-kairo-white">About This Event</h2>
-          <p className="whitespace-pre-line leading-relaxed text-lg text-kairo-light-gray">
+          <h2 className="mb-4 text-2xl font-serif font-light text-kairo-white uppercase tracking-wide">About This Event</h2>
+          <p className="whitespace-pre-line leading-relaxed text-base sm:text-lg text-kairo-light-gray font-light tracking-wide">
             {event.description}
           </p>
         </div>
 
         {/* Divider */}
-        <div className="my-10 h-px bg-kairo-gray/50" />
+        <div className="my-10 h-px bg-kairo-orange/10" />
 
         {/* Info Cards */}
-        <div className="grid md:grid-cols-2 gap-4">
+        <div className="grid md:grid-cols-2 gap-6">
           {/* Organizer Card */}
-          <div className="rounded-2xl border border-kairo-gray bg-kairo-dark-gray p-6 shadow-sm">
-            <h3 className="mb-4 text-xs font-bold uppercase tracking-wider text-kairo-gray">
+          <div className="rounded-none border border-kairo-orange/15 bg-kairo-dark-gray/10 p-6 shadow-sm hover:border-kairo-orange/30 transition-all duration-300">
+            <h3 className="mb-4 text-[9px] font-bold uppercase tracking-[0.2em] text-kairo-light-gray">
               Organized by
             </h3>
             <div className="flex items-center gap-4">
-              <div className="flex h-14 w-14 items-center justify-center rounded-full bg-kairo-primary border border-kairo-gray">
-                <User className="h-6 w-6 text-kairo-orange" />
+              <div className="flex h-12 w-12 items-center justify-center rounded-none bg-kairo-primary border border-kairo-orange/20 text-kairo-orange">
+                <User className="h-5 w-5" />
               </div>
               <div>
-                <p className="font-bold text-kairo-white text-lg">{event.organizer}</p>
-                <p className="text-sm font-medium text-kairo-light-gray">Event Organizer</p>
+                <p className="font-serif text-base text-kairo-white uppercase tracking-wide">{event.organizer}</p>
+                <p className="text-[10px] uppercase tracking-wider text-kairo-light-gray mt-0.5">Event Organizer</p>
               </div>
             </div>
           </div>
 
           {/* Location Card */}
-          <div className="rounded-2xl border border-kairo-gray bg-kairo-dark-gray p-6 shadow-sm">
-            <h3 className="mb-4 text-xs font-bold uppercase tracking-wider text-kairo-gray">
+          <div className="rounded-none border border-kairo-orange/15 bg-kairo-dark-gray/10 p-6 shadow-sm hover:border-kairo-orange/30 transition-all duration-300">
+            <h3 className="mb-4 text-[9px] font-bold uppercase tracking-[0.2em] text-kairo-light-gray">
               Location
             </h3>
             <div className="flex items-center gap-4">
-              <div className="flex h-14 w-14 items-center justify-center rounded-full bg-kairo-primary border border-kairo-gray">
-                <MapPin className="h-6 w-6 text-kairo-grad-4" />
+              <div className="flex h-12 w-12 items-center justify-center rounded-none bg-kairo-primary border border-kairo-orange/20 text-kairo-orange">
+                <MapPin className="h-5 w-5" />
               </div>
               <div>
-                <p className="font-bold text-kairo-white text-lg">{event.location}</p>
-                <p className="text-sm font-medium text-kairo-light-gray">
+                <p className="font-serif text-base text-kairo-white uppercase tracking-wide">{event.location}</p>
+                <p className="text-[10px] uppercase tracking-wider text-kairo-light-gray mt-0.5">
                   {event.city}
                   {event.isOnline ? " • Virtual" : ""}
                 </p>
@@ -354,18 +354,18 @@ export default function EventDetailPage() {
         </div>
 
         {/* Divider */}
-        <div className="my-10 h-px bg-kairo-gray/50" />
+        <div className="my-10 h-px bg-kairo-orange/10" />
 
         {/* Similar Events Carousel */}
         <div className="mb-12">
-          <h2 className="mb-6 text-2xl font-bold text-kairo-white">Similar Events You Might Like</h2>
+          <h2 className="mb-6 text-2xl font-serif font-light text-kairo-white uppercase tracking-wide">Similar Events You Might Like</h2>
           {loadingSimilar ? (
-            <div className="flex h-[200px] items-center justify-center rounded-2xl border border-kairo-gray bg-kairo-dark-gray/50">
-              <Loader2 className="w-6 h-6 animate-spin text-kairo-orange" />
-              <span className="ml-3 text-sm font-medium text-kairo-light-gray">Finding similar events...</span>
+            <div className="flex h-[200px] items-center justify-center rounded-none border border-kairo-orange/15 bg-kairo-dark-gray/10">
+              <Loader2 className="w-5 h-5 animate-spin text-kairo-orange" />
+              <span className="ml-3 text-xs tracking-wider text-kairo-light-gray uppercase font-bold">Finding similar events...</span>
             </div>
           ) : similarEvents.length > 0 ? (
-            <div className="flex gap-6 overflow-x-auto pb-4 scrollbar-thin scrollbar-thumb-kairo-gray scrollbar-track-transparent snap-x snap-mandatory -mx-4 px-4 sm:-mx-6 sm:px-6 lg:-mx-8 lg:px-8">
+            <div className="flex gap-6 overflow-x-auto pb-4 scrollbar-thin scrollbar-thumb-kairo-orange/30 scrollbar-track-transparent snap-x snap-mandatory -mx-4 px-4 sm:-mx-6 sm:px-6 lg:-mx-8 lg:px-8">
               {similarEvents.map((simEvent) => (
                 <div key={simEvent.id} className="w-[280px] sm:w-[320px] flex-shrink-0 snap-start">
                   <EventCard event={simEvent} />
@@ -373,15 +373,15 @@ export default function EventDetailPage() {
               ))}
             </div>
           ) : (
-            <div className="flex h-[150px] flex-col items-center justify-center rounded-2xl border border-kairo-gray bg-kairo-dark-gray/50 p-6 text-center">
-              <p className="text-sm font-medium text-kairo-light-gray">No similar events found at the moment.</p>
+            <div className="flex h-[150px] flex-col items-center justify-center rounded-none border border-kairo-orange/15 bg-kairo-dark-gray/10 p-6 text-center">
+              <p className="text-xs tracking-wider text-kairo-light-gray uppercase font-bold">No similar events found at the moment.</p>
             </div>
           )}
         </div>
       </div>
 
       {/* ── Fixed Bottom CTA ── */}
-      <div className="fixed inset-x-0 bottom-[60px] md:bottom-0 z-50 border-t border-kairo-dark-gray bg-kairo-primary/80 px-4 py-4 backdrop-blur-xl md:px-6 shadow-[0_-10px_40px_-15px_rgba(0,0,0,0.3)]">
+      <div className="fixed inset-x-0 bottom-[60px] md:bottom-0 z-50 border-t border-kairo-orange/10 bg-kairo-primary/90 px-4 py-4.5 backdrop-blur-xl md:px-6 shadow-[0_-10px_30px_rgba(0,0,0,0.4)]">
         <div className="mx-auto max-w-3xl">
           <a
             href={event.registrationUrl}
@@ -397,10 +397,10 @@ export default function EventDetailPage() {
                 tags: event.tags,
               });
             }}
-            className="flex w-full items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-kairo-grad-2 via-kairo-orange to-kairo-grad-4 px-6 py-4 text-lg font-bold text-kairo-white shadow-lg shadow-kairo-orange/25 transition-all duration-300 hover:shadow-xl hover:shadow-kairo-orange/40 hover:scale-[1.02]"
+            className="flex w-full items-center justify-center gap-3 bg-kairo-orange hover:bg-kairo-orange/95 px-6 py-4 text-xs font-bold uppercase tracking-[0.3em] text-kairo-primary shadow-lg transition-all duration-300 hover:scale-[1.01] rounded-none"
           >
             Register Now
-            <ExternalLink className="h-5 w-5" />
+            <ExternalLink className="h-4 w-4" />
           </a>
         </div>
       </div>

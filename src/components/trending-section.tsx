@@ -44,18 +44,18 @@ export function TrendingSection({ onHoverEvent }: TrendingSectionProps) {
       className="py-32 relative bg-transparent border-y border-kairo-dark-gray/30 z-10"
       onMouseLeave={() => onHoverEvent?.(null)}
     >
-      <div className="max-w-7xl mx-auto px-4 mb-12 flex items-center justify-between">
-        <h2 className="text-4xl md:text-5xl font-black flex items-center gap-4 tracking-tight">
-          <Flame className="w-10 h-10 text-kairo-orange drop-shadow-[0_0_15px_rgba(232,80,2,0.5)]" />
+      <div className="max-w-7xl mx-auto px-6 sm:px-10 mb-12 flex items-center justify-between">
+        <h2 className="text-3xl md:text-5xl font-serif font-light flex items-center gap-4 uppercase tracking-wide">
+          <Flame className="w-8 h-8 text-kairo-orange drop-shadow-[0_0_15px_var(--color-kairo-orange)]" />
           <span className="text-kairo-white">Trending Now</span>
         </h2>
-        <Link href="/feed" className="text-sm font-bold tracking-widest uppercase text-kairo-light-gray hover:text-kairo-orange transition-colors">
+        <Link href="/feed" className="text-[10px] font-bold tracking-[0.3em] uppercase text-kairo-light-gray hover:text-kairo-orange transition-colors">
           View all
         </Link>
       </div>
 
       <div className="w-full overflow-x-auto snap-x snap-mandatory scrollbar-hide pb-16 pt-4">
-        <div className="flex gap-8 px-4 md:px-safe max-w-7xl mx-auto">
+        <div className="flex gap-8 px-6 sm:px-10 max-w-7xl mx-auto">
           {trendingEvents.map((event, index) => (
             <motion.div
               key={event.id}
@@ -68,12 +68,12 @@ export function TrendingSection({ onHoverEvent }: TrendingSectionProps) {
             >
               <Link 
                 href={`/events/${event.id}`}
-                className="group block relative w-[85vw] sm:w-[450px] rounded-3xl overflow-hidden transition-all duration-500 shadow-xl shadow-black/50 border border-kairo-dark-gray/50 hover:border-kairo-orange/50"
+                className="group block relative w-[85vw] sm:w-[450px] rounded-none overflow-hidden transition-all duration-500 shadow-2xl border border-kairo-orange/10 hover:border-kairo-orange/30"
               >
                 {/* Magnetic / 3D Hover container */}
                 <motion.div 
                   className="relative h-[320px] w-full"
-                  whileHover={{ scale: 0.98 }}
+                  whileHover={{ scale: 0.99 }}
                   transition={{ type: "spring", stiffness: 400, damping: 30 }}
                 >
                   <Image
@@ -81,24 +81,24 @@ export function TrendingSection({ onHoverEvent }: TrendingSectionProps) {
                     alt={event.title}
                     fill
                     sizes="(max-width: 640px) 100vw, 450px"
-                    className="object-cover transition-transform duration-1000 group-hover:scale-110 group-hover:rotate-1"
+                    className="object-cover transition-transform duration-1000 group-hover:scale-105"
                   />
                   {/* Heavy dark gradient overlay for text readability and cinematic feel */}
-                  <div className="absolute inset-0 bg-gradient-to-t from-kairo-primary via-kairo-primary/50 to-transparent opacity-90 group-hover:opacity-70 transition-opacity duration-500" />
+                  <div className="absolute inset-0 bg-gradient-to-t from-kairo-primary via-kairo-primary/40 to-transparent opacity-90 group-hover:opacity-75 transition-opacity duration-500" />
                   
                   <div className="absolute top-6 left-6">
-                    <span className="px-4 py-1.5 rounded-full text-xs font-black tracking-widest bg-kairo-orange text-kairo-white shadow-[0_0_20px_rgba(232,80,2,0.6)]">
+                    <span className="px-3 py-1 rounded-none text-[9px] font-bold tracking-widest bg-kairo-primary border border-kairo-orange/25 text-kairo-orange shadow-md uppercase">
                       HOT
                     </span>
                   </div>
 
-                  <div className="absolute bottom-0 left-0 right-0 p-8 transform translate-y-4 group-hover:translate-y-0 transition-transform duration-500">
-                    <h3 className="text-2xl md:text-3xl font-black text-white mb-3 line-clamp-2 leading-tight tracking-tight drop-shadow-lg">
+                  <div className="absolute bottom-0 left-0 right-0 p-8 transform translate-y-3 group-hover:translate-y-0 transition-transform duration-500">
+                    <h3 className="text-xl md:text-2xl font-serif font-light text-white mb-3 line-clamp-2 leading-tight tracking-wide uppercase group-hover:text-kairo-orange transition-colors duration-300">
                       {event.title}
                     </h3>
-                    <div className="flex items-center gap-6 text-sm font-bold text-white/80 opacity-0 group-hover:opacity-100 transition-opacity duration-500 delay-100">
-                      <span className="flex items-center gap-2"><Calendar className="w-4 h-4 text-kairo-orange" /> {new Date(event.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</span>
-                      <span className="flex items-center gap-2"><MapPin className="w-4 h-4 text-kairo-grad-4" /> {event.isOnline ? "Online" : event.city}</span>
+                    <div className="flex items-center gap-6 text-[11px] font-light text-white/80 opacity-0 group-hover:opacity-100 transition-opacity duration-500 delay-100 tracking-wide">
+                      <span className="flex items-center gap-2"><Calendar className="w-3.5 h-3.5 text-kairo-orange" /> {new Date(event.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</span>
+                      <span className="flex items-center gap-2"><MapPin className="w-3.5 h-3.5 text-kairo-orange" /> {event.isOnline ? "Online" : event.city}</span>
                     </div>
                   </div>
                 </motion.div>

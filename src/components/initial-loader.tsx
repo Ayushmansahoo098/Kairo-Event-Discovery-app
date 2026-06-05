@@ -5,49 +5,18 @@ import {
   motion,
   AnimatePresence,
   useMotionValue,
-  useTransform,
   animate,
 } from "framer-motion";
 
-type LoaderStep = "loading" | "ready" | "wiping" | "done";
-
-// Jagged brush-stroke edge: static irregularities per Y-position to mimic paint strokes
-const BRUSH_JITTER = [3, -2.5, 4, -1.5, 2.5, -3.5, 1.5, -2, 3.5, -1, 2];
+type LoaderStep = "loading" | "ready" | "dissolving" | "done";
 
 export function InitialLoader() {
   const [progress, setProgress] = useState(0);
   const [step, setStep] = useState<LoaderStep>("loading");
   const [showButton, setShowButton] = useState(false);
 
-  // Motion value for the leading edge X position of the brush wipe (0 = full coverage, 110 = off screen)
-  const brushX = useMotionValue(0);
-
-  // Derive clip-path from brushX — this creates the jagged brush-stroke edge
-  const brushClipPath = useTransform(brushX, (x) => {
-    const j = BRUSH_JITTER;
-    // The polygon covers the screen from X% to 100% (right side stays covered)
-    // The left (leading) edge has jitter to look like a brush stroke
-    return (
-      `polygon(` +
-      `${x}% 0%, ` +
-      `100% 0%, ` +
-      `100% 100%, ` +
-      `${x}% 100%, ` +
-      `${x + j[10]}% 92%, ` +
-      `${x + j[9]}% 84%, ` +
-      `${x + j[8]}% 75%, ` +
-      `${x + j[7]}% 66%, ` +
-      `${x + j[6]}% 58%, ` +
-      `${x + j[5]}% 50%, ` +
-      `${x + j[4]}% 42%, ` +
-      `${x + j[3]}% 33%, ` +
-      `${x + j[2]}% 25%, ` +
-      `${x + j[1]}% 16%, ` +
-      `${x + j[0]}% 8%, ` +
-      `${x}% 0%` +
-      `)`
-    );
-  });
+  // Motion value for the opacity of the loader during dissolve transition
+  const loaderOpacity = useMotionValue(1);
 
   // Progress counter: 0 → 100 over 2 seconds
   useEffect(() => {
@@ -77,37 +46,37 @@ export function InitialLoader() {
     }
   }, [step]);
 
-  // Brush wipe on click: animate brushX from 0 → 110 with cinematic easing
+  // Dissolve transition on click: animate loaderOpacity from 1 → 0 with a smooth ease
   const handleProceed = useCallback(() => {
     setShowButton(false);
-    setStep("wiping");
-    animate(brushX, 115, {
-      duration: 1.4,
-      ease: [0.76, 0, 0.24, 1],
+    setStep("dissolving");
+    animate(loaderOpacity, 0, {
+      duration: 0.8,
+      ease: "easeInOut",
       onComplete: () => setStep("done"),
     });
-  }, [brushX]);
+  }, [loaderOpacity]);
 
   if (step === "done") return null;
 
   return (
     <motion.div
       className="fixed inset-0 z-[999] bg-kairo-primary overflow-hidden"
-      style={step === "wiping" ? { clipPath: brushClipPath } : undefined}
+      style={{ opacity: loaderOpacity }}
     >
       {/* Subtle background texture */}
       <div className="absolute inset-0 opacity-[0.02] bg-[url('https://www.transparenttextures.com/patterns/cubes.png')]" />
 
       {/* ─── Progress Lines & Counter ─── */}
       <motion.div
-        animate={{ opacity: step === "wiping" ? 0 : 1 }}
+        animate={{ opacity: step === "dissolving" ? 0 : 1 }}
         transition={{ duration: 0.2 }}
         className="absolute inset-0 pointer-events-none"
       >
         {/* Top Line + Number */}
         <motion.div
           animate={
-            step === "ready" || step === "wiping"
+            step === "ready" || step === "dissolving"
               ? { opacity: 0, y: -20 }
               : { opacity: 1, y: 0 }
           }
@@ -129,7 +98,7 @@ export function InitialLoader() {
         {/* Bottom Line + Number */}
         <motion.div
           animate={
-            step === "ready" || step === "wiping"
+            step === "ready" || step === "dissolving"
               ? { opacity: 0, y: 20 }
               : { opacity: 1, y: 0 }
           }

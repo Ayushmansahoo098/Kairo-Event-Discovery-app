@@ -218,7 +218,7 @@ export function HeroSection() {
       {/* ── SECTION 1: THE IMMERSIVE HOOK (100vh) ── */}
       <motion.div
         style={{ opacity: introOpacity, scale: introScale, y: introY }}
-        className="relative min-h-screen flex flex-col items-center justify-center text-center px-4 z-10"
+        className="relative min-h-[calc(100dvh-5rem)] md:min-h-[calc(100dvh-4rem)] flex flex-col items-center justify-center text-center px-4 z-10"
       >
         <motion.div
           initial={{ opacity: 0, scale: 0.95 }}

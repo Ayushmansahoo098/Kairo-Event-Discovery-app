@@ -13,7 +13,7 @@ const navItems = [
   { label: "Home", href: "/", icon: Home, num: "01" },
   { label: "Explore", href: "/feed", icon: Compass, num: "02" },
   { label: "Saved", href: "/saved", icon: Heart, num: "03" },
-  { label: "Profile", href: "/profile", num: "04" },
+  { label: "Profile", href: "/profile", icon: User, num: "04" },
 ];
 
 export function Navbar() {
@@ -112,10 +112,10 @@ export function Navbar() {
         {menuOpen && (
           <motion.div
             key="overlay-menu"
-            initial={{ clipPath: "inset(0 0 100% 0)" }}
-            animate={{ clipPath: "inset(0 0 0% 0)" }}
-            exit={{ clipPath: "inset(0 0 100% 0)" }}
-            transition={{ duration: 0.55, ease: [0.76, 0, 0.24, 1] }}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.4, ease: "easeInOut" }}
             className="fixed inset-0 z-[55] hidden md:flex flex-col bg-kairo-primary"
           >
             {/* Subtle texture */}

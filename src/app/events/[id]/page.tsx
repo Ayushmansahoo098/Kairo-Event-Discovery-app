@@ -97,7 +97,8 @@ export default function EventDetailPage() {
     const fetchSimilar = async () => {
       setLoadingSimilar(true);
       try {
-        const res = await fetch("http://localhost:8000/similar", {
+        const apiBase = process.env.NEXT_PUBLIC_RECOMMENDATION_API_URL || "http://localhost:8000";
+        const res = await fetch(`${apiBase}/similar`, {
           method: "POST",
           headers: {
             "Content-Type": "application/json",

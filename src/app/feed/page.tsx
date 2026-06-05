@@ -139,7 +139,8 @@ export default function FeedPage() {
     const fetchRecommendations = async () => {
       setLoadingRecommendations(true);
       try {
-        const res = await fetch("http://localhost:8000/recommendations", {
+        const apiBase = process.env.NEXT_PUBLIC_RECOMMENDATION_API_URL || "http://localhost:8000";
+        const res = await fetch(`${apiBase}/recommendations`, {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
@@ -180,7 +181,8 @@ export default function FeedPage() {
         }
 
         setLoadingRecommendations(true);
-        const res = await fetch("http://localhost:8000/similar", {
+        const apiBase = process.env.NEXT_PUBLIC_RECOMMENDATION_API_URL || "http://localhost:8000";
+        const res = await fetch(`${apiBase}/similar`, {
           method: "POST",
           headers: {
             "Content-Type": "application/json",

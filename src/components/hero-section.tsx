@@ -218,7 +218,7 @@ export function HeroSection() {
       {/* ── SECTION 1: THE IMMERSIVE HOOK (100vh) ── */}
       <motion.div
         style={{ opacity: introOpacity, scale: introScale, y: introY }}
-        className="relative min-h-[calc(100dvh-5rem)] md:min-h-[calc(100dvh-4rem)] flex flex-col items-center justify-center text-center px-4 pb-28 z-10"
+        className="relative min-h-[calc(100dvh-5rem)] md:min-h-[calc(100dvh-4rem)] flex flex-col items-center justify-start md:justify-center text-center px-4 pt-20 md:pt-0 pb-28 z-10"
       >
 
         {/* Cinematic Stagger Title */}

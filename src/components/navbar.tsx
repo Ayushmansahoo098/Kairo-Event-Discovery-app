@@ -51,7 +51,7 @@ export function Navbar() {
                   isActive ? "text-kairo-orange" : "text-kairo-light-gray hover:text-kairo-white"
                 )}
               >
-                <div className="relative">
+                <div className="relative w-5 h-5 flex items-center justify-center">
                   {Icon && <Icon className={cn("w-5 h-5 transition-all duration-300", isActive && "text-kairo-orange")} />}
                   {isActive && (
                     <span className="absolute -bottom-2 left-1/2 -translate-x-1/2 w-1 h-1 bg-kairo-orange" />

@@ -218,17 +218,8 @@ export function HeroSection() {
       {/* ── SECTION 1: THE IMMERSIVE HOOK (100vh) ── */}
       <motion.div
         style={{ opacity: introOpacity, scale: introScale, y: introY }}
-        className="relative min-h-[calc(100dvh-5rem)] md:min-h-[calc(100dvh-4rem)] flex flex-col items-center justify-center text-center px-4 z-10"
+        className="relative min-h-[calc(100dvh-5rem)] md:min-h-[calc(100dvh-4rem)] flex flex-col items-center justify-center text-center px-4 pb-28 z-10"
       >
-        <motion.div
-          initial={{ opacity: 0, scale: 0.95 }}
-          animate={{ opacity: 1, scale: 1 }}
-          transition={{ duration: 1.2, delay: 0.2, ease: "easeOut" }}
-          className="inline-flex items-center gap-2 px-5 py-2 bg-transparent border border-kairo-orange/30 text-[10px] sm:text-xs font-bold tracking-[0.3em] text-kairo-orange mb-8 sm:mb-12 uppercase backdrop-blur-md"
-        >
-          <Sparkles className="w-3.5 h-3.5" />
-          CURATED EXPERIENCES
-        </motion.div>
 
         {/* Cinematic Stagger Title */}
         <motion.h1

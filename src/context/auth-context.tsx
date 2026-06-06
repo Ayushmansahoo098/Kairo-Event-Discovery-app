@@ -28,6 +28,7 @@ interface AuthContextType {
   loginWithGoogle: () => Promise<void>;
   loginWithGithub: () => Promise<void>;
   logout: () => Promise<void>;
+  updateAvatar: (url: string) => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -178,6 +179,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
+  const updateAvatar = (url: string) => {
+    setUser((prev) => (prev ? { ...prev, avatar: url } : prev));
+  };
+
   return (
     <AuthContext.Provider
       value={{
@@ -187,6 +192,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         loginWithGoogle,
         loginWithGithub,
         logout,
+        updateAvatar,
       }}
     >
       {children}

@@ -1,18 +1,19 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { useAuthContext } from "@/context/auth-context";
 import { useBookmarkContext } from "@/context/bookmark-context";
 import {
   LogOut, Ticket, Heart, Clock, ChevronRight, MapPin, Bell,
   Calendar, Share2, Star, Shield, Edit3, Loader2, CheckCircle2,
-  X, User, FileText, Settings,
+  X, User, FileText, Settings, Camera,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
-import { db } from "@/lib/firebase";
+import { db, storage } from "@/lib/firebase";
 import { doc, getDoc, updateDoc } from "firebase/firestore";
+import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import { getEvents } from "@/lib/mock-data";
 import { Event } from "@/lib/types";
 import Link from "next/link";
@@ -229,21 +230,62 @@ function EditProfileModal({
   onClose,
   onSave,
 }: {
-  user: { name: string; email: string; avatar: string };
+  user: { id: string; name: string; email: string; avatar: string };
   currentCity: string;
   onClose: () => void;
-  onSave: (name: string, city: string) => Promise<void>;
+  onSave: (name: string, city: string, avatar?: string) => Promise<void>;
 }) {
   const [name, setName] = useState(user.name);
   const [city, setCity] = useState(currentCity);
   const [saving, setSaving] = useState(false);
+  const [avatarPreview, setAvatarPreview] = useState(user.avatar);
+  const [avatarFile, setAvatarFile] = useState<File | null>(null);
+  const [uploading, setUploading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // Validate file type and size (max 5MB)
+    if (!file.type.startsWith("image/")) return;
+    if (file.size > 5 * 1024 * 1024) {
+      alert("Image must be under 5MB");
+      return;
+    }
+
+    setAvatarFile(file);
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      setAvatarPreview(ev.target?.result as string);
+    };
+    reader.readAsDataURL(file);
+  };
 
   const handleSave = async () => {
     setSaving(true);
-    await onSave(name.trim() || user.name, city);
+    let newAvatarUrl: string | undefined;
+
+    // Upload image to Firebase Storage if a new file was selected
+    if (avatarFile) {
+      setUploading(true);
+      try {
+        const storageRef = ref(storage, `avatars/${user.id}/${Date.now()}_${avatarFile.name}`);
+        const snapshot = await uploadBytes(storageRef, avatarFile);
+        newAvatarUrl = await getDownloadURL(snapshot.ref);
+      } catch (err) {
+        console.error("Avatar upload failed:", err);
+      } finally {
+        setUploading(false);
+      }
+    }
+
+    await onSave(name.trim() || user.name, city, newAvatarUrl);
     setSaving(false);
     onClose();
   };
+
+  const initials = user.name.split(" ").map((n) => n[0]).join("").slice(0, 2).toUpperCase();
 
   return (
     <motion.div
@@ -264,6 +306,42 @@ function EditProfileModal({
           <h3 className="font-serif text-xl text-kairo-white uppercase tracking-widest">Edit Profile</h3>
           <button onClick={onClose} className="text-kairo-light-gray hover:text-kairo-white cursor-pointer"><X className="w-4 h-4" /></button>
         </div>
+
+        {/* Avatar Upload */}
+        <div className="flex justify-center mb-6">
+          <button
+            type="button"
+            onClick={() => fileInputRef.current?.click()}
+            className="relative group cursor-pointer"
+          >
+            <div className="w-24 h-24 border-2 border-kairo-orange/40 bg-kairo-dark-gray overflow-hidden flex items-center justify-center transition-all duration-300 group-hover:border-kairo-orange">
+              {avatarPreview ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={avatarPreview} alt="Avatar" className="w-full h-full object-cover" />
+              ) : (
+                <span className="font-serif text-2xl text-kairo-orange font-light">{initials}</span>
+              )}
+            </div>
+            {/* Camera overlay */}
+            <div className="absolute inset-0 bg-kairo-primary/60 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+              <Camera className="w-6 h-6 text-kairo-orange" />
+            </div>
+            {/* Badge */}
+            <div className="absolute -bottom-1 -right-1 w-7 h-7 bg-kairo-orange flex items-center justify-center border-2 border-kairo-primary">
+              <Camera className="w-3.5 h-3.5 text-kairo-primary" />
+            </div>
+          </button>
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/*"
+            onChange={handleImageSelect}
+            className="hidden"
+          />
+        </div>
+        <p className="text-center text-[10px] text-kairo-light-gray/50 tracking-wide mb-6 -mt-3">
+          Tap to change profile photo
+        </p>
 
         <div className="space-y-5">
           <div>
@@ -300,11 +378,11 @@ function EditProfileModal({
 
         <button
           onClick={handleSave}
-          disabled={saving}
+          disabled={saving || uploading}
           className="mt-6 w-full py-4 bg-kairo-orange text-kairo-primary text-xs font-bold uppercase tracking-[0.3em] flex items-center justify-center gap-2 disabled:opacity-60 cursor-pointer"
         >
-          {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle2 className="w-4 h-4" />}
-          {saving ? "Saving..." : "Save Changes"}
+          {(saving || uploading) ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle2 className="w-4 h-4" />}
+          {uploading ? "Uploading..." : saving ? "Saving..." : "Save Changes"}
         </button>
       </motion.div>
     </motion.div>
@@ -357,7 +435,7 @@ function CalendarModal({ bookmarkCount, onClose }: { bookmarkCount: number; onCl
 
 /* ── Main Page ───────────────────────────────────────────────────── */
 export default function ProfilePage() {
-  const { user, logout, isLoading } = useAuthContext();
+  const { user, logout, isLoading, updateAvatar } = useAuthContext();
   const { bookmarks } = useBookmarkContext();
   const router = useRouter();
 
@@ -437,11 +515,15 @@ export default function ProfilePage() {
   const name = displayName || user.name;
 
   // Edit profile → save to Firestore
-  const handleEditSave = async (newName: string, newCity: string) => {
+  const handleEditSave = async (newName: string, newCity: string, newAvatar?: string) => {
     try {
-      await updateDoc(doc(db, "users", user.id), { name: newName, city: newCity });
+      const updateData: Record<string, string> = { name: newName, city: newCity };
+      if (newAvatar) updateData.avatar = newAvatar;
+
+      await updateDoc(doc(db, "users", user.id), updateData);
       setDisplayName(newName);
       setUserCity(newCity);
+      if (newAvatar) updateAvatar(newAvatar);
 
       // Invalidate recommendations cache (fire-and-forget)
       const apiBase = process.env.NEXT_PUBLIC_RECOMMENDATION_API_URL || "http://localhost:8000";
@@ -520,14 +602,21 @@ export default function ProfilePage() {
 
         <div className="px-6 pb-6 relative">
           {/* Avatar */}
-          <div className="absolute -top-14 left-6 w-28 h-28 border-2 border-kairo-orange/40 bg-kairo-primary overflow-hidden flex items-center justify-center shadow-[0_0_30px_rgba(0,0,0,0.8)]">
+          <button
+            onClick={() => setShowEditProfile(true)}
+            className="absolute -top-14 left-6 w-28 h-28 border-2 border-kairo-orange/40 bg-kairo-primary overflow-hidden flex items-center justify-center shadow-[0_0_30px_rgba(0,0,0,0.8)] group cursor-pointer"
+          >
             {user.avatar ? (
               // eslint-disable-next-line @next/next/no-img-element
               <img src={user.avatar} alt={name} className="w-full h-full object-cover" />
             ) : (
               <span className="font-serif text-3xl text-kairo-orange font-light">{initials}</span>
             )}
-          </div>
+            {/* Camera overlay on hover */}
+            <div className="absolute inset-0 bg-kairo-primary/60 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+              <Camera className="w-6 h-6 text-kairo-orange" />
+            </div>
+          </button>
 
           {/* Edit button */}
           <div className="flex justify-end pt-3">

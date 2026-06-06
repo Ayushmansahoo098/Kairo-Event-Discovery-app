@@ -1,6 +1,7 @@
 import { initializeApp, getApps, getApp, FirebaseApp } from "firebase/app";
 import { getAuth, Auth } from "firebase/auth";
 import { getFirestore, Firestore } from "firebase/firestore";
+import { getStorage, FirebaseStorage } from "firebase/storage";
 
 const firebaseConfig = {
   apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
@@ -20,11 +21,13 @@ const hasCredentials = !!(
 let app: FirebaseApp;
 let auth: Auth;
 let db: Firestore;
+let storage: FirebaseStorage;
 
 if (hasCredentials) {
   app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApp();
   auth = getAuth(app);
   db = getFirestore(app);
+  storage = getStorage(app);
 } else {
   // Minimal stub for build-time SSR — NEXT_PUBLIC_* vars are injected at runtime
   // in the browser so real Firebase calls always happen client-side.
@@ -34,6 +37,8 @@ if (hasCredentials) {
       : getApps()[0];
   auth = {} as Auth;
   db = {} as Firestore;
+  storage = {} as FirebaseStorage;
 }
 
-export { app, auth, db, hasCredentials };
+export { app, auth, db, storage, hasCredentials };
+

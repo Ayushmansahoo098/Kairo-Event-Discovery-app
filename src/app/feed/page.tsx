@@ -147,7 +147,18 @@ export default function FeedPage() {
         });
         if (res.ok) {
           const data = await res.json();
-          setRecommendations(data.recommendedEvents || []);
+          const recs = data.recommendedEvents || [];
+          setRecommendations(recs);
+          if (recs.length > 0) {
+            logInteractionEvent({
+              userId: user.id,
+              action: "recommendations_served",
+              recommendedEvents: recs.map((r: any) => ({
+                eventId: r.eventId,
+                category: eventsList.find((e) => e.id === r.eventId)?.category || "unknown",
+              })),
+            });
+          }
         }
       } catch (err) {
         console.error("Failed to fetch AI recommendations:", err);
@@ -185,7 +196,18 @@ export default function FeedPage() {
         });
         if (res.ok) {
           const data = await res.json();
-          setSimilarToSaved(data.similarEvents || []);
+          const sims = data.similarEvents || [];
+          setSimilarToSaved(sims);
+          if (sims.length > 0) {
+            logInteractionEvent({
+              userId: user.id,
+              action: "recommendations_served",
+              recommendedEvents: sims.map((s: any) => ({
+                eventId: s.eventId,
+                category: eventsList.find((e) => e.id === s.eventId)?.category || "unknown",
+              })),
+            });
+          }
         }
       } catch (err) {
         console.error("Failed to fetch similar events for because_saved tab:", err);
@@ -500,7 +522,7 @@ export default function FeedPage() {
                   exit={{ opacity: 0, scale: 0.98 }}
                   transition={{ type: "spring", stiffness: 350, damping: 25, mass: 1 }}
                 >
-                  <EventCard event={event} />
+                  <EventCard event={event} isRecommendation={selectedTab === "recommended" || selectedTab === "because_saved"} />
                 </motion.div>
               ))}
             </AnimatePresence>

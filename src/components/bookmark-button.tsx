@@ -5,13 +5,13 @@ import { Heart } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useState } from "react";
 
-
 interface BookmarkButtonProps {
   eventId: string;
   className?: string;
+  isRecommendation?: boolean;
 }
 
-export function BookmarkButton({ eventId, className }: BookmarkButtonProps) {
+export function BookmarkButton({ eventId, className, isRecommendation }: BookmarkButtonProps) {
   const { isBookmarked, toggleBookmark } = useBookmarkContext();
   const bookmarked = isBookmarked(eventId);
   const [isAnimating, setIsAnimating] = useState(false);
@@ -19,7 +19,7 @@ export function BookmarkButton({ eventId, className }: BookmarkButtonProps) {
   const handleClick = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    toggleBookmark(eventId);
+    toggleBookmark(eventId, isRecommendation);
     setIsAnimating(true);
     setTimeout(() => setIsAnimating(false), 300);
   };

@@ -41,6 +41,7 @@ export interface Event {
   expiredAt?: string;
   sources?: string[];
   sourceUrls?: Record<string, string>;
+  createdAt?: string;
 }
 
 export interface CategoryInfo {

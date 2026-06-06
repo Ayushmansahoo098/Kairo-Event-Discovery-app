@@ -30,7 +30,7 @@ function getUrgencyBadge(dateStr: string): { label: string; className: string } 
   }
 }
 
-export function EventCard({ event }: { event: Event }) {
+export function EventCard({ event, isRecommendation }: { event: Event; isRecommendation?: boolean }) {
   const extendedEvent = event as Event & { source?: string; expiresAt?: string; tags?: string[] };
   const urgency = getUrgencyBadge(extendedEvent.expiresAt || event.date);
   const source = extendedEvent.source || "";
@@ -52,11 +52,12 @@ export function EventCard({ event }: { event: Event }) {
       category: event.category,
       source: source,
       tags: extendedEvent.tags,
+      isRecommendation,
     });
   };
 
   return (
-    <Link href={`/events/${event.id}`} className="group block h-full animate-in fade-in duration-500" onClick={handleCardClick}>
+    <Link href={`/events/${event.id}${isRecommendation ? "?ref=rec" : ""}`} className="group block h-full animate-in fade-in duration-500" onClick={handleCardClick}>
       <div className="relative flex flex-col h-[420px] sm:h-[440px] rounded-none overflow-hidden transition-all duration-500 hover:-translate-y-1.5 border border-kairo-orange/10 shadow-[0_8px_30px_rgba(0,0,0,0.5)] hover:border-kairo-orange/30">
         
         {/* Full Bleed Banner Image */}
@@ -86,7 +87,7 @@ export function EventCard({ event }: { event: Event }) {
             )}
           </div>
 
-          <BookmarkButton eventId={event.id} className="bg-kairo-primary/90 backdrop-blur-md shadow-md border border-kairo-orange/20 flex-shrink-0 rounded-none text-kairo-orange hover:bg-kairo-orange hover:text-kairo-primary transition-all duration-300" />
+          <BookmarkButton eventId={event.id} isRecommendation={isRecommendation} className="bg-kairo-primary/90 backdrop-blur-md shadow-md border border-kairo-orange/20 flex-shrink-0 rounded-none text-kairo-orange hover:bg-kairo-orange hover:text-kairo-primary transition-all duration-300" />
         </div>
 
         {/* Urgency Badge */}

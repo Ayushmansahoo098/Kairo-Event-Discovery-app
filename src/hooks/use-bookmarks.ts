@@ -59,7 +59,7 @@ export function useBookmarks() {
   }, [user]);
 
   const toggleBookmark = useCallback(
-    async (id: string) => {
+    async (id: string, isRecommendation?: boolean) => {
       if (!user) {
         // Guest mode update
         const current = readBookmarks();
@@ -74,6 +74,7 @@ export function useBookmarks() {
             userId: "anonymous",
             eventId: id,
             action: "save",
+            isRecommendation,
           });
         }
         return;
@@ -92,6 +93,7 @@ export function useBookmarks() {
             userId: user.id,
             eventId: id,
             action: "save",
+            isRecommendation,
           });
         }
       } catch (error) {

@@ -21,8 +21,8 @@ import {
   Zap,
 } from "lucide-react";
 import Image from "next/image";
-import { useParams, useRouter } from "next/navigation";
-import { useEffect, useMemo, useState } from "react";
+import { useParams, useRouter, useSearchParams } from "next/navigation";
+import { useEffect, useMemo, useState, Suspense } from "react";
 
 /* ── Countdown Hook ─────────────────────────────────────────────── */
 function useCountdown(targetDate: string) {
@@ -90,8 +90,23 @@ const fadeUp = {
 
 /* ── Main Page ───────────────────────────────────────────────────── */
 export default function EventDetailPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-[80vh] flex flex-col items-center justify-center bg-kairo-primary">
+        <Loader2 className="w-8 h-8 animate-spin text-kairo-orange" />
+        <p className="mt-4 text-kairo-light-gray font-bold tracking-widest text-xs uppercase">Decoding Event...</p>
+      </div>
+    }>
+      <EventDetailPageContent />
+    </Suspense>
+  );
+}
+
+function EventDetailPageContent() {
   const params = useParams();
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const isRecommendation = searchParams ? (searchParams.get("ref") === "rec" || searchParams.get("isRecommendation") === "true") : false;
   const eventId = params.id as string;
   const [event, setEvent] = useState<Event | null | undefined>(undefined);
   const [loading, setLoading] = useState(true);
@@ -135,6 +150,7 @@ export default function EventDetailPage() {
           source: event.source,
           tags: event.tags,
           dwellTime: elapsedSeconds,
+          isRecommendation,
         });
       }
     };
@@ -145,7 +161,7 @@ export default function EventDetailPage() {
       window.removeEventListener("beforeunload", logOnExit);
       logOnExit();
     };
-  }, [event, user]);
+  }, [event, user, isRecommendation]);
 
   // Track Recently Viewed in LocalStorage
   useEffect(() => {
@@ -318,7 +334,7 @@ export default function EventDetailPage() {
             >
               <Share2 className="h-4 w-4" />
             </button>
-            <BookmarkButton eventId={event.id} className="bg-kairo-primary shadow-md border border-kairo-orange/20 h-11 w-11 flex items-center justify-center hover:border-kairo-orange rounded-none text-kairo-orange" />
+            <BookmarkButton eventId={event.id} isRecommendation={isRecommendation} className="bg-kairo-primary shadow-md border border-kairo-orange/20 h-11 w-11 flex items-center justify-center hover:border-kairo-orange rounded-none text-kairo-orange" />
           </motion.div>
         </div>
 
@@ -580,6 +596,7 @@ export default function EventDetailPage() {
                 category: event.category,
                 source: event.source,
                 tags: event.tags,
+                isRecommendation,
               });
             }}
             className="group relative flex w-full items-center justify-center gap-3 bg-kairo-orange hover:bg-kairo-orange/95 px-6 py-4 text-xs font-bold uppercase tracking-[0.3em] text-kairo-primary shadow-lg transition-all duration-300 hover:scale-[1.01] rounded-none overflow-hidden"

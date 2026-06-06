@@ -4,7 +4,7 @@ import { useBookmarkContext } from "@/context/bookmark-context";
 import { Heart } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useState } from "react";
-import { logInteractionEvent } from "@/lib/analytics";
+
 
 interface BookmarkButtonProps {
   eventId: string;
@@ -22,12 +22,6 @@ export function BookmarkButton({ eventId, className }: BookmarkButtonProps) {
     toggleBookmark(eventId);
     setIsAnimating(true);
     setTimeout(() => setIsAnimating(false), 300);
-
-    // Fire analytics event (non-blocking)
-    logInteractionEvent({
-      eventId,
-      action: "save",
-    });
   };
 
   return (

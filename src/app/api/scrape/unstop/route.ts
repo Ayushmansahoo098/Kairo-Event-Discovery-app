@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 import { syncUnstopEvents } from "@/lib/scrapers/unstop";
 import { Event } from "@/lib/types";
+import { triggerEmbeddingsSync } from "@/lib/recommendations";
+
 
 // Set dynamic configuration to ensure this runs server-side on request without static caching
 export const dynamic = "force-dynamic";
@@ -11,6 +13,7 @@ export async function POST() {
     const result = await syncUnstopEvents();
 
     if (result.success) {
+      await triggerEmbeddingsSync();
       return NextResponse.json({
         success: true,
         message: `Successfully synchronized ${result.count} events from Unstop.`,

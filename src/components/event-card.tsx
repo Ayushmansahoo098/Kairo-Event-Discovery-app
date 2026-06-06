@@ -154,6 +154,13 @@ export function EventCard({ event }: { event: Event }) {
               </div>
             </div>
             
+            {(event as any).reason && (
+              <div className="mt-3 pt-2.5 border-t border-emerald-500/10 flex items-center text-[9px] text-emerald-400 font-bold uppercase tracking-widest gap-1.5">
+                <Zap className="w-3 h-3 text-emerald-400 flex-shrink-0 animate-pulse" />
+                <span className="truncate">{(event as any).reason}</span>
+              </div>
+            )}
+
             <div className="mt-3 sm:mt-4 pt-3 border-t border-kairo-orange/10 flex items-center justify-between">
               <span className="text-[9px] font-bold text-kairo-light-gray truncate uppercase tracking-[0.2em]">
                 By {event.organizer}

@@ -7,6 +7,8 @@ import { syncMeetupEvents } from "@/lib/scrapers/meetup";
 import { adminDb } from "@/lib/firebase-admin";
 import { Event } from "@/lib/types";
 import crypto from "crypto";
+import { triggerEmbeddingsSync } from "@/lib/recommendations";
+
 
 export const dynamic = "force-dynamic";
 
@@ -434,6 +436,9 @@ export async function POST() {
     } catch (logErr) {
       console.error("Unified telemetry logging failed:", logErr);
     }
+
+    // Trigger embeddings sync on recommendation server
+    await triggerEmbeddingsSync();
 
     return NextResponse.json({
       success: true,

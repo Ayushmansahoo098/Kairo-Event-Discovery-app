@@ -63,8 +63,8 @@ export default function FeedPage() {
   
   // Tab & Recommendations States
   const [selectedTab, setSelectedTab] = useState<"all" | "recommended" | "trending" | "near_you" | "upcoming" | "because_saved">("all");
-  const [recommendations, setRecommendations] = useState<{ eventId: string; score: number }[]>([]);
-  const [similarToSaved, setSimilarToSaved] = useState<{ eventId: string; score: number }[]>([]);
+  const [recommendations, setRecommendations] = useState<{ eventId: string; score: number; matchScore?: number; reason?: string }[]>([]);
+  const [similarToSaved, setSimilarToSaved] = useState<{ eventId: string; score: number; matchScore?: number; reason?: string }[]>([]);
   const [savedReferenceTitle, setSavedReferenceTitle] = useState<string | null>(null);
   const [loadingRecommendations, setLoadingRecommendations] = useState(false);
   const [userPreferredCities, setUserPreferredCities] = useState<string[]>([]);
@@ -139,15 +139,11 @@ export default function FeedPage() {
       setLoadingRecommendations(true);
       try {
         const apiBase = process.env.NEXT_PUBLIC_RECOMMENDATION_API_URL || "http://localhost:8000";
-        const res = await fetch(`${apiBase}/recommendations`, {
-          method: "POST",
+        const res = await fetch(`${apiBase}/recommendations?userId=${user.id}&limit=30`, {
+          method: "GET",
           headers: {
             "Content-Type": "application/json",
           },
-          body: JSON.stringify({
-            userId: user.id,
-            limit: 30,
-          }),
         });
         if (res.ok) {
           const data = await res.json();
@@ -181,15 +177,11 @@ export default function FeedPage() {
 
         setLoadingRecommendations(true);
         const apiBase = process.env.NEXT_PUBLIC_RECOMMENDATION_API_URL || "http://localhost:8000";
-        const res = await fetch(`${apiBase}/similar`, {
-          method: "POST",
+        const res = await fetch(`${apiBase}/similar?eventId=${latestBookmarkId}&limit=6`, {
+          method: "GET",
           headers: {
             "Content-Type": "application/json",
           },
-          body: JSON.stringify({
-            eventId: latestBookmarkId,
-            limit: 6,
-          }),
         });
         if (res.ok) {
           const data = await res.json();
@@ -231,7 +223,8 @@ export default function FeedPage() {
             const rScore = recommendations.find((r) => r.eventId === event.id);
             return {
               ...event,
-              matchScore: rScore ? Math.round(rScore.score * 100) : undefined,
+              matchScore: rScore ? (rScore.matchScore !== undefined ? rScore.matchScore : Math.round(rScore.score * 100)) : undefined,
+              reason: rScore?.reason,
             };
           })
           .filter((event) => event.matchScore !== undefined)
@@ -272,7 +265,8 @@ export default function FeedPage() {
             const sScore = similarToSaved.find((s) => s.eventId === event.id);
             return {
               ...event,
-              matchScore: sScore ? Math.round(sScore.score * 100) : undefined,
+              matchScore: sScore ? (sScore.matchScore !== undefined ? sScore.matchScore : Math.round(sScore.score * 100)) : undefined,
+              reason: sScore?.reason,
             };
           })
           .filter((event) => event.matchScore !== undefined)

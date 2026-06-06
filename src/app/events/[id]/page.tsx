@@ -98,15 +98,11 @@ export default function EventDetailPage() {
       setLoadingSimilar(true);
       try {
         const apiBase = process.env.NEXT_PUBLIC_RECOMMENDATION_API_URL || "http://localhost:8000";
-        const res = await fetch(`${apiBase}/similar`, {
-          method: "POST",
+        const res = await fetch(`${apiBase}/similar?eventId=${event.id}&limit=10`, {
+          method: "GET",
           headers: {
             "Content-Type": "application/json",
           },
-          body: JSON.stringify({
-            eventId: event.id,
-            limit: 3,
-          }),
         });
 
         if (res.ok) {
@@ -116,12 +112,13 @@ export default function EventDetailPage() {
           // Map scores and match details
           const all = await getEvents();
           const mappedSims = sims
-            .map((s: { eventId: string; score: number }) => {
+            .map((s: { eventId: string; score: number; matchScore?: number; reason?: string }) => {
               const found = all.find((e) => e.id === s.eventId);
               if (found) {
                 return {
                   ...found,
-                  matchScore: Math.round(s.score * 100),
+                  matchScore: s.matchScore !== undefined ? s.matchScore : Math.round(s.score * 100),
+                  reason: s.reason,
                 };
               }
               return null;

@@ -441,6 +441,12 @@ export default function ProfilePage() {
       await updateDoc(doc(db, "users", user.id), { name: newName, city: newCity });
       setDisplayName(newName);
       setUserCity(newCity);
+
+      // Invalidate recommendations cache (fire-and-forget)
+      const apiBase = process.env.NEXT_PUBLIC_RECOMMENDATION_API_URL || "http://localhost:8000";
+      void fetch(`${apiBase}/recommendations/invalidate?userId=${user.id}`, {
+        method: "POST"
+      }).catch(() => {});
     } catch (err) {
       console.error("Edit profile error:", err);
     }
@@ -457,6 +463,12 @@ export default function ProfilePage() {
       });
       setPrefsSaved(true);
       setTimeout(() => setPrefsSaved(false), 2500);
+
+      // Invalidate recommendations cache (fire-and-forget)
+      const apiBase = process.env.NEXT_PUBLIC_RECOMMENDATION_API_URL || "http://localhost:8000";
+      void fetch(`${apiBase}/recommendations/invalidate?userId=${user.id}`, {
+        method: "POST"
+      }).catch(() => {});
     } catch (err) {
       console.error("Save prefs error:", err);
     } finally {

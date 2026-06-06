@@ -116,6 +116,14 @@ export async function logInteractionEvent(payload: InteractionPayload): Promise<
         });
       }
     }
+
+    // 5. Invalidate user recommendations cache (fire-and-forget)
+    if (userId && userId !== "anonymous") {
+      const apiBase = process.env.NEXT_PUBLIC_RECOMMENDATION_API_URL || "http://localhost:8000";
+      void fetch(`${apiBase}/recommendations/invalidate?userId=${userId}`, {
+        method: "POST"
+      }).catch(() => {});
+    }
   } catch (error) {
     // Analytics failures should never block the user experience
     console.error("Analytics log failed (non-blocking):", error);

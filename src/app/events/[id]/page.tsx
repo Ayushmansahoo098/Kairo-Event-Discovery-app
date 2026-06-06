@@ -1,28 +1,28 @@
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
-import { useParams, useRouter } from "next/navigation";
-import Image from "next/image";
+import { BookmarkButton } from "@/components/bookmark-button";
+import { EventCard } from "@/components/event-card";
+import { useAuthContext } from "@/context/auth-context";
+import { logInteractionEvent } from "@/lib/analytics";
+import { getEventById, getEvents } from "@/lib/mock-data";
+import { Event } from "@/lib/types";
+import { AnimatePresence, motion } from "framer-motion";
 import {
   ArrowLeft,
   Calendar,
-  MapPin,
-  User,
+  Clock,
   ExternalLink,
   Globe,
-  Tag,
   Loader2,
+  MapPin,
   Share2,
-  Clock,
+  Tag,
+  User,
   Zap,
 } from "lucide-react";
-import { motion, AnimatePresence } from "framer-motion";
-import { getEventById, getEvents } from "@/lib/mock-data";
-import { BookmarkButton } from "@/components/bookmark-button";
-import { Event } from "@/lib/types";
-import { useAuthContext } from "@/context/auth-context";
-import { logInteractionEvent } from "@/lib/analytics";
-import { EventCard } from "@/components/event-card";
+import Image from "next/image";
+import { useParams, useRouter } from "next/navigation";
+import { useEffect, useMemo, useState } from "react";
 
 /* ── Countdown Hook ─────────────────────────────────────────────── */
 function useCountdown(targetDate: string) {
@@ -330,11 +330,10 @@ export default function EventDetailPage() {
           className="absolute bottom-6 left-4 md:left-6"
         >
           <span
-            className={`inline-flex items-center gap-1.5 rounded-none px-4 py-1.5 text-xs font-bold uppercase tracking-widest backdrop-blur-md shadow-md text-kairo-white border border-kairo-orange/20 ${
-              event.isOnline
+            className={`inline-flex items-center gap-1.5 rounded-none px-4 py-1.5 text-xs font-bold uppercase tracking-widest backdrop-blur-md shadow-md text-kairo-white border border-kairo-orange/20 ${event.isOnline
                 ? "bg-kairo-primary/95 text-kairo-orange"
                 : "bg-kairo-primary/95 text-kairo-white"
-            }`}
+              }`}
           >
             <Globe className="h-3.5 w-3.5" />
             {event.isOnline ? "Online" : "In Person"}

@@ -71,10 +71,10 @@ Finding the right tech event means hopping across 5+ fragmented directories dail
 *   💾 **Content-Hash Skip Writes**: Computes a SHA-256 `contentHash` on merged schemas and compares it to database values to **skip redundant writes**, reducing Firestore write costs to near-zero.
 *   🔄 **Soft-Expiry Archiving**: Instead of deleting expired events (which breaks historical analytics and recommendations), stale documents are soft-expired (`status: "expired"`) and automatically pruned after **30 days**.
 *   🔒 **Distributed Concurrency Lock**: A Firestore-based mutex prevents race conditions or overlapping scraper schedules.
-*   🧠 **AI Event Recommendation Engine**: Integrates a standalone **FastAPI microservice** utilizing **SentenceTransformers (`all-MiniLM-L6-v2`)** to construct vector representations of event attributes (Title, Description, Category, Tags).
-*   👥 **Centroid-Based Behavioral User Profiles**: Dynamically weights and combines user interactions from Firestore (Explicit Interests: 4.0, Searches: 2.0, Views: 3.0, Bookmarks: 7.0, Registrations: 10.0) into a user profile centroid vector.
-*   ⚡ **Two-Tier Caching & Invalidation**: Accelerates recommendation loads with in-memory user profile vector caching (30-minute TTL). Fires a completely non-blocking, fire-and-forget `POST /recommendations/invalidate` request on any user activity to keep listings fresh.
-*   🎯 **Four-Factor Scoring Formula**: Ranks recommendations via a weighted score combining Semantic Similarity (70%), Popularity (15%), Event Proximity/Recency (10%), and Location Match (5%).
+*   🧠 **AI Event Recommendation Engine**: Integrates an optimized **FastAPI microservice** utilizing **Scikit-Learn TF-IDF vectorization** to construct lightweight and high-speed term-frequency representations of event attributes (Title, Description, Category, Tags), reducing RAM requirements from 800MB to <60MB.
+*   👥 **Centroid-Based Behavioral User Profiles**: Dynamically weights and combines user interactions from Firestore (Explicit Interests: 4.0, Searches: 2.0, Views: 3.0, Bookmarks: 7.0, Registrations: 10.0) into a user profile centroid vector within the TF-IDF feature space.
+*   ⚡ **Two-Tier Caching & Invalidation**: Accelerates recommendation loads with in-memory user profile centroid caching (30-minute TTL). Fires a completely non-blocking, fire-and-forget `POST /recommendations/invalidate` request on any user activity to keep listings fresh.
+*   🎯 **Four-Factor Scoring Formula**: Ranks recommendations via a weighted score combining TF-IDF Cosine Similarity (70%), Popularity (15%), Event Proximity/Recency (10%), and Location Match (5%).
 
 
 ---
@@ -117,45 +117,7 @@ graph TD
         K["HackerEarth Crawler (Playwright)"]
         L["Meetup.com Crawler (Playwright)"]
         M["Eventbrite Poller (REST API)"]
-Viewed task.md:1-37
-Edited task.md
-Viewed recommender.py:1-20
-Viewed recommender.py:90-115
-Viewed recommender.py:135-165
-Viewed recommender.py:195-232
-Viewed recommender.py:420-445
-Viewed recommender.py:475-505
-Edited recommender.py
-Viewed main.py:1-167
-Edited main.py
-Edited requirements.txt
-Edited Dockerfile
-Searched for "sentence_transformers"
-Searched for "SentenceTransformer"
-Used tool: manage_task
-Ran command: `curl -s http://localhost:8000/health | json_pp || curl -s http://localhost:8000/health`
-Ran command: `.venv/bin/python /Users/ayushmansahoo/.gemini/antigravity-ide/brain/4dc3831c-7b54-494e-8a31-d68598357f7f/scratch/test_recommender.py`
-Edited task.md
-Ran command: `git status`
-Ran command: `git add -A && git status`
-Ran command: `git commit -m "feat: migrate recommender to TF-IDF to solve Render OOM" -m "Remove PyTorch and sentence-transformers dependency to reduce RAM usage from 800MB to <60MB, allowing it to run within Render's 512MB free tier limit."`
-Ran command: `git push origin main`
-Used tool: schedule
-
-I pushed the changes to GitHub. Since Render auto-deploys from the GitHub repository, it should have triggered a fresh build. With PyTorch removed, the build and deployment should be very fast. I've set a timer to check the health of the production engine in 30 seconds.
-
-Ran command: `curl -s -i https://kairo-recommendation-engine.onrender.com/health`
-Used tool: schedule
-
-I'm waiting 15 seconds for the health check task to complete. This will verify if Render has built and deployed the new TF-IDF-based recommendation service successfully.
-
-Used tool: manage_task
-Used tool: schedule
-
-I'm waiting another 30 seconds for Render to build and launch the container. I will check the health check status when the timer fires.
-
-Used tool: manage_task
-Ran command: `curl --connect-timeout 5 --max-time 10 -i https://kairo-recommendation-engine.onrender.com/health`    end
+    end
     class Crawler_Layer,I,J,K,L,M scrapers;
 
     %% Storage Layer
@@ -170,7 +132,7 @@ Ran command: `curl --connect-timeout 5 --max-time 10 -i https://kairo-recommenda
     %% External Recommendation System
     subgraph AI_Layer [External Recommendation Engine]
         R["FastAPI Recommendation Microservice"]
-        S["Sentence-Transformers (all-MiniLM-L6-v2)"]
+        S["TF-IDF Vectorizer (Scikit-Learn)"]
     end
     class AI_Layer,R,S external;
 
@@ -183,8 +145,8 @@ Ran command: `curl --connect-timeout 5 --max-time 10 -i https://kairo-recommenda
     G -->|Compares & Writes Changes| N
     H -->|Flags Stale Events & Prunes| N
     R <-->|Fetches Telemetry & Events| N & Q
-    R -->|Caches Embeddings| N
-    B <-->|Similarity Vectors| R
+    R -->|Builds TF-IDF Feature Profiles| N
+    B <-->|Cosine Similarity Match| R
 ```
 
 ---
@@ -304,8 +266,8 @@ curl -X POST http://localhost:3000/api/sync/all \
 |:---|:---|:---|:---|
 | `GET` | `/recommendations` | Computes personalized event recommendations for a user | `userId` (query), `limit` (query, default 20) |
 | `GET` | `/similar` | Finds structurally similar events using Cosine Similarity | `eventId` (query), `limit` (query, default 10) |
-| `POST` | `/recommendations/invalidate` | Invalidates the user embedding cache for fresh personalization | `userId` (query) |
-| `POST` | `/embeddings/sync` | Re-syncs Firestore events and generates in-memory sentence embeddings | None |
+| `POST` | `/recommendations/invalidate` | Invalidates the user profile cache for fresh personalization | `userId` (query) |
+| `POST` | `/embeddings/sync` | Re-syncs Firestore events and rebuilds vocabulary and TF-IDF matrix | None |
 
 
 ---

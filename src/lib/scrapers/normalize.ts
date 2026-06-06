@@ -34,6 +34,41 @@ export interface RawScrapedHackerEarthEvent {
   dateText?: string; // deadline/date string
 }
 
+export interface RawScrapedMLHEvent {
+  title: string;
+  url: string;
+  startDate?: string;
+  endDate?: string;
+  image?: string;
+  location?: string;
+  tags?: string[];
+}
+
+export interface RawScrapedGDGEvent {
+  title: string;
+  url: string;
+  bannerImage?: string;
+  dateText?: string;
+  city?: string;
+  locationText?: string;
+  description?: string;
+  organizer?: string;
+  tags?: string[];
+}
+
+export interface RawScrapedLumaEvent {
+  title: string;
+  url: string;
+  bannerImage?: string;
+  date?: string;
+  time?: string;
+  location?: string;
+  city?: string;
+  organizer?: string;
+  description?: string;
+  tags?: string[];
+}
+
 /**
  * Standardizes a date text string (e.g., "Jun 14, 2026", "Jul 04 - 06, 2026") into YYYY-MM-DD.
  * Falls back gracefully to standard current/future date if unparseable.
@@ -303,6 +338,176 @@ export function normalizeHackerEarthEvent(raw: RawScrapedHackerEarthEvent): Even
     source: "HackerEarth",
     expiresAt,
     isExpired: false,
+    lastUpdated: new Date().toISOString(),
+  };
+}
+
+/**
+ * Maps a raw scraped MLH hackathon into Kairo Event Schema.
+ */
+export function normalizeMLHEvent(raw: RawScrapedMLHEvent): Event & { lastUpdated: string; source: string; expiresAt: string } {
+  let slug = raw.title.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "");
+  if (raw.url) {
+    try {
+      const urlObj = new URL(raw.url);
+      const paths = urlObj.pathname.split("/").filter(Boolean);
+      if (paths.length > 0) {
+        slug = paths[paths.length - 1];
+      }
+    } catch {
+      // Ignore
+    }
+  }
+
+  const id = `mlh-${slug}`;
+  const isOnline = !raw.location || 
+                   raw.location.toLowerCase().includes("online") || 
+                   raw.location.toLowerCase().includes("digital") || 
+                   raw.location.toLowerCase().includes("virtual");
+
+  const city = isOnline ? "Online" : (raw.location?.split(",")[0].trim() || "Worldwide");
+  const date = raw.startDate ? raw.startDate.split("T")[0] : new Date().toISOString().split("T")[0];
+  const expiresAt = raw.endDate ? raw.endDate.split("T")[0] : date;
+
+  return {
+    id,
+    title: raw.title.trim(),
+    description: `Participate in ${raw.title.trim()}! A premier hackathon from Major League Hacking (MLH). Expand your skills, collaborate with other builders, and create cool projects.`,
+    bannerImage: getCategoryBanner("hackathon", raw.image),
+    date,
+    time: "09:00 AM",
+    location: raw.location?.trim() || "Online Event",
+    city,
+    isOnline,
+    category: "hackathon" as Category,
+    organizer: "Major League Hacking",
+    registrationUrl: raw.url,
+    tags: raw.tags && raw.tags.length > 0 
+      ? raw.tags.map((t) => t.trim().toLowerCase()) 
+      : ["mlh", "hackathon", "builder", "coding"],
+    isTrending: false,
+    source: "MLH",
+    expiresAt,
+    lastUpdated: new Date().toISOString(),
+  };
+}
+
+/**
+ * Maps a raw scraped GDG event into Kairo Event Schema.
+ */
+export function normalizeGDGEvent(raw: RawScrapedGDGEvent): Event & { lastUpdated: string; source: string; expiresAt: string } {
+  let slug = raw.title.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "");
+  if (raw.url) {
+    try {
+      const urlObj = new URL(raw.url);
+      const paths = urlObj.pathname.split("/").filter(Boolean);
+      if (paths.length > 0) {
+        slug = paths[paths.length - 1];
+      }
+    } catch {
+      // Ignore
+    }
+  }
+
+  const id = `gdg-${slug}`;
+  const isOnline = !raw.locationText || 
+                   raw.locationText.toLowerCase().includes("online") || 
+                   raw.locationText.toLowerCase().includes("virtual");
+
+  const city = isOnline ? "Online" : (raw.city || raw.locationText?.split(",")[0].trim() || "Bangalore");
+  
+  let category: Category = "meetup";
+  const titleLower = raw.title.toLowerCase();
+  if (titleLower.includes("workshop") || titleLower.includes("bootcamp") || titleLower.includes("hands-on")) {
+    category = "workshop";
+  } else if (titleLower.includes("conference") || titleLower.includes("summit") || titleLower.includes("io extended")) {
+    category = "workshop";
+  }
+
+  const date = normalizeDate(raw.dateText);
+
+  return {
+    id,
+    title: raw.title.trim(),
+    description: raw.description?.trim() || `Join the Google Developer Group community for ${raw.title.trim()}! Connect with fellow developers, learn about new technologies, and share your experiences.`,
+    bannerImage: getCategoryBanner(category, raw.bannerImage),
+    date,
+    time: "10:00 AM",
+    location: raw.locationText?.trim() || "Online Event",
+    city,
+    isOnline,
+    category,
+    organizer: raw.organizer?.trim() || "Google Developer Groups",
+    registrationUrl: raw.url,
+    tags: raw.tags && raw.tags.length > 0 
+      ? raw.tags.map((t) => t.trim().toLowerCase()) 
+      : ["gdg", "google", "developer", "meetup", "tech"],
+    isTrending: false,
+    source: "GDG",
+    expiresAt: date,
+    lastUpdated: new Date().toISOString(),
+  };
+}
+
+/**
+ * Maps a raw scraped Luma event into Kairo Event Schema.
+ */
+export function normalizeLumaEvent(raw: RawScrapedLumaEvent): Event & { lastUpdated: string; source: string; expiresAt: string } {
+  let slug = raw.title.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "");
+  if (raw.url) {
+    try {
+      const urlObj = new URL(raw.url);
+      const paths = urlObj.pathname.split("/").filter(Boolean);
+      if (paths.length > 0) {
+        slug = paths[paths.length - 1];
+      }
+    } catch {
+      // Ignore
+    }
+  }
+
+  const id = `luma-${slug}`;
+  const isOnline = !raw.location || 
+                   raw.location.toLowerCase().includes("online") || 
+                   raw.location.toLowerCase().includes("virtual");
+
+  const city = isOnline ? "Online" : (raw.city || raw.location?.split(",")[0].trim() || "Bangalore");
+
+  let category: Category = "meetup";
+  const titleLower = raw.title.toLowerCase();
+  const descLower = (raw.description || "").toLowerCase();
+  
+  if (titleLower.includes("hackathon") || descLower.includes("hackathon")) {
+    category = "hackathon";
+  } else if (titleLower.includes("workshop") || titleLower.includes("bootcamp") || descLower.includes("workshop")) {
+    category = "workshop";
+  } else if (titleLower.includes("startup") || titleLower.includes("pitch") || titleLower.includes("founder") || descLower.includes("startup") || descLower.includes("founder")) {
+    category = "startup";
+  } else if (titleLower.includes("conference") || titleLower.includes("summit")) {
+    category = "workshop";
+  }
+
+  const date = raw.date ? raw.date.split("T")[0] : new Date().toISOString().split("T")[0];
+
+  return {
+    id,
+    title: raw.title.trim(),
+    description: raw.description?.trim() || `Join us for "${raw.title.trim()}" hosted on Luma! Network with tech professionals, engage in learning opportunities, and build community connections.`,
+    bannerImage: getCategoryBanner(category, raw.bannerImage),
+    date,
+    time: raw.time || "06:30 PM",
+    location: raw.location?.trim() || "Online Event",
+    city,
+    isOnline,
+    category,
+    organizer: raw.organizer?.trim() || "Luma Organizer",
+    registrationUrl: raw.url,
+    tags: raw.tags && raw.tags.length > 0 
+      ? raw.tags.map((t) => t.trim().toLowerCase()) 
+      : ["luma", "meetup", "tech", "networking"],
+    isTrending: false,
+    source: "Luma",
+    expiresAt: date,
     lastUpdated: new Date().toISOString(),
   };
 }

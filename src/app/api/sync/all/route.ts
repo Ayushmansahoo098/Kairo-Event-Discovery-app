@@ -1,9 +1,12 @@
 import { NextResponse } from "next/server";
 import { syncDevfolioEvents } from "@/lib/scrapers/devfolio";
+import { syncMLHEvents } from "@/lib/scrapers/mlh";
+import { syncGDGEvents } from "@/lib/scrapers/gdg";
 import { syncUnstopEvents } from "@/lib/scrapers/unstop";
 import { syncHackerEarthEvents } from "@/lib/scrapers/hackerearth";
-import { syncEventbriteEvents } from "@/lib/scrapers/eventbrite";
+import { syncLumaEvents } from "@/lib/scrapers/luma";
 import { syncMeetupEvents } from "@/lib/scrapers/meetup";
+import { syncEventbriteEvents } from "@/lib/scrapers/eventbrite";
 import { adminDb } from "@/lib/firebase-admin";
 import { Event } from "@/lib/types";
 import crypto from "crypto";
@@ -32,16 +35,19 @@ function getSourcePriority(source?: string): number {
   if (!source) return 0;
   const s = source.toLowerCase();
   if (s.includes("devfolio")) return 10;
-  if (s.includes("unstop")) return 8;
-  if (s.includes("hackerearth")) return 7;
-  if (s.includes("eventbrite")) return 5;
+  if (s.includes("mlh")) return 9;
+  if (s.includes("gdg")) return 8;
+  if (s.includes("unstop")) return 7;
+  if (s.includes("hackerearth")) return 6;
+  if (s.includes("luma")) return 5;
   if (s.includes("meetup")) return 4;
+  if (s.includes("eventbrite")) return 3;
   return 0;
 }
 
 function getCanonicalId(title: string, date: string): string {
   const slug = title.toLowerCase()
-    .replace(/^(devfolio|unstop|hackerearth|eventbrite|meetup)\s+/i, "")
+    .replace(/^(devfolio|mlh|gdg|unstop|hackerearth|luma|meetup|eventbrite)\s+/i, "")
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/(^-|-$)/g, "");
   
@@ -164,7 +170,41 @@ export async function POST() {
       summaries["Devfolio"] = { success: false, count: 0, error: String(err) };
     }
 
-    // 2. Run Unstop
+    // 2. Run MLH
+    try {
+      console.log("Crawling MLH Hackathons (in-memory)...");
+      const res = await syncMLHEvents({ writeToDb: false });
+      summaries["MLH"] = {
+        success: res.success,
+        count: res.count || 0,
+        error: res.error,
+      };
+      if (res.success && res.events) {
+        freshScrapedEvents.push(...res.events);
+      }
+    } catch (err: unknown) {
+      console.error("MLH Sync failed inside unified runner:", err);
+      summaries["MLH"] = { success: false, count: 0, error: String(err) };
+    }
+
+    // 3. Run GDG
+    try {
+      console.log("Crawling GDG Events (in-memory)...");
+      const res = await syncGDGEvents({ writeToDb: false });
+      summaries["GDG"] = {
+        success: res.success,
+        count: res.count || 0,
+        error: res.error,
+      };
+      if (res.success && res.events) {
+        freshScrapedEvents.push(...res.events);
+      }
+    } catch (err: unknown) {
+      console.error("GDG Sync failed inside unified runner:", err);
+      summaries["GDG"] = { success: false, count: 0, error: String(err) };
+    }
+
+    // 4. Run Unstop
     try {
       console.log("Crawling Unstop Competitions (in-memory)...");
       const res = await syncUnstopEvents({ writeToDb: false });
@@ -181,7 +221,7 @@ export async function POST() {
       summaries["Unstop"] = { success: false, count: 0, error: String(err) };
     }
 
-    // 3. Run HackerEarth
+    // 5. Run HackerEarth
     try {
       console.log("Crawling HackerEarth Challenges (in-memory)...");
       const res = await syncHackerEarthEvents({ writeToDb: false });
@@ -198,11 +238,11 @@ export async function POST() {
       summaries["HackerEarth"] = { success: false, count: 0, error: String(err) };
     }
 
-    // 4. Run Eventbrite
+    // 6. Run Luma
     try {
-      console.log("Crawling Eventbrite Catalog (in-memory)...");
-      const res = await syncEventbriteEvents({ writeToDb: false });
-      summaries["Eventbrite"] = {
+      console.log("Crawling Luma Events (in-memory)...");
+      const res = await syncLumaEvents({ writeToDb: false });
+      summaries["Luma"] = {
         success: res.success,
         count: res.count || 0,
         error: res.error,
@@ -211,11 +251,11 @@ export async function POST() {
         freshScrapedEvents.push(...res.events);
       }
     } catch (err: unknown) {
-      console.error("Eventbrite Sync failed inside unified runner:", err);
-      summaries["Eventbrite"] = { success: false, count: 0, error: String(err) };
+      console.error("Luma Sync failed inside unified runner:", err);
+      summaries["Luma"] = { success: false, count: 0, error: String(err) };
     }
 
-    // 5. Run Meetup
+    // 7. Run Meetup
     try {
       console.log("Crawling Meetup Tech Events (in-memory)...");
       const res = await syncMeetupEvents({ writeToDb: false });
@@ -230,6 +270,23 @@ export async function POST() {
     } catch (err: unknown) {
       console.error("Meetup Sync failed inside unified runner:", err);
       summaries["Meetup"] = { success: false, count: 0, error: String(err) };
+    }
+
+    // 8. Run Eventbrite
+    try {
+      console.log("Crawling Eventbrite Catalog (in-memory)...");
+      const res = await syncEventbriteEvents({ writeToDb: false });
+      summaries["Eventbrite"] = {
+        success: res.success,
+        count: res.count || 0,
+        error: res.error,
+      };
+      if (res.success && res.events) {
+        freshScrapedEvents.push(...res.events);
+      }
+    } catch (err: unknown) {
+      console.error("Eventbrite Sync failed inside unified runner:", err);
+      summaries["Eventbrite"] = { success: false, count: 0, error: String(err) };
     }
 
     console.log(`Aggregated ${freshScrapedEvents.length} raw events in-memory. Starting cross-source deduplication...`);
@@ -350,6 +407,18 @@ export async function POST() {
       }
     }
 
+    // ─── Filter out sources that failed or returned 0 results from expiration sweep ───
+    const sourcesToPreserve: string[] = [];
+    for (const [sourceName, summary] of Object.entries(summaries)) {
+      if (!summary.success || summary.count === 0) {
+        sourcesToPreserve.push(sourceName.toLowerCase());
+      }
+    }
+
+    if (sourcesToPreserve.length > 0) {
+      console.log(`Preserving events for failed/empty sources from expiration: ${sourcesToPreserve.join(", ")}`);
+    }
+
     // ─── Expire events not found in crawl ───
     const newlyExpiredEvents: Event[] = [];
     const activeDbEventsCount = existingEvents.filter(e => e.status === "active").length;
@@ -358,6 +427,12 @@ export async function POST() {
       console.warn(`Safety Threshold Triggered: Scrapers returned 0 events, but there are ${activeDbEventsCount} active events in the database. Skipping expiration sweep to prevent accidental data loss.`);
     } else {
       for (const dbEvent of dbEventsToProcess) {
+        const eventSource = (dbEvent.source || "").toLowerCase();
+        if (sourcesToPreserve.includes(eventSource)) {
+          // Skip expiration sweep for failed/empty scrapers
+          continue;
+        }
+
         if (dbEvent.status === "active") {
           newlyExpiredEvents.push({
             ...dbEvent,

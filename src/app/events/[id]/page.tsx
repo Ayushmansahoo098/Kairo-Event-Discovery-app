@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Image from "next/image";
 import {
@@ -13,7 +13,10 @@ import {
   Tag,
   Loader2,
   Share2,
+  Clock,
+  Zap,
 } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
 import { getEventById, getEvents } from "@/lib/mock-data";
 import { BookmarkButton } from "@/components/bookmark-button";
 import { Event } from "@/lib/types";
@@ -21,6 +24,71 @@ import { useAuthContext } from "@/context/auth-context";
 import { logInteractionEvent } from "@/lib/analytics";
 import { EventCard } from "@/components/event-card";
 
+/* ── Countdown Hook ─────────────────────────────────────────────── */
+function useCountdown(targetDate: string) {
+  const target = useMemo(() => {
+    const d = new Date(targetDate + "T23:59:59");
+    return isNaN(d.getTime()) ? null : d;
+  }, [targetDate]);
+
+  const [now, setNow] = useState(() => new Date());
+
+  useEffect(() => {
+    const timer = setInterval(() => setNow(new Date()), 1000);
+    return () => clearInterval(timer);
+  }, []);
+
+  if (!target) return null;
+
+  const diff = target.getTime() - now.getTime();
+  if (diff <= 0) return { days: 0, hours: 0, minutes: 0, seconds: 0, expired: true };
+
+  const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+  const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+  const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+  const seconds = Math.floor((diff % (1000 * 60)) / 1000);
+
+  return { days, hours, minutes, seconds, expired: false };
+}
+
+/* ── Countdown Digit ────────────────────────────────────────────── */
+function CountdownUnit({ value, label }: { value: number; label: string }) {
+  return (
+    <div className="flex flex-col items-center">
+      <div className="relative w-16 h-16 sm:w-20 sm:h-20 bg-kairo-primary border border-kairo-orange/20 flex items-center justify-center overflow-hidden">
+        {/* Subtle shimmer */}
+        <div className="absolute inset-0 bg-gradient-to-b from-kairo-orange/5 to-transparent" />
+        <AnimatePresence mode="popLayout">
+          <motion.span
+            key={value}
+            initial={{ y: -20, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            exit={{ y: 20, opacity: 0 }}
+            transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
+            className="font-serif text-2xl sm:text-3xl text-kairo-orange font-light tabular-nums relative z-10"
+          >
+            {String(value).padStart(2, "0")}
+          </motion.span>
+        </AnimatePresence>
+      </div>
+      <span className="mt-2 text-[9px] font-bold uppercase tracking-[0.3em] text-kairo-light-gray/60">
+        {label}
+      </span>
+    </div>
+  );
+}
+
+/* ── Stagger Animation Variants ──────────────────────────────────── */
+const fadeUp = {
+  hidden: { opacity: 0, y: 24 },
+  visible: (i: number) => ({
+    opacity: 1,
+    y: 0,
+    transition: { delay: i * 0.08, duration: 0.5, ease: [0.16, 1, 0.3, 1] as const },
+  }),
+};
+
+/* ── Main Page ───────────────────────────────────────────────────── */
 export default function EventDetailPage() {
   const params = useParams();
   const router = useRouter();
@@ -33,6 +101,8 @@ export default function EventDetailPage() {
   const [similarEvents, setSimilarEvents] = useState<Event[]>([]);
   const [loadingSimilar, setLoadingSimilar] = useState(false);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
+
+  const countdown = useCountdown(event?.date || "");
 
   useEffect(() => {
     const fetchEvent = async () => {
@@ -204,7 +274,12 @@ export default function EventDetailPage() {
   return (
     <div className="relative pb-36 md:pb-28 bg-kairo-primary min-h-screen">
       {/* ── Banner ── */}
-      <div className="relative h-[300px] w-full md:h-[400px]">
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ duration: 0.6 }}
+        className="relative h-[300px] w-full md:h-[400px]"
+      >
         <Image
           src={event.bannerImage}
           alt={event.title}
@@ -215,19 +290,27 @@ export default function EventDetailPage() {
         />
 
         {/* Gradient overlay for readability */}
-        <div className="absolute inset-0 bg-gradient-to-t from-kairo-primary/90 via-kairo-primary/40 to-transparent" />
+        <div className="absolute inset-0 bg-gradient-to-t from-kairo-primary via-kairo-primary/40 to-transparent" />
 
         {/* Top controls */}
         <div className="absolute left-4 right-4 top-4 flex items-center justify-between">
-          <button
+          <motion.button
+            initial={{ opacity: 0, x: -12 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ delay: 0.2 }}
             onClick={() => router.back()}
             className="flex h-11 w-11 items-center justify-center rounded-none bg-kairo-primary border border-kairo-orange/20 shadow-md backdrop-blur-md transition-all hover:border-kairo-orange text-kairo-light-gray hover:text-kairo-white hover:scale-105"
             aria-label="Go back"
           >
             <ArrowLeft className="h-5 w-5" />
-          </button>
+          </motion.button>
 
-          <div className="flex gap-2">
+          <motion.div
+            initial={{ opacity: 0, x: 12 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ delay: 0.2 }}
+            className="flex gap-2"
+          >
             <button
               onClick={handleShare}
               className="flex h-11 w-11 items-center justify-center rounded-none bg-kairo-primary border border-kairo-orange/20 shadow-md backdrop-blur-md transition-all hover:border-kairo-orange text-kairo-light-gray hover:text-kairo-white hover:scale-105 cursor-pointer"
@@ -236,11 +319,16 @@ export default function EventDetailPage() {
               <Share2 className="h-4 w-4" />
             </button>
             <BookmarkButton eventId={event.id} className="bg-kairo-primary shadow-md border border-kairo-orange/20 h-11 w-11 flex items-center justify-center hover:border-kairo-orange rounded-none text-kairo-orange" />
-          </div>
+          </motion.div>
         </div>
 
         {/* Online/Offline badge on banner */}
-        <div className="absolute bottom-6 left-4 md:left-6">
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.3 }}
+          className="absolute bottom-6 left-4 md:left-6"
+        >
           <span
             className={`inline-flex items-center gap-1.5 rounded-none px-4 py-1.5 text-xs font-bold uppercase tracking-widest backdrop-blur-md shadow-md text-kairo-white border border-kairo-orange/20 ${
               event.isOnline
@@ -251,18 +339,79 @@ export default function EventDetailPage() {
             <Globe className="h-3.5 w-3.5" />
             {event.isOnline ? "Online" : "In Person"}
           </span>
-        </div>
-      </div>
+        </motion.div>
+      </motion.div>
 
       {/* ── Content ── */}
       <div className="mx-auto max-w-3xl px-4 sm:px-6 lg:px-8 mt-8">
         {/* Title */}
-        <h1 className="text-3xl font-serif font-light leading-tight tracking-wide md:text-5xl text-kairo-white uppercase">
+        <motion.h1
+          custom={0}
+          variants={fadeUp}
+          initial="hidden"
+          animate="visible"
+          className="text-3xl font-serif font-light leading-tight tracking-wide md:text-5xl text-kairo-white uppercase"
+        >
           {event.title}
-        </h1>
+        </motion.h1>
+
+        {/* ── Live Countdown Timer ── */}
+        {countdown && !countdown.expired && (
+          <motion.div
+            custom={1}
+            variants={fadeUp}
+            initial="hidden"
+            animate="visible"
+            className="mt-8"
+          >
+            <div className="border border-kairo-orange/15 bg-kairo-dark-gray/20 p-6 sm:p-8">
+              <div className="flex items-center gap-2 mb-5">
+                <Clock className="w-4 h-4 text-kairo-orange" />
+                <span className="text-[10px] font-bold uppercase tracking-[0.3em] text-kairo-light-gray">
+                  Event Starts In
+                </span>
+                <span className="ml-auto flex items-center gap-1.5">
+                  <span className="h-2 w-2 bg-emerald-400 rounded-full animate-pulse" />
+                  <span className="text-[9px] font-bold uppercase tracking-widest text-emerald-400/80">Live</span>
+                </span>
+              </div>
+              <div className="flex items-center justify-center gap-3 sm:gap-5">
+                <CountdownUnit value={countdown.days} label="Days" />
+                <span className="font-serif text-2xl text-kairo-orange/40 mt-[-1.5rem]">:</span>
+                <CountdownUnit value={countdown.hours} label="Hours" />
+                <span className="font-serif text-2xl text-kairo-orange/40 mt-[-1.5rem]">:</span>
+                <CountdownUnit value={countdown.minutes} label="Min" />
+                <span className="font-serif text-2xl text-kairo-orange/40 mt-[-1.5rem]">:</span>
+                <CountdownUnit value={countdown.seconds} label="Sec" />
+              </div>
+            </div>
+          </motion.div>
+        )}
+
+        {/* Expired Badge */}
+        {countdown?.expired && (
+          <motion.div
+            custom={1}
+            variants={fadeUp}
+            initial="hidden"
+            animate="visible"
+            className="mt-8 border border-red-500/20 bg-red-950/20 px-6 py-4 flex items-center gap-3"
+          >
+            <Zap className="w-4 h-4 text-red-400" />
+            <span className="text-xs font-bold uppercase tracking-[0.2em] text-red-400">
+              This event has ended
+            </span>
+          </motion.div>
+        )}
 
         {/* Meta row */}
-        <div className="mt-8 flex flex-wrap gap-x-8 gap-y-4">
+        <motion.div
+          custom={2}
+          variants={fadeUp}
+          initial="hidden"
+          animate="visible"
+          className="mt-8 flex flex-wrap gap-x-8 gap-y-4"
+        >
           <div className="flex items-center gap-3 text-kairo-light-gray font-light text-sm tracking-wide">
             <div className="w-9 h-9 rounded-none bg-kairo-dark-gray/30 border border-kairo-orange/15 flex items-center justify-center text-kairo-orange">
               <Calendar className="h-4 w-4" />
@@ -281,46 +430,75 @@ export default function EventDetailPage() {
             </div>
             <span>{event.organizer}</span>
           </div>
-        </div>
+        </motion.div>
 
         {/* Tags */}
         {event.tags && event.tags.length > 0 && (
-          <div className="mt-8 flex flex-wrap gap-2">
+          <motion.div
+            custom={3}
+            variants={fadeUp}
+            initial="hidden"
+            animate="visible"
+            className="mt-8 flex flex-wrap gap-2"
+          >
             {event.tags.map((tag) => (
               <span
                 key={tag}
-                className="inline-flex items-center gap-1.5 rounded-none bg-kairo-dark-gray/20 border border-kairo-orange/10 px-3.5 py-1 text-xs font-light text-kairo-light-gray tracking-wide shadow-sm"
+                className="inline-flex items-center gap-1.5 rounded-none bg-kairo-dark-gray/20 border border-kairo-orange/10 px-3.5 py-1 text-xs font-light text-kairo-light-gray tracking-wide shadow-sm hover:border-kairo-orange/30 transition-colors duration-200"
               >
                 <Tag className="h-3 w-3 text-kairo-orange" />
                 {tag}
               </span>
             ))}
-          </div>
+          </motion.div>
         )}
 
         {/* Divider */}
-        <div className="my-10 h-px bg-kairo-orange/10" />
+        <motion.div
+          custom={4}
+          variants={fadeUp}
+          initial="hidden"
+          animate="visible"
+          className="my-10 h-px bg-kairo-orange/10"
+        />
 
         {/* Description */}
-        <div>
+        <motion.div
+          custom={5}
+          variants={fadeUp}
+          initial="hidden"
+          animate="visible"
+        >
           <h2 className="mb-4 text-2xl font-serif font-light text-kairo-white uppercase tracking-wide">About This Event</h2>
           <p className="whitespace-pre-line leading-relaxed text-base sm:text-lg text-kairo-light-gray font-light tracking-wide">
             {event.description}
           </p>
-        </div>
+        </motion.div>
 
         {/* Divider */}
-        <div className="my-10 h-px bg-kairo-orange/10" />
+        <motion.div
+          custom={6}
+          variants={fadeUp}
+          initial="hidden"
+          animate="visible"
+          className="my-10 h-px bg-kairo-orange/10"
+        />
 
         {/* Info Cards */}
-        <div className="grid md:grid-cols-2 gap-6">
+        <motion.div
+          custom={7}
+          variants={fadeUp}
+          initial="hidden"
+          animate="visible"
+          className="grid md:grid-cols-2 gap-6"
+        >
           {/* Organizer Card */}
-          <div className="rounded-none border border-kairo-orange/15 bg-kairo-dark-gray/10 p-6 shadow-sm hover:border-kairo-orange/30 transition-all duration-300">
+          <div className="rounded-none border border-kairo-orange/15 bg-kairo-dark-gray/10 p-6 shadow-sm hover:border-kairo-orange/30 transition-all duration-300 group">
             <h3 className="mb-4 text-[9px] font-bold uppercase tracking-[0.2em] text-kairo-light-gray">
               Organized by
             </h3>
             <div className="flex items-center gap-4">
-              <div className="flex h-12 w-12 items-center justify-center rounded-none bg-kairo-primary border border-kairo-orange/20 text-kairo-orange">
+              <div className="flex h-12 w-12 items-center justify-center rounded-none bg-kairo-primary border border-kairo-orange/20 text-kairo-orange group-hover:border-kairo-orange/50 transition-colors duration-300">
                 <User className="h-5 w-5" />
               </div>
               <div>
@@ -331,12 +509,12 @@ export default function EventDetailPage() {
           </div>
 
           {/* Location Card */}
-          <div className="rounded-none border border-kairo-orange/15 bg-kairo-dark-gray/10 p-6 shadow-sm hover:border-kairo-orange/30 transition-all duration-300">
+          <div className="rounded-none border border-kairo-orange/15 bg-kairo-dark-gray/10 p-6 shadow-sm hover:border-kairo-orange/30 transition-all duration-300 group">
             <h3 className="mb-4 text-[9px] font-bold uppercase tracking-[0.2em] text-kairo-light-gray">
               Location
             </h3>
             <div className="flex items-center gap-4">
-              <div className="flex h-12 w-12 items-center justify-center rounded-none bg-kairo-primary border border-kairo-orange/20 text-kairo-orange">
+              <div className="flex h-12 w-12 items-center justify-center rounded-none bg-kairo-primary border border-kairo-orange/20 text-kairo-orange group-hover:border-kairo-orange/50 transition-colors duration-300">
                 <MapPin className="h-5 w-5" />
               </div>
               <div>
@@ -348,13 +526,19 @@ export default function EventDetailPage() {
               </div>
             </div>
           </div>
-        </div>
+        </motion.div>
 
         {/* Divider */}
         <div className="my-10 h-px bg-kairo-orange/10" />
 
         {/* Similar Events Carousel */}
-        <div className="mb-12">
+        <motion.div
+          custom={8}
+          variants={fadeUp}
+          initial="hidden"
+          animate="visible"
+          className="mb-12"
+        >
           <h2 className="mb-6 text-2xl font-serif font-light text-kairo-white uppercase tracking-wide">Similar Events You Might Like</h2>
           {loadingSimilar ? (
             <div className="flex h-[200px] items-center justify-center rounded-none border border-kairo-orange/15 bg-kairo-dark-gray/10">
@@ -374,11 +558,16 @@ export default function EventDetailPage() {
               <p className="text-xs tracking-wider text-kairo-light-gray uppercase font-bold">No similar events found at the moment.</p>
             </div>
           )}
-        </div>
+        </motion.div>
       </div>
 
       {/* ── Fixed Bottom CTA ── */}
-      <div className="fixed inset-x-0 bottom-[60px] md:bottom-0 z-50 border-t border-kairo-orange/10 bg-kairo-primary/90 px-4 py-4.5 backdrop-blur-xl md:px-6 shadow-[0_-10px_30px_rgba(0,0,0,0.4)]">
+      <motion.div
+        initial={{ y: 80, opacity: 0 }}
+        animate={{ y: 0, opacity: 1 }}
+        transition={{ delay: 0.5, duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
+        className="fixed inset-x-0 bottom-[60px] md:bottom-0 z-50 border-t border-kairo-orange/10 bg-kairo-primary/90 px-4 py-4.5 backdrop-blur-xl md:px-6 shadow-[0_-10px_30px_rgba(0,0,0,0.4)]"
+      >
         <div className="mx-auto max-w-3xl">
           <a
             href={event.registrationUrl}
@@ -394,21 +583,32 @@ export default function EventDetailPage() {
                 tags: event.tags,
               });
             }}
-            className="flex w-full items-center justify-center gap-3 bg-kairo-orange hover:bg-kairo-orange/95 px-6 py-4 text-xs font-bold uppercase tracking-[0.3em] text-kairo-primary shadow-lg transition-all duration-300 hover:scale-[1.01] rounded-none"
+            className="group relative flex w-full items-center justify-center gap-3 bg-kairo-orange hover:bg-kairo-orange/95 px-6 py-4 text-xs font-bold uppercase tracking-[0.3em] text-kairo-primary shadow-lg transition-all duration-300 hover:scale-[1.01] rounded-none overflow-hidden"
           >
-            Register Now
-            <ExternalLink className="h-4 w-4" />
+            {/* Pulse shimmer effect */}
+            <span className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000 ease-in-out" />
+            <span className="relative z-10 flex items-center gap-3">
+              Register Now
+              <ExternalLink className="h-4 w-4" />
+            </span>
           </a>
         </div>
-      </div>
+      </motion.div>
 
       {/* Toast Notification */}
-      {toastMessage && (
-        <div className="fixed bottom-28 left-1/2 -translate-x-1/2 z-55 px-6 py-3 bg-kairo-dark-gray/90 border border-kairo-gray/50 rounded-full text-sm font-bold text-kairo-white backdrop-blur-xl shadow-2xl flex items-center gap-2 animate-in fade-in slide-in-from-bottom-4 duration-300">
-          <span className="h-2 w-2 rounded-full bg-kairo-orange animate-ping" />
-          {toastMessage}
-        </div>
-      )}
+      <AnimatePresence>
+        {toastMessage && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 20 }}
+            className="fixed bottom-28 left-1/2 -translate-x-1/2 z-55 px-6 py-3 bg-kairo-dark-gray border border-kairo-orange/30 text-xs font-bold text-kairo-white uppercase tracking-[0.2em] backdrop-blur-xl shadow-2xl flex items-center gap-2"
+          >
+            <span className="h-2 w-2 bg-kairo-orange animate-ping" />
+            {toastMessage}
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

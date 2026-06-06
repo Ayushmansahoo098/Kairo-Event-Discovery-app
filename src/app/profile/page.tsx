@@ -1,22 +1,38 @@
 "use client";
 
-import { useEffect, useState, useRef } from "react";
-import { useRouter } from "next/navigation";
 import { useAuthContext } from "@/context/auth-context";
 import { useBookmarkContext } from "@/context/bookmark-context";
-import {
-  LogOut, Ticket, Heart, Clock, ChevronRight, MapPin, Bell,
-  Calendar, Share2, Star, Shield, Edit3, Loader2, CheckCircle2,
-  X, User, FileText, Settings, Camera,
-} from "lucide-react";
-import { motion, AnimatePresence } from "framer-motion";
-import { cn } from "@/lib/utils";
 import { db, storage } from "@/lib/firebase";
-import { doc, getDoc, updateDoc } from "firebase/firestore";
-import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import { getEvents } from "@/lib/mock-data";
 import { Event } from "@/lib/types";
+import { cn } from "@/lib/utils";
+import { doc, getDoc, updateDoc } from "firebase/firestore";
+import { getDownloadURL, ref, uploadBytes } from "firebase/storage";
+import { AnimatePresence, motion } from "framer-motion";
+import {
+    Bell,
+    Calendar,
+    Camera,
+    CheckCircle2,
+    ChevronRight,
+    Clock,
+    Edit3,
+    FileText,
+    Heart,
+    Loader2,
+    LogOut,
+    MapPin,
+    Settings,
+    Share2,
+    Shield,
+    Star,
+    Ticket,
+    User,
+    X,
+} from "lucide-react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { useEffect, useRef, useState } from "react";
 
 /* ── Geo helpers (unchanged) ─────────────────────────────────────── */
 const CITIES = ["Bangalore", "Hyderabad", "Mumbai", "Delhi", "Chennai", "Pune", "Kolkata", "Ahmedabad"];
@@ -157,7 +173,7 @@ function Chip({
 }
 
 /* ── Star Rating Modal ──────────────────────────────────────────── */
-function RateModal({ onClose }: { onClose: () => void }) {
+function RateModal({ forceOnboard = false, onClose }: { forceOnboard?: boolean; onClose: () => void }) {
   const [hovered, setHovered] = useState(0);
   const [selected, setSelected] = useState(0);
   const [submitted, setSubmitted] = useState(false);
@@ -174,7 +190,9 @@ function RateModal({ onClose }: { onClose: () => void }) {
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
       className="fixed inset-0 z-[200] flex items-center justify-center bg-kairo-primary/80 backdrop-blur-xl p-4"
-      onClick={onClose}
+      onClick={() => {
+        if (!forceOnboard) onClose();
+      }}
     >
       <motion.div
         initial={{ scale: 0.95, y: 10 }}
@@ -228,12 +246,14 @@ function EditProfileModal({
   user,
   currentCity,
   onClose,
+  forceOnboard = false,
   onSave,
 }: {
   user: { id: string; name: string; email: string; avatar: string };
   currentCity: string;
   onClose: () => void;
-  onSave: (name: string, city: string, avatar?: string) => Promise<void>;
+  forceOnboard?: boolean;
+  onSave: (name: string, city: string, avatar?: string, interests?: string[]) => Promise<void>;
 }) {
   const [name, setName] = useState(user.name);
   const [city, setCity] = useState(currentCity);
@@ -241,6 +261,7 @@ function EditProfileModal({
   const [avatarPreview, setAvatarPreview] = useState(user.avatar);
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
   const [uploading, setUploading] = useState(false);
+  const [selectedInterests, setSelectedInterests] = useState<string[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -280,9 +301,13 @@ function EditProfileModal({
       }
     }
 
-    await onSave(name.trim() || user.name, city, newAvatarUrl);
+       await onSave(name.trim() || user.name, city, newAvatarUrl, selectedInterests.length > 0 ? selectedInterests : undefined);
     setSaving(false);
     onClose();
+  };
+
+  const toggleInterest = (i: string) => {
+    setSelectedInterests((p) => (p.includes(i) ? p.filter((x) => x !== i) : [...p, i]));
   };
 
   const initials = user.name.split(" ").map((n) => n[0]).join("").slice(0, 2).toUpperCase();
@@ -303,8 +328,10 @@ function EditProfileModal({
         className="bg-kairo-primary border border-kairo-orange/20 p-8 w-full max-w-md"
       >
         <div className="flex items-center justify-between mb-6">
-          <h3 className="font-serif text-xl text-kairo-white uppercase tracking-widest">Edit Profile</h3>
-          <button onClick={onClose} className="text-kairo-light-gray hover:text-kairo-white cursor-pointer"><X className="w-4 h-4" /></button>
+             <h3 className="font-serif text-xl text-kairo-white uppercase tracking-widest">{forceOnboard ? "Complete Your Profile" : "Edit Profile"}</h3>
+             {!forceOnboard && (
+               <button onClick={onClose} className="text-kairo-light-gray hover:text-kairo-white cursor-pointer"><X className="w-4 h-4" /></button>
+             )}
         </div>
 
         {/* Avatar Upload */}
@@ -366,6 +393,18 @@ function EditProfileModal({
               ))}
             </select>
           </div>
+          {/* Interests (only during onboarding) */}
+          {forceOnboard && (
+            <div>
+              <label className="block text-[10px] font-bold uppercase tracking-[0.25em] text-kairo-light-gray/60 mb-2">Interests</label>
+              <div className="flex flex-wrap gap-2">
+                {INTERESTS_LIST.map((i) => (
+                  <Chip key={i} label={i} selected={selectedInterests.includes(i)} onClick={() => toggleInterest(i)} />
+                ))}
+              </div>
+              <p className="text-[10px] text-kairo-light-gray/50 mt-2">Select at least one interest to finish onboarding.</p>
+            </div>
+          )}
           <div>
             <label className="block text-[10px] font-bold uppercase tracking-[0.25em] text-kairo-light-gray/60 mb-2">Email</label>
             <input
@@ -376,14 +415,16 @@ function EditProfileModal({
           </div>
         </div>
 
-        <button
-          onClick={handleSave}
-          disabled={saving || uploading}
-          className="mt-6 w-full py-4 bg-kairo-orange text-kairo-primary text-xs font-bold uppercase tracking-[0.3em] flex items-center justify-center gap-2 disabled:opacity-60 cursor-pointer"
-        >
-          {(saving || uploading) ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle2 className="w-4 h-4" />}
-          {uploading ? "Uploading..." : saving ? "Saving..." : "Save Changes"}
-        </button>
+            <button
+              onClick={handleSave}
+              disabled={
+                saving || uploading || (forceOnboard && (!city || selectedInterests.length === 0))
+              }
+              className="mt-6 w-full py-4 bg-kairo-orange text-kairo-primary text-xs font-bold uppercase tracking-[0.3em] flex items-center justify-center gap-2 disabled:opacity-60 cursor-pointer"
+            >
+              {(saving || uploading) ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle2 className="w-4 h-4" />}
+              {uploading ? "Uploading..." : saving ? "Saving..." : forceOnboard ? "Complete Onboarding" : "Save Changes"}
+            </button>
       </motion.div>
     </motion.div>
   );
@@ -441,6 +482,7 @@ export default function ProfilePage() {
 
   // Modal states
   const [showEditProfile, setShowEditProfile] = useState(false);
+  const [forceOnboard, setForceOnboard] = useState(false);
   const [showRate, setShowRate] = useState(false);
   const [showCalendar, setShowCalendar] = useState(false);
   const [shareToast, setShareToast] = useState(false);
@@ -477,6 +519,13 @@ export default function ProfilePage() {
           setPushNotif(data.notificationPreferences?.push ?? true);
           if (data.lastLocation?.city) setUserCity(data.lastLocation.city);
           if (data.city) setUserCity(data.city);
+          // If the user hasn't completed onboarding (or has no prefs), open edit modal
+          const hasPrefs = (data.preferredCities && data.preferredCities.length > 0) || (data.interests && data.interests.length > 0) || data.city;
+          const onboarded = data.onboarded !== undefined ? data.onboarded : hasPrefs;
+          if (!onboarded) {
+            setForceOnboard(true);
+            setShowEditProfile(true);
+          }
         }
       } catch (err) {
         console.error("Failed to load prefs:", err);
@@ -520,7 +569,8 @@ export default function ProfilePage() {
       const updateData: Record<string, string> = { name: newName, city: newCity };
       if (newAvatar) updateData.avatar = newAvatar;
 
-      await updateDoc(doc(db, "users", user.id), updateData);
+      // mark user as onboarded when they save profile details
+      await updateDoc(doc(db, "users", user.id), { ...updateData, onboarded: true, onboardedAt: new Date() });
       setDisplayName(newName);
       setUserCity(newCity);
       if (newAvatar) updateAvatar(newAvatar);
@@ -539,10 +589,13 @@ export default function ProfilePage() {
   const handleSavePrefs = async () => {
     setIsSavingPrefs(true);
     try {
+      // Save preferences and mark onboarding complete
       await updateDoc(doc(db, "users", user.id), {
         preferredCities,
         interests,
         notificationPreferences: { email: emailNotif, push: pushNotif },
+        onboarded: true,
+        onboardedAt: new Date(),
       });
       setPrefsSaved(true);
       setTimeout(() => setPrefsSaved(false), 2500);
@@ -603,7 +656,10 @@ export default function ProfilePage() {
         <div className="px-6 pb-6 relative">
           {/* Avatar */}
           <button
-            onClick={() => setShowEditProfile(true)}
+            onClick={() => {
+              setForceOnboard(false);
+              setShowEditProfile(true);
+            }}
             className="absolute -top-14 left-6 w-28 h-28 border-2 border-kairo-orange/40 bg-kairo-primary overflow-hidden flex items-center justify-center shadow-[0_0_30px_rgba(0,0,0,0.8)] group cursor-pointer"
           >
             {user.avatar ? (
@@ -621,7 +677,10 @@ export default function ProfilePage() {
           {/* Edit button */}
           <div className="flex justify-end pt-3">
             <button
-              onClick={() => setShowEditProfile(true)}
+              onClick={() => {
+                setForceOnboard(false);
+                setShowEditProfile(true);
+              }}
               className="inline-flex items-center gap-2 border border-kairo-orange/20 bg-transparent hover:border-kairo-orange hover:text-kairo-orange px-4 py-2 text-[10px] font-bold uppercase tracking-[0.25em] text-kairo-light-gray transition-all duration-300 cursor-pointer"
             >
               <Edit3 className="w-3 h-3" />
@@ -793,7 +852,10 @@ export default function ProfilePage() {
             icon={Settings}
             label="Settings"
             sublabel="App settings & preferences"
-            onClick={() => setShowEditProfile(true)}
+            onClick={() => {
+              setForceOnboard(false);
+              setShowEditProfile(true);
+            }}
           />
           <RowItem
             icon={FileText}
@@ -823,11 +885,22 @@ export default function ProfilePage() {
           <EditProfileModal
             user={user}
             currentCity={userCity}
-            onClose={() => setShowEditProfile(false)}
-            onSave={handleEditSave}
+            forceOnboard={forceOnboard}
+            onClose={() => {
+              setForceOnboard(false);
+              setShowEditProfile(false);
+            }}
+            onSave={async (name, city, avatar, interestsFromModal) => {
+              // Save interests as well when onboarding
+              if (interestsFromModal && interestsFromModal.length > 0) {
+                await updateDoc(doc(db, "users", user.id), { interests: interestsFromModal });
+                setInterests(interestsFromModal);
+              }
+              await handleEditSave(name, city, avatar);
+            }}
           />
         )}
-        {showRate && <RateModal onClose={() => setShowRate(false)} />}
+        {showRate && <RateModal forceOnboard={forceOnboard} onClose={() => setShowRate(false)} />}
         {showCalendar && (
           <CalendarModal bookmarkCount={bookmarks.length} onClose={() => setShowCalendar(false)} />
         )}

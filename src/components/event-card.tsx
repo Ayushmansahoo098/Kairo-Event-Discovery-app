@@ -61,13 +61,13 @@ export function EventCard({ event, isRecommendation }: { event: Event; isRecomme
       <div className="relative flex flex-col h-[420px] sm:h-[440px] rounded-none overflow-hidden transition-all duration-500 hover:-translate-y-1.5 border border-kairo-orange/10 shadow-[0_8px_30px_rgba(0,0,0,0.5)] hover:border-kairo-orange/30">
         
         {/* Full Bleed Banner Image */}
-        <div className="absolute inset-0 w-full h-full">
+        <div className="absolute inset-0 w-full h-full bg-black">
           <Image
             src={event.bannerImage}
             alt={event.title}
             fill
             sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
-            className="object-cover transition-transform duration-1000 group-hover:scale-105"
+            className="object-scale-down transition-transform duration-1000 group-hover:scale-105"
           />
         </div>
         

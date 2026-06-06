@@ -294,13 +294,13 @@ function EventDetailPageContent() {
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ duration: 0.6 }}
-        className="relative h-[300px] w-full md:h-[400px]"
+        className="relative h-[300px] w-full md:h-[400px] bg-black"
       >
         <Image
           src={event.bannerImage}
           alt={event.title}
           fill
-          className="object-cover"
+          className="object-scale-down"
           priority
           sizes="100vw"
         />

@@ -188,6 +188,7 @@ flowchart TD
 *   **Observability Dashboard**: Access restricted admin routes showing scrapers' success rates, durations, and logs.
 *   **Interactive Charts**: Interactive charts displaying active counts for categories and geographic target markets.
 *   **Unified scrape log table**: Real-time log entries with detail summaries and failure traceback audits.
+*   **Analytics Funnel Dashboard (`/admin/analytics`)**: A premium Glassmorphic dashboard tracking user acquisition rates, onboarding completion statistics (including average completion times), view-to-register funnel conversion metrics, and detailed recommendation CTR, save, and registration performance. Includes optimized, non-scanning event leaderboards.
 
 ---
 
@@ -227,6 +228,11 @@ ADMIN_EMAIL=your_admin@email.com
 # Cron synchronization secret key
 CRON_SECRET=your_cron_secret_here
 ```
+
+> [!IMPORTANT]
+> **Firebase Authentication Configuration**:
+> 1. **Sign-In Providers**: Enable **Google** and **GitHub** providers in your Firebase Console under **Authentication > Sign-in method**. For GitHub, register an OAuth application and copy/paste its client credentials, using `https://YOUR_PROJECT_ID.firebaseapp.com/__/auth/handler` as the callback URL.
+> 2. **Authorized Domains**: Add your local host and production deployment domains (e.g. `localhost`, `kairo-events.vercel.app`) to your authorized domains whitelist in the Firebase Console under **Authentication > Settings > Authorized domains** to prevent OAuth origin rejections.
 
 ### 3. Install Playwright Browsers
 ```bash

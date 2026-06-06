@@ -26,6 +26,9 @@ import {
   Compass,
   MapPin,
   TrendingUp,
+  Brain,
+  Server,
+  Zap
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -51,6 +54,11 @@ export default function ObservabilityDashboard() {
   const [loadingAnalytics, setLoadingAnalytics] = useState(true);
   const [analytics, setAnalytics] = useState<{
     totalEvents: number;
+    activeEvents: number;
+    expiredEvents: number;
+    eventsAddedToday: number;
+    eventsUpdatedToday: number;
+    sourceCounts: Record<string, { active: number; expired: number }>;
     totalUsers: number;
     totalSaves: number;
     totalRegistrations: number;
@@ -58,7 +66,18 @@ export default function ObservabilityDashboard() {
     topCities: { city: string; count: number }[];
   } | null>(null);
 
-  // Load Platform Analytics from Firestore
+  const [recommendationStats, setRecommendationStats] = useState<{
+    status: string;
+    firebaseConnected: boolean;
+    transformerLoaded: boolean;
+    totalCachedEvents: number;
+    totalCachedUserProfiles: number;
+    averageRecommendationScore: number;
+    topCategories: Record<string, number>;
+  } | null>(null);
+  const [loadingRecommender, setLoadingRecommender] = useState(true);
+
+  // Fetch platform analytics from Firestore
   useEffect(() => {
     const fetchAnalytics = async () => {
       try {
@@ -79,17 +98,63 @@ export default function ObservabilityDashboard() {
         const totalSaves = savesCountSnap.data().count;
         const totalRegistrations = regsCountSnap.data().count;
 
-        // Aggregate categories and cities from events
+        // Aggregate in-memory stats from active event docs
         const categoryMap: Record<string, number> = {};
         const cityMap: Record<string, number> = {};
+        let activeEvents = 0;
+        let expiredEvents = 0;
+        let eventsAddedToday = 0;
+        let eventsUpdatedToday = 0;
+        const sourceCounts: Record<string, { active: number; expired: number }> = {};
+
+        const startOfToday = new Date();
+        startOfToday.setHours(0, 0, 0, 0);
+        const startOfTodayTime = startOfToday.getTime();
 
         eventsSnap.forEach((docSnap) => {
           const data = docSnap.data();
           const category = data.category || "unknown";
           const city = data.city || "unknown";
           const score = data.popularityScore || 0;
+          const status = data.status || "active";
+          
+          let source = data.source || "Unknown";
+          // Normalize source string
+          const srcLower = source.toLowerCase();
+          if (srcLower.includes("devfolio")) source = "Devfolio";
+          else if (srcLower.includes("mlh")) source = "MLH";
+          else if (srcLower.includes("gdg")) source = "GDG";
+          else if (srcLower.includes("unstop")) source = "Unstop";
+          else if (srcLower.includes("hackerearth")) source = "HackerEarth";
+          else if (srcLower.includes("luma")) source = "Luma";
+          else if (srcLower.includes("meetup")) source = "Meetup";
+          else if (srcLower.includes("eventbrite")) source = "Eventbrite";
 
-          categoryMap[category] = (categoryMap[category] || 0) + score + 1; // Blend base count with popularity score
+          if (!sourceCounts[source]) {
+            sourceCounts[source] = { active: 0, expired: 0 };
+          }
+
+          if (status === "active") {
+            activeEvents++;
+            sourceCounts[source].active++;
+          } else if (status === "expired") {
+            expiredEvents++;
+            sourceCounts[source].expired++;
+          }
+
+          // Compute Added/Updated today
+          const lastUpdatedTime = data.lastUpdated ? new Date(data.lastUpdated).getTime() : 0;
+          const createdAtTime = data.createdAt ? new Date(data.createdAt).getTime() : 0;
+
+          if (lastUpdatedTime >= startOfTodayTime) {
+            if (createdAtTime >= startOfTodayTime) {
+              eventsAddedToday++;
+            } else {
+              eventsUpdatedToday++;
+            }
+          }
+
+          categoryMap[category] = (categoryMap[category] || 0) + score + 1;
           cityMap[city] = (cityMap[city] || 0) + score + 1;
         });
 
@@ -105,6 +170,11 @@ export default function ObservabilityDashboard() {
 
         setAnalytics({
           totalEvents,
+          activeEvents,
+          expiredEvents,
+          eventsAddedToday,
+          eventsUpdatedToday,
+          sourceCounts,
           totalUsers,
           totalSaves,
           totalRegistrations,
@@ -121,6 +191,28 @@ export default function ObservabilityDashboard() {
     fetchAnalytics();
   }, []);
 
+  // Fetch recommendation stats from FastAPI backend
+  useEffect(() => {
+    const fetchRecommenderStats = async () => {
+      try {
+        const res = await fetch("http://localhost:8000/health");
+        if (res.ok) {
+          const data = await res.json();
+          setRecommendationStats(data);
+        } else {
+          setRecommendationStats(null);
+        }
+      } catch (err) {
+        console.error("Failed to fetch recommender health:", err);
+        setRecommendationStats(null);
+      } finally {
+        setLoadingRecommender(false);
+      }
+    };
+    fetchRecommenderStats();
+  }, []);
+
+  // Set up real-time listener for scrape logs
   useEffect(() => {
     const q = query(
       collection(db, "scrape_logs"),
@@ -143,7 +235,7 @@ export default function ObservabilityDashboard() {
     return () => unsubscribe();
   }, []);
 
-  // Compute Aggregates
+  // Compute Aggregates for Observability Logs
   const totalSyncs = logs.reduce((acc, log) => acc + (log.successCount || 0), 0);
   const totalCleanups = logs.reduce((acc, log) => acc + (log.cleanupCount || 0), 0);
   const averageDuration = logs.length > 0 
@@ -155,23 +247,40 @@ export default function ObservabilityDashboard() {
     ? Math.round((successfulRuns / logs.length) * 100) 
     : 100;
 
-  // Source-wise status lookup
+  // Source-wise health status lookup
   const getLatestSourceStatus = (source: string) => {
     const sourceLogs = logs.filter(log => 
       log.source === source || 
       (log.source === "Unified Sync All" && log.details?.[source])
     );
-    if (sourceLogs.length === 0) return { status: "unknown", lastSync: "Never" };
+    if (sourceLogs.length === 0) return { status: "unknown", lastSync: "Never", count: 0 };
     
     const latest = sourceLogs[0];
-    let status = latest.status;
+    let success = latest.status === "success" || latest.status === "partial_success";
+    let count = latest.successCount || 0;
+    let error = latest.error;
     
     if (latest.source === "Unified Sync All" && latest.details?.[source]) {
-      status = latest.details[source].success ? "success" : "failed";
+      success = latest.details[source].success;
+      count = latest.details[source].count || 0;
+      error = latest.details[source].error;
+    }
+
+    let status = "unknown";
+    if (success) {
+      if (count > 0) {
+        status = "healthy";
+      } else {
+        status = "warning";
+      }
+    } else {
+      status = "failed";
     }
 
     return {
       status,
+      count,
+      error,
       lastSync: new Date(latest.completedAt).toLocaleTimeString("en-US", {
         hour: "2-digit",
         minute: "2-digit",
@@ -186,8 +295,12 @@ export default function ObservabilityDashboard() {
 
   const sources = [
     { name: "Devfolio", label: "Devfolio Scraper" },
+    { name: "MLH", label: "MLH Scraper" },
+    { name: "GDG", label: "GDG Scraper" },
     { name: "Unstop", label: "Unstop Scraper" },
     { name: "HackerEarth", label: "HackerEarth Scraper" },
+    { name: "Luma", label: "Luma Scraper" },
+    { name: "Meetup", label: "Meetup Scraper" },
     { name: "Eventbrite", label: "Eventbrite API" },
   ];
 
@@ -204,7 +317,7 @@ export default function ObservabilityDashboard() {
               System Admin & AI Observability
             </h1>
             <p className="text-sm text-kairo-light-gray font-semibold">
-              Platform event analytics, crawler telemetry, and performance logs
+              Platform event analytics, crawler telemetry, and recommendation health
             </p>
           </div>
         </div>
@@ -259,58 +372,169 @@ export default function ObservabilityDashboard() {
           <div className="space-y-8 animate-in fade-in duration-300">
             {/* KPI Grid */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-              {/* Total Events */}
-              <div className="rounded-2xl border border-kairo-gray bg-kairo-dark-gray/50 backdrop-blur-md p-6 flex items-center gap-4">
-                <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-kairo-primary border border-kairo-gray text-kairo-orange">
-                  <Database className="h-6 w-6" />
-                </div>
-                <div>
-                  <p className="text-xs font-bold text-kairo-light-gray uppercase tracking-widest">Total Events</p>
-                  <p className="text-2xl font-black text-kairo-white">{analytics.totalEvents}</p>
-                </div>
-              </div>
-
-              {/* Total Users */}
-              <div className="rounded-2xl border border-kairo-gray bg-kairo-dark-gray/50 backdrop-blur-md p-6 flex items-center gap-4">
-                <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-kairo-primary border border-kairo-gray text-kairo-grad-4">
-                  <Users className="h-6 w-6" />
-                </div>
-                <div>
-                  <p className="text-xs font-bold text-kairo-light-gray uppercase tracking-widest">Registered Users</p>
-                  <p className="text-2xl font-black text-kairo-white">{analytics.totalUsers}</p>
-                </div>
-              </div>
-
-              {/* Total Saves */}
-              <div className="rounded-2xl border border-kairo-gray bg-kairo-dark-gray/50 backdrop-blur-md p-6 flex items-center gap-4">
-                <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-kairo-primary border border-kairo-gray text-kairo-grad-2">
-                  <Bookmark className="h-6 w-6" />
-                </div>
-                <div>
-                  <p className="text-xs font-bold text-kairo-light-gray uppercase tracking-widest">Total Saves</p>
-                  <p className="text-2xl font-black text-kairo-white">{analytics.totalSaves}</p>
-                </div>
-              </div>
-
-              {/* Total Registrations */}
-              <div className="rounded-2xl border border-kairo-gray bg-kairo-dark-gray/50 backdrop-blur-md p-6 flex items-center gap-4">
+              {/* Active Events */}
+              <div className="rounded-2xl border border-kairo-gray bg-kairo-dark-gray/50 backdrop-blur-md p-6 flex items-center gap-4 hover:border-emerald-500/30 transition-all duration-300">
                 <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-kairo-primary border border-kairo-gray text-emerald-400">
-                  <Compass className="h-6 w-6" />
+                  <CheckCircle2 className="h-6 w-6" />
                 </div>
                 <div>
-                  <p className="text-xs font-bold text-kairo-light-gray uppercase tracking-widest">Registrations</p>
-                  <p className="text-2xl font-black text-kairo-white">{analytics.totalRegistrations}</p>
+                  <p className="text-xs font-bold text-kairo-light-gray uppercase tracking-widest">Active Events</p>
+                  <p className="text-2xl font-black text-kairo-white">{analytics.activeEvents}</p>
+                </div>
+              </div>
+
+              {/* Expired Events */}
+              <div className="rounded-2xl border border-kairo-gray bg-kairo-dark-gray/50 backdrop-blur-md p-6 flex items-center gap-4 hover:border-rose-500/30 transition-all duration-300">
+                <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-kairo-primary border border-kairo-gray text-rose-400">
+                  <XCircle className="h-6 w-6" />
+                </div>
+                <div>
+                  <p className="text-xs font-bold text-kairo-light-gray uppercase tracking-widest">Expired Events</p>
+                  <p className="text-2xl font-black text-kairo-white">{analytics.expiredEvents}</p>
+                </div>
+              </div>
+
+              {/* Added Today */}
+              <div className="rounded-2xl border border-kairo-gray bg-kairo-dark-gray/50 backdrop-blur-md p-6 flex items-center gap-4 hover:border-kairo-orange/30 transition-all duration-300">
+                <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-kairo-primary border border-kairo-gray text-kairo-orange">
+                  <TrendingUp className="h-6 w-6" />
+                </div>
+                <div>
+                  <p className="text-xs font-bold text-kairo-light-gray uppercase tracking-widest">Added Today</p>
+                  <p className="text-2xl font-black text-kairo-white">+{analytics.eventsAddedToday}</p>
+                </div>
+              </div>
+
+              {/* Updated Today */}
+              <div className="rounded-2xl border border-kairo-gray bg-kairo-dark-gray/50 backdrop-blur-md p-6 flex items-center gap-4 hover:border-sky-500/30 transition-all duration-300">
+                <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-kairo-primary border border-kairo-gray text-sky-400">
+                  <Clock className="h-6 w-6" />
+                </div>
+                <div>
+                  <p className="text-xs font-bold text-kairo-light-gray uppercase tracking-widest">Updated Today</p>
+                  <p className="text-2xl font-black text-kairo-white">~{analytics.eventsUpdatedToday}</p>
                 </div>
               </div>
             </div>
 
-            {/* Popularity Charts Grid */}
+            {/* Split Middle Row: Source distribution & Recommender Engine */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {/* Most Popular Categories */}
+              {/* Event Source Distribution */}
               <div className="rounded-3xl border border-kairo-gray bg-kairo-dark-gray/50 p-6 backdrop-blur-md">
                 <div className="flex items-center gap-2 mb-6 pb-4 border-b border-kairo-gray/60">
+                  <Database className="w-5 h-5 text-sky-400" />
+                  <h3 className="font-extrabold text-lg text-kairo-white">Event Source Distribution</h3>
+                </div>
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left border-collapse">
+                    <thead>
+                      <tr className="border-b border-kairo-gray/40 text-xs font-black uppercase tracking-widest text-kairo-light-gray bg-kairo-primary/20 [&>th]:p-3">
+                        <th>Source</th>
+                        <th className="text-center">Active</th>
+                        <th className="text-center">Expired</th>
+                        <th className="text-right">Total</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-kairo-gray/30 text-sm">
+                      {sources.map((src) => {
+                        const counts = analytics.sourceCounts[src.name] || { active: 0, expired: 0 };
+                        const total = counts.active + counts.expired;
+                        return (
+                          <tr key={src.name} className="hover:bg-kairo-primary/10 transition-colors [&>td]:p-3">
+                            <td className="font-extrabold text-kairo-white">{src.name}</td>
+                            <td className="text-center text-emerald-400 font-bold">{counts.active}</td>
+                            <td className="text-center text-kairo-light-gray">{counts.expired}</td>
+                            <td className="text-right text-kairo-white font-bold">{total}</td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+
+              {/* Recommendation Model Stats */}
+              <div className="rounded-3xl border border-kairo-gray bg-kairo-dark-gray/50 p-6 backdrop-blur-md">
+                <div className="flex items-center justify-between mb-6 pb-4 border-b border-kairo-gray/60">
+                  <div className="flex items-center gap-2">
+                    <Brain className="w-5 h-5 text-kairo-orange" />
+                    <h3 className="font-extrabold text-lg text-kairo-white">AI Recommendation Engine</h3>
+                  </div>
+                  {loadingRecommender ? (
+                    <span className="text-xs bg-kairo-gray text-kairo-light-gray px-2.5 py-1 rounded-full font-bold">Connecting...</span>
+                  ) : recommendationStats ? (
+                    <span className="inline-flex items-center gap-1 text-xs bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 px-2.5 py-1 rounded-full font-bold">
+                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
+                      Online
+                    </span>
+                  ) : (
+                    <span className="text-xs bg-rose-500/10 text-rose-400 border border-rose-500/20 px-2.5 py-1 rounded-full font-bold">Offline</span>
+                  )}
+                </div>
+                
+                {recommendationStats ? (
+                  <div className="space-y-6">
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="bg-kairo-primary/40 border border-kairo-gray/50 p-4 rounded-2xl">
+                        <p className="text-xs font-bold text-kairo-light-gray uppercase tracking-wider">Cached Profiles</p>
+                        <p className="text-2xl font-black text-kairo-white mt-1">
+                          {recommendationStats.totalCachedUserProfiles}
+                        </p>
+                      </div>
+                      <div className="bg-kairo-primary/40 border border-kairo-gray/50 p-4 rounded-2xl">
+                        <p className="text-xs font-bold text-kairo-light-gray uppercase tracking-wider">Avg Rec. Score</p>
+                        <p className="text-2xl font-black text-kairo-orange mt-1">
+                          {(recommendationStats.averageRecommendationScore * 100).toFixed(0)}%
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="space-y-1.5">
+                      <p className="text-xs font-bold text-kairo-light-gray uppercase tracking-wider">Embedding Sync Status</p>
+                      <div className="flex items-center gap-2 text-sm font-semibold text-kairo-white">
+                        <Server className="w-4 h-4 text-emerald-400" />
+                        <span>{recommendationStats.totalCachedEvents} events embedded & synchronized</span>
+                      </div>
+                    </div>
+
+                    <div>
+                      <p className="text-xs font-bold text-kairo-light-gray uppercase tracking-wider mb-3">Recommender Top Categories</p>
+                      <div className="space-y-3">
+                        {Object.entries(recommendationStats.topCategories || {}).length > 0 ? (
+                          Object.entries(recommendationStats.topCategories)
+                            .sort((a, b) => b[1] - a[1])
+                            .slice(0, 3)
+                            .map(([cat, count]) => (
+                              <div key={cat} className="flex items-center justify-between text-sm">
+                                <span className="capitalize text-kairo-white font-medium">{cat}</span>
+                                <span className="text-kairo-light-gray font-bold">{count} events</span>
+                              </div>
+                            ))
+                        ) : (
+                          <p className="text-xs text-kairo-light-gray">No categories currently cached.</p>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="flex flex-col items-center justify-center py-12 text-center">
+                    <AlertTriangle className="w-8 h-8 text-rose-400 mb-2 animate-bounce" />
+                    <p className="text-sm font-semibold text-kairo-white">Recommender Service Unreachable</p>
+                    <p className="text-xs text-kairo-light-gray max-w-[280px] mt-1">
+                      Ensure the FastAPI backend is running at <code className="text-kairo-orange font-bold font-mono">localhost:8000</code>.
+                    </p>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Engagement Analytics Grid */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              {/* Most Popular Categories */}
+              <div className="rounded-3xl border border-kairo-gray bg-kairo-dark-gray/50 p-6 backdrop-blur-md col-span-1">
+                <div className="flex items-center gap-2 mb-6 pb-4 border-b border-kairo-gray/60">
                   <TrendingUp className="w-5 h-5 text-kairo-orange" />
-                  <h3 className="font-extrabold text-lg text-kairo-white">Most Popular Categories</h3>
+                  <h3 className="font-extrabold text-lg text-kairo-white">Top Categories</h3>
                 </div>
                 <div className="space-y-5">
                   {analytics.topCategories.length > 0 ? (
@@ -324,9 +548,9 @@ export default function ObservabilityDashboard() {
                               <span className="text-xs text-kairo-light-gray font-bold">#{idx + 1}</span>
                               {cat.category}
                             </span>
-                            <span className="text-kairo-light-gray font-bold">{cat.count} engagement pts</span>
+                            <span className="text-kairo-light-gray font-bold">{cat.count} pts</span>
                           </div>
-                          <div className="h-2.5 w-full bg-kairo-primary rounded-full overflow-hidden border border-kairo-gray/30">
+                          <div className="h-2 w-full bg-kairo-primary rounded-full overflow-hidden border border-kairo-gray/30">
                             <div 
                               className="h-full bg-gradient-to-r from-kairo-orange to-kairo-grad-2 rounded-full transition-all duration-500"
                               style={{ width: `${percent}%` }}
@@ -342,10 +566,10 @@ export default function ObservabilityDashboard() {
               </div>
 
               {/* Most Popular Cities */}
-              <div className="rounded-3xl border border-kairo-gray bg-kairo-dark-gray/50 p-6 backdrop-blur-md">
+              <div className="rounded-3xl border border-kairo-gray bg-kairo-dark-gray/50 p-6 backdrop-blur-md col-span-1">
                 <div className="flex items-center gap-2 mb-6 pb-4 border-b border-kairo-gray/60">
-                  <MapPin className="w-5 h-5 text-kairo-grad-4" />
-                  <h3 className="font-extrabold text-lg text-kairo-white">Most Popular Cities</h3>
+                  <MapPin className="w-5 h-5 text-sky-400" />
+                  <h3 className="font-extrabold text-lg text-kairo-white">Top Cities</h3>
                 </div>
                 <div className="space-y-5">
                   {analytics.topCities.length > 0 ? (
@@ -359,11 +583,11 @@ export default function ObservabilityDashboard() {
                               <span className="text-xs text-kairo-light-gray font-bold">#{idx + 1}</span>
                               {city.city}
                             </span>
-                            <span className="text-kairo-light-gray font-bold">{city.count} engagement pts</span>
+                            <span className="text-kairo-light-gray font-bold">{city.count} pts</span>
                           </div>
-                          <div className="h-2.5 w-full bg-kairo-primary rounded-full overflow-hidden border border-kairo-gray/30">
+                          <div className="h-2 w-full bg-kairo-primary rounded-full overflow-hidden border border-kairo-gray/30">
                             <div 
-                              className="h-full bg-gradient-to-r from-kairo-grad-4 to-kairo-orange rounded-full transition-all duration-500"
+                              className="h-full bg-gradient-to-r from-sky-400 to-kairo-orange rounded-full transition-all duration-500"
                               style={{ width: `${percent}%` }}
                             />
                           </div>
@@ -373,6 +597,43 @@ export default function ObservabilityDashboard() {
                   ) : (
                     <p className="text-sm font-medium text-kairo-light-gray py-6 text-center">No location data available.</p>
                   )}
+                </div>
+              </div>
+
+              {/* Platform Activity Engagement */}
+              <div className="rounded-3xl border border-kairo-gray bg-kairo-dark-gray/50 p-6 backdrop-blur-md col-span-1 flex flex-col justify-between">
+                <div>
+                  <div className="flex items-center gap-2 mb-6 pb-4 border-b border-kairo-gray/60">
+                    <Zap className="w-5 h-5 text-amber-400 animate-pulse" />
+                    <h3 className="font-extrabold text-lg text-kairo-white">Platform Engagement</h3>
+                  </div>
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2 text-sm text-kairo-light-gray font-medium">
+                        <Users className="w-4 h-4 text-sky-400" />
+                        <span>Registered Users</span>
+                      </div>
+                      <span className="font-black text-kairo-white">{analytics.totalUsers}</span>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2 text-sm text-kairo-light-gray font-medium">
+                        <Bookmark className="w-4 h-4 text-kairo-orange" />
+                        <span>Saved Events</span>
+                      </div>
+                      <span className="font-black text-kairo-white">{analytics.totalSaves}</span>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2 text-sm text-kairo-light-gray font-medium">
+                        <Compass className="w-4 h-4 text-emerald-400" />
+                        <span>Event Registrations</span>
+                      </div>
+                      <span className="font-black text-kairo-white">{analytics.totalRegistrations}</span>
+                    </div>
+                  </div>
+                </div>
+                
+                <div className="mt-6 border-t border-kairo-gray/40 pt-4 text-[10px] uppercase font-black tracking-wider text-kairo-light-gray text-center">
+                  Stats compiled from live firestore analytics
                 </div>
               </div>
             </div>
@@ -417,14 +678,14 @@ export default function ObservabilityDashboard() {
                   <Activity className="h-6 w-6" />
                 </div>
                 <div>
-                  <p className="text-xs font-bold text-kairo-light-gray uppercase tracking-widest">System Uptime</p>
+                  <p className="text-xs font-bold text-kairo-light-gray uppercase tracking-widest">System Success Rate</p>
                   <p className="text-2xl font-black text-kairo-white">{uptimePercentage}%</p>
                 </div>
               </div>
 
               {/* Sweep Cleanups */}
               <div className="rounded-2xl border border-kairo-gray bg-kairo-dark-gray/50 backdrop-blur-md p-6 flex items-center gap-4">
-                <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-kairo-primary border border-kairo-gray text-kairo-grad-2">
+                <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-kairo-primary border border-kairo-gray text-rose-400">
                   <Trash2 className="h-6 w-6" />
                 </div>
                 <div>
@@ -435,7 +696,7 @@ export default function ObservabilityDashboard() {
 
               {/* Duration */}
               <div className="rounded-2xl border border-kairo-gray bg-kairo-dark-gray/50 backdrop-blur-md p-6 flex items-center gap-4">
-                <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-kairo-primary border border-kairo-gray text-kairo-grad-4">
+                <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-kairo-primary border border-kairo-gray text-sky-400">
                   <Clock className="h-6 w-6" />
                 </div>
                 <div>
@@ -453,7 +714,9 @@ export default function ObservabilityDashboard() {
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                 {sources.map((src) => {
                   const health = getLatestSourceStatus(src.name);
-                  const isOnline = health.status === "success" || health.status === "partial_success";
+                  const isOnline = health.status === "healthy";
+                  const isWarning = health.status === "warning";
+                  const isFailed = health.status === "failed";
                   
                   return (
                     <div key={src.name} className="rounded-2xl border border-kairo-gray bg-kairo-dark-gray/50 backdrop-blur-md p-6 relative overflow-hidden group hover:border-kairo-orange/30 transition-all duration-300">
@@ -462,7 +725,7 @@ export default function ObservabilityDashboard() {
                         <div>
                           <h3 className="font-extrabold text-kairo-white">{src.label}</h3>
                           <p className="text-xs text-kairo-light-gray font-semibold mt-1">
-                            Last sync: {health.lastSync === "Never" ? "Never" : `${health.date} @ ${health.lastSync}`}
+                            Last: {health.lastSync === "Never" ? "Never" : `${health.date} @ ${health.lastSync}`}
                           </p>
                         </div>
                         
@@ -470,21 +733,34 @@ export default function ObservabilityDashboard() {
                           "h-3 w-3 rounded-full flex shrink-0 mt-1",
                           isOnline 
                             ? "bg-emerald-400 shadow-[0_0_12px_rgba(52,211,153,0.5)]" 
-                            : health.status === "failed"
-                              ? "bg-rose-500 shadow-[0_0_12px_rgba(244,63,94,0.5)]"
-                              : "bg-kairo-gray"
+                            : isWarning
+                              ? "bg-amber-400 shadow-[0_0_12px_rgba(251,191,36,0.5)] animate-pulse"
+                              : isFailed
+                                ? "bg-rose-500 shadow-[0_0_12px_rgba(244,63,94,0.5)]"
+                                : "bg-kairo-gray"
                         )}></span>
                       </div>
 
-                      <div className="flex items-center gap-2 mt-4 text-[10px] uppercase font-black tracking-widest text-kairo-light-gray border-t border-kairo-gray pt-4">
-                        <span>Status:</span>
-                        <span className={cn(
-                          "font-extrabold",
-                          isOnline ? "text-emerald-400" : health.status === "failed" ? "text-rose-500" : "text-kairo-light-gray"
-                        )}>
-                          {health.status === "success" ? "Healthy" : health.status === "failed" ? "Offline/Error" : "Unknown"}
-                        </span>
+                      <div className="flex items-center justify-between text-[10px] uppercase font-black tracking-widest text-kairo-light-gray border-t border-kairo-gray pt-4">
+                        <div className="flex items-center gap-1.5">
+                          <span>Status:</span>
+                          <span className={cn(
+                            "font-extrabold",
+                            isOnline ? "text-emerald-400" : isWarning ? "text-amber-400" : isFailed ? "text-rose-500" : "text-kairo-light-gray"
+                          )}>
+                            {isOnline ? "Healthy" : isWarning ? "Warning (0)" : isFailed ? "Failed" : "Unknown"}
+                          </span>
+                        </div>
+                        {isOnline || isWarning ? (
+                          <span className="text-kairo-white font-bold">{health.count} events</span>
+                        ) : null}
                       </div>
+
+                      {health.error && (
+                        <div className="mt-3 text-[10px] text-rose-400 font-mono bg-rose-950/30 border border-rose-900/50 p-2 rounded overflow-x-auto max-h-20 whitespace-pre-wrap">
+                          {health.error}
+                        </div>
+                      )}
                     </div>
                   );
                 })}

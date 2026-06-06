@@ -143,7 +143,7 @@ export async function POST() {
     console.error("Failed to check/acquire sync lock:", lockErr);
   }
 
-  const summaries: Record<string, unknown> = {};
+  const summaries: Record<string, { success: boolean; count: number; error?: string }> = {};
   const freshScrapedEvents: Event[] = [];
 
   try {
@@ -154,7 +154,7 @@ export async function POST() {
       summaries["Devfolio"] = {
         success: res.success,
         count: res.count || 0,
-        error: res.error || null,
+        error: res.error,
       };
       if (res.success && res.events) {
         freshScrapedEvents.push(...res.events);
@@ -171,7 +171,7 @@ export async function POST() {
       summaries["Unstop"] = {
         success: res.success,
         count: res.count || 0,
-        error: res.error || null,
+        error: res.error,
       };
       if (res.success && res.events) {
         freshScrapedEvents.push(...res.events);
@@ -188,7 +188,7 @@ export async function POST() {
       summaries["HackerEarth"] = {
         success: res.success,
         count: res.count || 0,
-        error: res.error || null,
+        error: res.error,
       };
       if (res.success && res.events) {
         freshScrapedEvents.push(...res.events);
@@ -205,7 +205,7 @@ export async function POST() {
       summaries["Eventbrite"] = {
         success: res.success,
         count: res.count || 0,
-        error: res.error || null,
+        error: res.error,
       };
       if (res.success && res.events) {
         freshScrapedEvents.push(...res.events);
@@ -222,7 +222,7 @@ export async function POST() {
       summaries["Meetup"] = {
         success: res.success,
         count: res.count || 0,
-        error: res.error || null,
+        error: res.error,
       };
       if (res.success && res.events) {
         freshScrapedEvents.push(...res.events);
@@ -415,7 +415,7 @@ export async function POST() {
     }
 
     const duration = Math.round((Date.now() - startTime) / 1000);
-    const totalSuccessfulScrapers = Object.values(summaries).filter((s: any) => s.success).length;
+    const totalSuccessfulScrapers = Object.values(summaries).filter((s) => s.success).length;
 
     // Write unified telemetry scrape log
     try {

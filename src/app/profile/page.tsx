@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAuthContext } from "@/context/auth-context";
 import { useBookmarkContext } from "@/context/bookmark-context";
@@ -386,6 +386,7 @@ export default function ProfilePage() {
   // Load user data from Firestore
   useEffect(() => {
     if (!user) return;
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setDisplayName(user.name);
     const fetchPrefs = async () => {
       try {

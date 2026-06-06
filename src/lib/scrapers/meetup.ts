@@ -20,7 +20,7 @@ function cleanMeetupDateText(dateText?: string): string {
     // "SAT, JUN 14 · 10:00 AM IST"
     // "Mon, Jun 15, 6:30 PM"
     // "Wednesday, June 17, 2026"
-    let cleanedParts = dateText.split("·")[0].split("@")[0].split(",").map(s => s.trim()).filter(Boolean);
+    const cleanedParts = dateText.split("·")[0].split("@")[0].split(",").map(s => s.trim()).filter(Boolean);
     
     // Filter out day of week and times
     let parts = cleanedParts.filter(part => {
@@ -39,7 +39,7 @@ function cleanMeetupDateText(dateText?: string): string {
       datePart = `${datePart}, 2026`;
     }
     return datePart;
-  } catch (e) {
+  } catch {
     return dateText;
   }
 }

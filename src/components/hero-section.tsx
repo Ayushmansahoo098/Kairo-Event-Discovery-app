@@ -1,13 +1,13 @@
 "use client";
 
-import { useRef, useEffect, useState, useCallback } from "react";
+import { useRef, useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { ArrowRight, Sparkles, ChevronDown, X, Mail, Lock, Loader2 } from "lucide-react";
 import { motion, useScroll, useTransform, useSpring, Variants, AnimatePresence } from "framer-motion";
 import { getEvents, getCities } from "@/lib/mock-data";
 import Image from "next/image";
-import { Event } from "@/lib/types";
+
 import { useAuthContext } from "@/context/auth-context";
 
 export function HeroSection() {

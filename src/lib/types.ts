@@ -32,6 +32,7 @@ export interface Event {
   image?: string;
   popularityScore?: number;
   matchScore?: number;
+  reason?: string;
   viewsCount?: number;
   savesCount?: number;
   registrationsCount?: number;

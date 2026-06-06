@@ -8,24 +8,6 @@ import { BookmarkButton } from "./bookmark-button";
 import { useAuthContext } from "@/context/auth-context";
 import { logInteractionEvent } from "@/lib/analytics";
 
-/** Source branding color palette */
-const SOURCE_COLORS: Record<string, { bg: string; text: string; border: string }> = {
-  Devfolio: { bg: "bg-blue-500/15", text: "text-blue-400", border: "border-blue-500/30" },
-  Unstop: { bg: "bg-amber-500/15", text: "text-amber-400", border: "border-amber-500/30" },
-  HackerEarth: { bg: "bg-emerald-500/15", text: "text-emerald-400", border: "border-emerald-500/30" },
-  Eventbrite: { bg: "bg-orange-500/15", text: "text-orange-400", border: "border-orange-500/30" },
-};
-
-/** Category accent color palette */
-const CATEGORY_COLORS: Record<string, { bg: string; text: string; border: string }> = {
-  hackathon: { bg: "bg-violet-500/15", text: "text-violet-400", border: "border-violet-500/30" },
-  workshop: { bg: "bg-sky-500/15", text: "text-sky-400", border: "border-sky-500/30" },
-  startup: { bg: "bg-teal-500/15", text: "text-teal-400", border: "border-teal-500/30" },
-  meetup: { bg: "bg-pink-500/15", text: "text-pink-400", border: "border-pink-500/30" },
-  concert: { bg: "bg-rose-500/15", text: "text-rose-400", border: "border-rose-500/30" },
-  festival: { bg: "bg-fuchsia-500/15", text: "text-fuchsia-400", border: "border-fuchsia-500/30" },
-  gaming: { bg: "bg-lime-500/15", text: "text-lime-400", border: "border-lime-500/30" },
-};
 
 /**
  * Calculates the deadline urgency status for a given event date string.
@@ -127,10 +109,10 @@ export function EventCard({ event }: { event: Event }) {
         )}
 
         {/* Match Score Badge */}
-        {(event as any).matchScore !== undefined && (
+        {event.matchScore !== undefined && (
           <div className="absolute top-12 left-3 z-10">
             <span className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-none text-[9px] font-bold bg-kairo-primary/95 text-emerald-400 shadow-md border border-emerald-500/20 uppercase tracking-[0.15em]">
-              🎯 {(event as any).matchScore}% Match
+              🎯 {event.matchScore}% Match
             </span>
           </div>
         )}
@@ -154,10 +136,10 @@ export function EventCard({ event }: { event: Event }) {
               </div>
             </div>
             
-            {(event as any).reason && (
+            {event.reason && (
               <div className="mt-3 pt-2.5 border-t border-emerald-500/10 flex items-center text-[9px] text-emerald-400 font-bold uppercase tracking-widest gap-1.5">
                 <Zap className="w-3 h-3 text-emerald-400 flex-shrink-0 animate-pulse" />
-                <span className="truncate">{(event as any).reason}</span>
+                <span className="truncate">{event.reason}</span>
               </div>
             )}
 

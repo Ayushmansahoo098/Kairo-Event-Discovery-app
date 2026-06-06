@@ -204,7 +204,7 @@ export default function FeedPage() {
 
   const filteredEvents = useMemo(() => {
     // 1. Apply standard filters (search query, category, city, mode, source)
-    let baseList = searchEvents(
+    const baseList = searchEvents(
       searchQuery,
       {
         category: selectedCategory,
@@ -343,7 +343,7 @@ export default function FeedPage() {
             <button
               key={tab.id}
               onClick={() => {
-                setSelectedTab(tab.id as any);
+                setSelectedTab(tab.id as "all" | "recommended" | "trending" | "near_you" | "upcoming" | "because_saved");
                 setVisibleCount(12);
               }}
               className={cn(

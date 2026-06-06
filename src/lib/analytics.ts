@@ -62,7 +62,7 @@ export async function logInteractionEvent(payload: InteractionPayload): Promise<
           // Compute popularity score: Views + Saves * 5 + Registrations * 10
           const popularityScore = currentViews + (currentSaves * 5) + (currentRegs * 10);
           
-          const updatePayload: any = {
+          const updatePayload: Record<string, unknown> = {
             popularityScore,
           };
           

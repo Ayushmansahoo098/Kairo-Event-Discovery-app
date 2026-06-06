@@ -33,6 +33,9 @@ export async function syncEventbriteEvents({ writeToDb = true }: { writeToDb?: b
       { query: "conferences", category: "workshop" as Category },
       { query: "startup events", category: "startup" as Category },
       { query: "webinars", category: "workshop" as Category },
+      { query: "hackathon", category: "hackathon" as Category },
+      { query: "tech meetup", category: "meetup" as Category },
+      { query: "AI workshop", category: "workshop" as Category },
     ];
 
     for (const item of searchQueries) {
@@ -59,17 +62,28 @@ export async function syncEventbriteEvents({ writeToDb = true }: { writeToDb?: b
       }
 
       const searchData = await searchRes.json();
-      const rawEvents = searchData.events || [];
+      let rawEvents: any[] = [];
+      if (searchData) {
+        if (Array.isArray(searchData.results)) {
+          rawEvents = searchData.results;
+        } else if (searchData.events) {
+          if (Array.isArray(searchData.events.results)) {
+            rawEvents = searchData.events.results;
+          } else if (Array.isArray(searchData.events)) {
+            rawEvents = searchData.events;
+          }
+        }
+      }
 
-      if (!Array.isArray(rawEvents)) {
-        console.error(`Eventbrite events is not an array for query "${item.query}":`, rawEvents);
+      if (rawEvents.length === 0) {
+        console.warn(`No events found or invalid format for Eventbrite query "${item.query}"`);
         continue;
       }
 
       console.log(`Found ${rawEvents.length} events for query: "${item.query}"`);
 
-      // Retrieve top 5 matches
-      for (const raw of rawEvents.slice(0, 5) as EventbriteSearchItem[]) {
+      // Retrieve top 15 matches
+      for (const raw of rawEvents.slice(0, 15) as EventbriteSearchItem[]) {
         try {
           let bannerImage = "";
 

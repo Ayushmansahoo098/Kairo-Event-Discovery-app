@@ -16,11 +16,15 @@ export interface RawScrapedMeetupEvent {
 function cleanMeetupDateText(dateText?: string): string {
   if (!dateText) return "";
   try {
-    // Meetup formats typically look like:
-    // "SAT, JUN 14 · 10:00 AM IST"
-    // "Mon, Jun 15, 6:30 PM"
-    // "Wednesday, June 17, 2026"
-    const cleanedParts = dateText.split("·")[0].split("@")[0].split(",").map(s => s.trim()).filter(Boolean);
+    // Split by dot/bullet first
+    const bulletParts = dateText.split("·").map(s => s.trim()).filter(Boolean);
+    
+    // Find the part that looks like a date (e.g. contains a month or day of week or date keywords)
+    const dateKeywords = /\b(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec|mon|tue|wed|thu|fri|sat|sun|today|tomorrow|monday|tuesday|wednesday|thursday|friday|saturday|sunday|january|february|march|april|june|july|august|september|october|november|december)\b/i;
+    
+    let targetPart = bulletParts.find(part => dateKeywords.test(part)) || bulletParts[0] || "";
+    
+    const cleanedParts = targetPart.split("@")[0].split(",").map(s => s.trim()).filter(Boolean);
     
     // Filter out day of week and times
     let parts = cleanedParts.filter(part => {
@@ -131,12 +135,16 @@ export async function syncMeetupEvents({ writeToDb = true }: { writeToDb?: boole
     const page = await context.newPage();
 
     console.log("Navigating to Meetup tech search directory...");
-    await page.goto("https://www.meetup.com/find/?source=EVENTS&keywords=tech", {
-      waitUntil: "networkidle",
-      timeout: 45000,
-    });
+    try {
+      await page.goto("https://www.meetup.com/find/?source=EVENTS&keywords=tech", {
+        waitUntil: "commit",
+        timeout: 15000,
+      });
+    } catch (gotoErr) {
+      console.warn("Meetup page navigation timeout or error (non-fatal), proceeding to extract rendered DOM elements:", gotoErr);
+    }
 
-    await page.waitForTimeout(5000);
+    await page.waitForTimeout(8000);
 
     // Scroll to lazy load
     await page.evaluate(() => {
@@ -178,7 +186,7 @@ export async function syncMeetupEvents({ writeToDb = true }: { writeToDb?: boole
           } else if (lower.includes("group") || lower.includes("hosted by") || lower.includes("by ")) {
             organizer = line.replace(/hosted by|by /gi, "").trim();
           } else if (
-            lower.match(/^(?:jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec|mon|tue|wed|thu|fri|sat|sun)/) ||
+            lower.match(/\b(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec|mon|tue|wed|thu|fri|sat|sun)\b/) ||
             lower.includes("today") ||
             lower.includes("tomorrow")
           ) {
@@ -209,7 +217,7 @@ export async function syncMeetupEvents({ writeToDb = true }: { writeToDb?: boole
     console.log(`Scraper discovered ${scrapedList.length} Meetup events. Normalizing...`);
 
     const allNormalized: Event[] = [];
-    for (const raw of scrapedList.slice(0, 10)) {
+    for (const raw of scrapedList.slice(0, 30)) {
       try {
         const event = normalizeMeetupEvent(raw);
         allNormalized.push(event);

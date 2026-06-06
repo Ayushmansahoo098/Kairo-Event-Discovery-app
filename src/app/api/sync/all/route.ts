@@ -149,7 +149,7 @@ export async function POST() {
     console.error("Failed to check/acquire sync lock:", lockErr);
   }
 
-  const summaries: Record<string, { success: boolean; count: number; error?: string }> = {};
+  const summaries: Record<string, { success: boolean; count: number; error?: string | null }> = {};
   const freshScrapedEvents: Event[] = [];
 
   try {
@@ -160,7 +160,7 @@ export async function POST() {
       summaries["Devfolio"] = {
         success: res.success,
         count: res.count || 0,
-        error: res.error,
+        error: res.error || null,
       };
       if (res.success && res.events) {
         freshScrapedEvents.push(...res.events);
@@ -177,7 +177,7 @@ export async function POST() {
       summaries["MLH"] = {
         success: res.success,
         count: res.count || 0,
-        error: res.error,
+        error: res.error || null,
       };
       if (res.success && res.events) {
         freshScrapedEvents.push(...res.events);
@@ -194,7 +194,7 @@ export async function POST() {
       summaries["GDG"] = {
         success: res.success,
         count: res.count || 0,
-        error: res.error,
+        error: res.error || null,
       };
       if (res.success && res.events) {
         freshScrapedEvents.push(...res.events);
@@ -211,7 +211,7 @@ export async function POST() {
       summaries["Unstop"] = {
         success: res.success,
         count: res.count || 0,
-        error: res.error,
+        error: res.error || null,
       };
       if (res.success && res.events) {
         freshScrapedEvents.push(...res.events);
@@ -228,7 +228,7 @@ export async function POST() {
       summaries["HackerEarth"] = {
         success: res.success,
         count: res.count || 0,
-        error: res.error,
+        error: res.error || null,
       };
       if (res.success && res.events) {
         freshScrapedEvents.push(...res.events);
@@ -245,7 +245,7 @@ export async function POST() {
       summaries["Luma"] = {
         success: res.success,
         count: res.count || 0,
-        error: res.error,
+        error: res.error || null,
       };
       if (res.success && res.events) {
         freshScrapedEvents.push(...res.events);
@@ -262,7 +262,7 @@ export async function POST() {
       summaries["Meetup"] = {
         success: res.success,
         count: res.count || 0,
-        error: res.error,
+        error: res.error || null,
       };
       if (res.success && res.events) {
         freshScrapedEvents.push(...res.events);
@@ -279,7 +279,7 @@ export async function POST() {
       summaries["Eventbrite"] = {
         success: res.success,
         count: res.count || 0,
-        error: res.error,
+        error: res.error || null,
       };
       if (res.success && res.events) {
         freshScrapedEvents.push(...res.events);
@@ -388,6 +388,7 @@ export async function POST() {
           skipCount++;
         } else {
           freshEvent.lastUpdated = new Date().toISOString();
+          freshEvent.createdAt = primaryDbEvent?.createdAt || primaryDbEvent?.lastUpdated || new Date().toISOString();
           freshEvent.status = "active";
           eventsToUpdate.push(freshEvent);
         }
@@ -403,6 +404,7 @@ export async function POST() {
         freshEvent.status = "active";
         freshEvent.contentHash = calculateContentHash(freshEvent);
         freshEvent.lastUpdated = new Date().toISOString();
+        freshEvent.createdAt = new Date().toISOString();
         eventsToUpdate.push(freshEvent);
       }
     }

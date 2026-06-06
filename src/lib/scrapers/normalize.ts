@@ -39,27 +39,73 @@ export interface RawScrapedHackerEarthEvent {
  * Falls back gracefully to standard current/future date if unparseable.
  */
 export function normalizeDate(dateText?: string): string {
+  const currentYear = new Date().getFullYear();
   if (!dateText) {
     return new Date().toISOString().split("T")[0];
   }
+  
   try {
-    const cleaned = dateText.replace(/\s+/g, " ").trim();
-    // E.g. "Jun 14, 2026" or "Jun 14 - 16, 2026"
-    // Extract month and year, and use first day for ranges
-    const match = cleaned.match(/([a-zA-Z]+)\s+(\d+)(?:\s*-\s*\d+)?,\s*(\d{4})/);
-    if (match) {
-      const [, monthStr, dayStr, yearStr] = match;
-      const months: Record<string, string> = {
-        jan: "01", feb: "02", mar: "03", apr: "04", may: "05", jun: "06",
-        jul: "07", aug: "08", sep: "09", oct: "10", nov: "11", dec: "12"
-      };
-      const month = months[monthStr.toLowerCase().substring(0, 3)] || "06";
-      const day = dayStr.padStart(2, "0");
-      return `${yearStr}-${month}-${day}`;
+    // 1. Clean the string: remove time patterns
+    let cleaned = dateText.replace(/\s+/g, " ");
+    cleaned = cleaned.replace(/\b\d{1,2}:\d{2}(?::\d{2})?\s*(?:am|pm|ist|utc)?/gi, "");
+    cleaned = cleaned.replace(/\b\d{1,2}\s*(?:am|pm)\b/gi, "");
+    
+    // Remove prefixes
+    cleaned = cleaned.replace(/(starts\s+on|ends\s+on|deadline|register\s+by|ends\s+in|days\s+left):?/gi, "").trim();
+
+    const months: Record<string, string> = {
+      jan: "01", feb: "02", mar: "03", apr: "04", may: "05", jun: "06",
+      jul: "07", aug: "08", sep: "09", oct: "10", nov: "11", dec: "12"
+    };
+
+    const formatResult = (mStr: string, dStr: string, yStr?: string) => {
+      const month = months[mStr.toLowerCase().substring(0, 3)];
+      if (!month) return null;
+      
+      const day = dStr.padStart(2, "0");
+      
+      let year = currentYear;
+      if (yStr) {
+        const parsedYear = parseInt(yStr, 10);
+        if (yStr.length === 2) {
+          year = 2000 + parsedYear;
+        } else if (yStr.length === 4) {
+          year = parsedYear;
+        }
+      }
+      return `${year}-${month}-${day}`;
+    };
+
+    // Swap order: Try Day-First Match first!
+    // E.g. "15 Jun 26", "20 Jun 2026", "15 Jun"
+    const dayFirstMatch = cleaned.match(/\b(\d{1,2})\s+([a-zA-Z]{3,})(?:\s*,?\s*\b(\d{2,4})\b)?/i);
+    if (dayFirstMatch) {
+      const [, dStr, mStr, yStr] = dayFirstMatch;
+      const res = formatResult(mStr, dStr, yStr);
+      if (res) return res;
     }
+
+    // Try Month-First Match second: e.g. "Jun 14, 2026", "Jun 14", "Nov 12 - 14"
+    const monthFirstMatch = cleaned.match(/\b([a-zA-Z]{3,})\s+(\d{1,2})(?:\s*-\s*\d{1,2})?(?:\s*,?\s*\b(\d{2,4})\b)?/i);
+    if (monthFirstMatch) {
+      const [, mStr, dStr, yStr] = monthFirstMatch;
+      const res = formatResult(mStr, dStr, yStr);
+      if (res) return res;
+    }
+
+    // 4. Relative dates (e.g. "ends in 5 days")
+    const relativeDaysMatch = dateText.match(/\b(\d+)\s+days?\b/i);
+    if (relativeDaysMatch) {
+      const days = parseInt(relativeDaysMatch[1], 10);
+      const targetDate = new Date();
+      targetDate.setDate(targetDate.getDate() + days);
+      return targetDate.toISOString().split("T")[0];
+    }
+
   } catch (err) {
     console.error("Failed to parse scraper date text:", dateText, err);
   }
+
   return new Date().toISOString().split("T")[0];
 }
 
@@ -269,24 +315,48 @@ export async function cleanupExpiredEvents() {
   console.log("Sweep: Cleaning up expired events from Firestore database...");
   try {
     const todayStr = new Date().toISOString().split("T")[0]; // YYYY-MM-DD
+    const nowStr = new Date().toISOString();
+    
+    // Prune cutoff: 30 days ago
+    const thirtyDaysAgo = new Date();
+    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+    const thirtyDaysAgoStr = thirtyDaysAgo.toISOString();
+
     const querySnapshot = await adminDb.collection("events").get();
-    let deleteCount = 0;
+    let expireCount = 0;
+    let pruneCount = 0;
 
     for (const docSnapshot of querySnapshot.docs) {
       const data = docSnapshot.data();
       const eventDate = data.date; // YYYY-MM-DD
       const expiresAt = data.expiresAt; // YYYY-MM-DD
-      
+      const status = data.status || "active";
+      const expiredAt = data.expiredAt;
+
       const targetDate = expiresAt || eventDate;
-      if (targetDate && targetDate < todayStr) {
-        await docSnapshot.ref.delete();
-        deleteCount++;
-        console.log(`Pruned expired event: "${data.title}" (${docSnapshot.id})`);
+
+      if (status === "active" && targetDate && targetDate < todayStr) {
+        // Soft expire
+        await docSnapshot.ref.update({
+          status: "expired",
+          expiredAt: nowStr,
+          lastUpdated: nowStr
+        });
+        expireCount++;
+        console.log(`Soft expired event: "${data.title}" (${docSnapshot.id})`);
+      } else if (status === "expired") {
+        // Hard prune if expired for more than 30 days
+        const compareTime = expiredAt || data.lastUpdated || nowStr;
+        if (compareTime < thirtyDaysAgoStr) {
+          await docSnapshot.ref.delete();
+          pruneCount++;
+          console.log(`Hard pruned event older than 30 days: "${data.title}" (${docSnapshot.id})`);
+        }
       }
     }
 
-    console.log("Sweep finished: Removed " + deleteCount + " expired events.");
-    return { success: true, count: deleteCount };
+    console.log(`Sweep finished: Soft-expired ${expireCount} events, Hard-pruned ${pruneCount} events.`);
+    return { success: true, count: expireCount + pruneCount, expiredCount: expireCount, prunedCount: pruneCount };
   } catch (error) {
     console.error("Expired events cleanup encountered an error:", error);
     return { success: false, error: String(error) };

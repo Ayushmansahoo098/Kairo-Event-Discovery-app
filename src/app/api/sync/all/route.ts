@@ -270,19 +270,18 @@ export async function POST() {
 
     console.log(`Deduplicated down to ${mergedScrapedEvents.size} canonical events in-memory.`);
 
-    // ─── Fetch existing active events from Firestore ───
+    // ─── Fetch existing events from Firestore ───
     console.log("Fetching existing events from Firestore...");
     const dbEventsSnapshot = await adminDb.collection("events").get();
     const existingEvents = dbEventsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Event));
-    const existingActiveEvents = existingEvents.filter(e => e.status !== "expired" && e.status !== "archived");
 
-    const activeDbEventsToProcess = [...existingActiveEvents];
+    const dbEventsToProcess = [...existingEvents];
     const eventsToUpdate: Event[] = [];
     const docIdsToDelete: string[] = [];
     let skipCount = 0;
 
     for (const [canonicalId, freshEvent] of mergedScrapedEvents.entries()) {
-      const matchingDbEvents = activeDbEventsToProcess.filter(dbEvent => {
+      const matchingDbEvents = dbEventsToProcess.filter(dbEvent => {
         const isIdMatch = dbEvent.id === canonicalId;
         const isUrlMatch = dbEvent.registrationUrl === freshEvent.registrationUrl || 
                            (dbEvent.sourceUrls && freshEvent.sourceUrls && 
@@ -335,9 +334,9 @@ export async function POST() {
         }
 
         matchingDbEvents.forEach(dbEvent => {
-          const idx = activeDbEventsToProcess.findIndex(e => e.id === dbEvent.id);
+          const idx = dbEventsToProcess.findIndex(e => e.id === dbEvent.id);
           if (idx !== -1) {
-            activeDbEventsToProcess.splice(idx, 1);
+            dbEventsToProcess.splice(idx, 1);
           }
         });
       } else {
@@ -351,13 +350,21 @@ export async function POST() {
 
     // ─── Expire events not found in crawl ───
     const newlyExpiredEvents: Event[] = [];
-    for (const dbEvent of activeDbEventsToProcess) {
-      newlyExpiredEvents.push({
-        ...dbEvent,
-        status: "expired",
-        expiredAt: new Date().toISOString(),
-        lastUpdated: new Date().toISOString(),
-      });
+    const activeDbEventsCount = existingEvents.filter(e => e.status === "active").length;
+
+    if (mergedScrapedEvents.size === 0 && activeDbEventsCount > 0) {
+      console.warn(`Safety Threshold Triggered: Scrapers returned 0 events, but there are ${activeDbEventsCount} active events in the database. Skipping expiration sweep to prevent accidental data loss.`);
+    } else {
+      for (const dbEvent of dbEventsToProcess) {
+        if (dbEvent.status === "active") {
+          newlyExpiredEvents.push({
+            ...dbEvent,
+            status: "expired",
+            expiredAt: new Date().toISOString(),
+            lastUpdated: new Date().toISOString(),
+          });
+        }
+      }
     }
 
     // ─── Prune expired events older than 30 days ───

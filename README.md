@@ -1,8 +1,50 @@
 <div align="center">
 
-<img src="public/banner.png" alt="Kairo — Event Discovery Platform" width="100%" />
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 420" width="100%" height="auto" style="border: 1px solid rgba(184, 168, 138, 0.15); border-radius: 4px;">
+  <!-- Background Gradient matching Kairo Theme -->
+  <defs>
+    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0c0c0d"/>
+      <stop offset="50%" stop-color="#1c1c1e"/>
+      <stop offset="100%" stop-color="#0c0c0d"/>
+    </linearGradient>
+    <linearGradient id="textGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#8c775d"/>
+      <stop offset="50%" stop-color="#b8a88a"/>
+      <stop offset="100%" stop-color="#e8e2d5"/>
+    </linearGradient>
+    <filter id="glow">
+      <feGaussianBlur stdDeviation="5" result="coloredBlur"/>
+      <feMerge>
+        <feMergeNode in="coloredBlur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
 
-# 🔥 KAIRO
+  <rect width="100%" height="100%" fill="url(#bgGrad)"/>
+  
+  <!-- Abstract network patterns -->
+  <circle cx="150" cy="150" r="120" fill="#b8a88a" opacity="0.02" filter="url(#glow)"/>
+  <circle cx="1050" cy="270" r="160" fill="#8c775d" opacity="0.03" filter="url(#glow)"/>
+  
+  <line x1="80" y1="210" x2="1120" y2="210" stroke="#b8a88a" stroke-width="0.5" opacity="0.15"/>
+  <line x1="350" y1="80" x2="850" y2="340" stroke="#8c775d" stroke-width="0.5" opacity="0.1"/>
+
+  <!-- Glowing Sparkle Logo -->
+  <g transform="translate(600, 140) scale(1.6)">
+    <path d="M0,-30 L8,-8 L30,0 L8,8 L0,30 L-8,8 L-30,0 L-8,-8 Z" fill="url(#textGrad)" filter="url(#glow)"/>
+    <circle cx="0" cy="0" r="4" fill="#0c0c0d"/>
+  </g>
+
+  <!-- Title -->
+  <text x="600" y="275" text-anchor="middle" font-family="'Times New Roman', Times, serif" font-weight="300" font-size="80" fill="url(#textGrad)" letter-spacing="20" filter="url(#glow)">KAIRO</text>
+  
+  <!-- Subtitle -->
+  <text x="600" y="335" text-anchor="middle" font-family="'Segoe UI', Roboto, sans-serif" font-weight="bold" font-size="14" fill="#a08a75" letter-spacing="10">AI-POWERED EVENT DISCOVERY</text>
+</svg>
+
+<br />
 
 ### *Discover the Future of Events.*
 
@@ -29,6 +71,11 @@ Finding the right tech event means hopping across 5+ fragmented directories dail
 *   💾 **Content-Hash Skip Writes**: Computes a SHA-256 `contentHash` on merged schemas and compares it to database values to **skip redundant writes**, reducing Firestore write costs to near-zero.
 *   🔄 **Soft-Expiry Archiving**: Instead of deleting expired events (which breaks historical analytics and recommendations), stale documents are soft-expired (`status: "expired"`) and automatically pruned after **30 days**.
 *   🔒 **Distributed Concurrency Lock**: A Firestore-based mutex prevents race conditions or overlapping scraper schedules.
+*   🧠 **AI Event Recommendation Engine**: Integrates a standalone **FastAPI microservice** utilizing **SentenceTransformers (`all-MiniLM-L6-v2`)** to construct vector representations of event attributes (Title, Description, Category, Tags).
+*   👥 **Centroid-Based Behavioral User Profiles**: Dynamically weights and combines user interactions from Firestore (Explicit Interests: 4.0, Searches: 2.0, Views: 3.0, Bookmarks: 7.0, Registrations: 10.0) into a user profile centroid vector.
+*   ⚡ **Two-Tier Caching & Invalidation**: Accelerates recommendation loads with in-memory user profile vector caching (30-minute TTL). Fires a completely non-blocking, fire-and-forget `POST /recommendations/invalidate` request on any user activity to keep listings fresh.
+*   🎯 **Four-Factor Scoring Formula**: Ranks recommendations via a weighted score combining Semantic Similarity (70%), Popularity (15%), Event Proximity/Recency (10%), and Location Match (5%).
+
 
 ---
 
@@ -129,10 +176,12 @@ flowchart TD
 ### 🎨 Premium User Experience
 
 *   **Glassmorphic Design**: Sleek dark theme with frosted-glass containers, harmonic gradients, and neon action states.
-*   **Match Badges**: Displays custom matching percentages (e.g. `95% Match`) powered by AI profile weights.
+*   **AI "Recommended For You" Feed**: Renders custom matching scores (e.g. `95% Match`) and dynamic natural language explanations (e.g. `Matches your interest in AI`) based on user profile weights.
+*   **"Similar Events" Carousel**: Renders a horizontal scrolling panel on the event details page querying `GET /similar` to display matching alternatives.
 *   **Urgency Badges**: Dynamic indicators notify users of immediate actions (🚨 `Closes Today` · ⏳ `Tomorrow` · ⚠️ `3 Days Left`).
 *   **Recently Viewed Carousels**: Locally cached browsing histories let users resume search runs.
 *   **PWA Ready**: Offline caching, install banners, and application manifests powered by Serwist.
+
 
 ### 🔒 Operational Analytics & Telemetry
 
@@ -201,6 +250,8 @@ curl -X POST http://localhost:3000/api/sync/all \
 
 ## 📡 API Endpoints Reference
 
+### 🌐 Next.js Gateway Endpoints
+
 | Method | Endpoint | Description | Auth Requirement |
 |:---|:---|:---|:---|
 | `POST` | `/api/sync/all` | Runs all scrapers in-memory, deduplicates, and commits canonical outputs | `x-kairo-sync-key` or Session cookie |
@@ -208,6 +259,16 @@ curl -X POST http://localhost:3000/api/sync/all \
 | `POST` | `/api/scrape/unstop` | Scrape Unstop directory only | `x-kairo-sync-key` or Session cookie |
 | `POST` | `/api/scrape/hackerearth` | Scrape HackerEarth directory only | `x-kairo-sync-key` or Session cookie |
 | `POST` | `/api/ingest` | Raw manual event ingestion and ingestion | `x-kairo-sync-key` or Session cookie |
+
+### 🧠 AI Recommendation Service Endpoints (FastAPI)
+
+| Method | Endpoint | Description | Parameters |
+|:---|:---|:---|:---|
+| `GET` | `/recommendations` | Computes personalized event recommendations for a user | `userId` (query), `limit` (query, default 20) |
+| `GET` | `/similar` | Finds structurally similar events using Cosine Similarity | `eventId` (query), `limit` (query, default 10) |
+| `POST` | `/recommendations/invalidate` | Invalidates the user embedding cache for fresh personalization | `userId` (query) |
+| `POST` | `/embeddings/sync` | Re-syncs Firestore events and generates in-memory sentence embeddings | None |
+
 
 ---
 

@@ -15,7 +15,7 @@ services:
     runtime: node
     branch: main
     plan: starter
-    schedule: "0 */6 * * *"
+    schedule: "0 */12 * * *"
     buildCommand: "true"
     startCommand: "node scripts/render-sync.mjs"
     envVars:

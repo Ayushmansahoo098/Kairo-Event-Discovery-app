@@ -55,7 +55,7 @@ function useCountdown(targetDate: string) {
 function CountdownUnit({ value, label }: { value: number; label: string }) {
   return (
     <div className="flex flex-col items-center">
-      <div className="relative w-16 h-16 sm:w-20 sm:h-20 bg-kairo-primary border border-kairo-orange/20 flex items-center justify-center overflow-hidden">
+      <div className="relative w-12 h-12 sm:w-16 sm:h-16 md:w-20 md:h-20 bg-kairo-primary border border-kairo-orange/20 flex items-center justify-center overflow-hidden">
         {/* Subtle shimmer */}
         <div className="absolute inset-0 bg-gradient-to-b from-kairo-orange/5 to-transparent" />
         <AnimatePresence mode="popLayout">
@@ -65,13 +65,13 @@ function CountdownUnit({ value, label }: { value: number; label: string }) {
             animate={{ y: 0, opacity: 1 }}
             exit={{ y: 20, opacity: 0 }}
             transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
-            className="font-serif text-2xl sm:text-3xl text-kairo-orange font-light tabular-nums relative z-10"
+            className="font-serif text-xl sm:text-2xl md:text-3xl text-kairo-orange font-light tabular-nums relative z-10"
           >
             {String(value).padStart(2, "0")}
           </motion.span>
         </AnimatePresence>
       </div>
-      <span className="mt-2 text-[9px] font-bold uppercase tracking-[0.3em] text-kairo-light-gray/60">
+      <span className="mt-2 text-[8px] sm:text-[9px] font-bold uppercase tracking-[0.2em] sm:tracking-[0.3em] text-kairo-light-gray/60 text-center">
         {label}
       </span>
     </div>
@@ -365,7 +365,7 @@ function EventDetailPageContent() {
           variants={fadeUp}
           initial="hidden"
           animate="visible"
-          className="text-3xl font-serif font-light leading-tight tracking-wide md:text-5xl text-kairo-white uppercase"
+          className="text-2xl sm:text-3xl font-serif font-light leading-tight tracking-wide md:text-5xl text-kairo-white uppercase"
         >
           {event.title}
         </motion.h1>
@@ -379,7 +379,7 @@ function EventDetailPageContent() {
             animate="visible"
             className="mt-8"
           >
-            <div className="border border-kairo-orange/15 bg-kairo-dark-gray/20 p-6 sm:p-8">
+            <div className="border border-kairo-orange/15 bg-kairo-dark-gray/20 p-4 sm:p-6 md:p-8">
               <div className="flex items-center gap-2 mb-5">
                 <Clock className="w-4 h-4 text-kairo-orange" />
                 <span className="text-[10px] font-bold uppercase tracking-[0.3em] text-kairo-light-gray">
@@ -390,13 +390,13 @@ function EventDetailPageContent() {
                   <span className="text-[9px] font-bold uppercase tracking-widest text-emerald-400/80">Live</span>
                 </span>
               </div>
-              <div className="flex items-center justify-center gap-3 sm:gap-5">
+              <div className="flex items-center justify-center gap-1.5 sm:gap-3 md:gap-5">
                 <CountdownUnit value={countdown.days} label="Days" />
-                <span className="font-serif text-2xl text-kairo-orange/40 mt-[-1.5rem]">:</span>
+                <span className="font-serif text-xl sm:text-2xl text-kairo-orange/40 mt-[-1rem] sm:mt-[-1.5rem]">:</span>
                 <CountdownUnit value={countdown.hours} label="Hours" />
-                <span className="font-serif text-2xl text-kairo-orange/40 mt-[-1.5rem]">:</span>
+                <span className="font-serif text-xl sm:text-2xl text-kairo-orange/40 mt-[-1rem] sm:mt-[-1.5rem]">:</span>
                 <CountdownUnit value={countdown.minutes} label="Min" />
-                <span className="font-serif text-2xl text-kairo-orange/40 mt-[-1.5rem]">:</span>
+                <span className="font-serif text-xl sm:text-2xl text-kairo-orange/40 mt-[-1rem] sm:mt-[-1.5rem]">:</span>
                 <CountdownUnit value={countdown.seconds} label="Sec" />
               </div>
             </div>

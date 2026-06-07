@@ -861,13 +861,13 @@ export default function ProfilePage() {
             icon={FileText}
             label="Privacy Policy"
             sublabel="How we handle your data"
-            onClick={() => window.open("https://kairo.app/privacy", "_blank")}
+            onClick={() => router.push("/privacy")}
           />
           <RowItem
             icon={Shield}
             label="Terms of Service"
             sublabel="Usage terms & conditions"
-            onClick={() => window.open("https://kairo.app/terms", "_blank")}
+            onClick={() => router.push("/terms")}
           />
           <RowItem
             icon={LogOut}

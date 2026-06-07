@@ -13,7 +13,13 @@ export async function syncDevfolioEvents({ writeToDb = true }: { writeToDb?: boo
   try {
     browser = await chromium.launch({
       headless: true,
-      args: ["--no-sandbox", "--disable-setuid-sandbox"],
+      args: [
+        "--no-sandbox",
+        "--disable-setuid-sandbox",
+        "--disable-dev-shm-usage",
+        "--disable-accelerated-2d-canvas",
+        "--disable-gpu"
+      ],
     });
     
     // Configure realistic screen bounds and User Agent on the browser context to bypass bot prevention

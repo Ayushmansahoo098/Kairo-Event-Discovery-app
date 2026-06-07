@@ -371,7 +371,11 @@ export async function POST() {
 
     // ─── Fetch existing events from Firestore ───
     console.log("Fetching existing events from Firestore...");
-    const dbEventsSnapshot = await adminDb.collection("events").get();
+    const dbEventsSnapshot = await adminDb.collection("events").select(
+      "registrationUrl", "sourceUrls", "title", "date", "status", 
+      "viewsCount", "savesCount", "registrationsCount", "popularityScore", 
+      "embedding", "contentHash", "createdAt", "lastUpdated", "source"
+    ).get();
     const existingEvents = dbEventsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Event));
 
     const dbEventsToProcess = [...existingEvents];
@@ -519,16 +523,30 @@ export async function POST() {
       console.log(`Batch deleted ${chunk.length} stale/duplicate documents.`);
     }
 
-    // Writes
-    const allWrites = [...eventsToUpdate, ...newlyExpiredEvents];
-    for (let i = 0; i < allWrites.length; i += BATCH_SIZE) {
-      const chunk = allWrites.slice(i, i + BATCH_SIZE);
+    // Writes for fresh/updated events (Full overwrite)
+    for (let i = 0; i < eventsToUpdate.length; i += BATCH_SIZE) {
+      const chunk = eventsToUpdate.slice(i, i + BATCH_SIZE);
       const batch = adminDb.batch();
       for (const event of chunk) {
         batch.set(adminDb.collection("events").doc(event.id), event);
       }
       await batch.commit();
-      console.log(`Batch wrote/updated ${chunk.length} event documents.`);
+      console.log(`Batch wrote/updated ${chunk.length} fresh event documents.`);
+    }
+
+    // Merge updates for expired events (so we don't erase unselected fields)
+    for (let i = 0; i < newlyExpiredEvents.length; i += BATCH_SIZE) {
+      const chunk = newlyExpiredEvents.slice(i, i + BATCH_SIZE);
+      const batch = adminDb.batch();
+      for (const event of chunk) {
+        batch.update(adminDb.collection("events").doc(event.id), {
+          status: "expired",
+          expiredAt: event.expiredAt,
+          lastUpdated: event.lastUpdated
+        });
+      }
+      await batch.commit();
+      console.log(`Batch marked ${chunk.length} event documents as expired.`);
     }
 
     const duration = Math.round((Date.now() - startTime) / 1000);

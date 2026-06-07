@@ -44,7 +44,10 @@ export async function syncBMSEvents({ writeToDb = true }: { writeToDb?: boolean 
       args: [
         "--disable-blink-features=AutomationControlled",
         "--no-sandbox",
-        "--disable-setuid-sandbox"
+        "--disable-setuid-sandbox",
+        "--disable-dev-shm-usage",
+        "--disable-accelerated-2d-canvas",
+        "--disable-gpu"
       ],
       userAgent: "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
       viewport: { width: 1280, height: 800 },

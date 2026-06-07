@@ -176,12 +176,13 @@ function EventDetailPageContent() {
     }
   }, [event]);
 
-  // Fetch Similar Events from FastAPI
+  // Fetch Similar Events from FastAPI or fallback to local heuristic
   useEffect(() => {
     if (!event) return;
 
     const fetchSimilar = async () => {
       setLoadingSimilar(true);
+      let usedFallback = false;
       try {
         const apiBase = process.env.NEXT_PUBLIC_RECOMMENDATION_API_URL || "http://localhost:8000";
         const res = await fetch(`${apiBase}/similar?eventId=${event.id}&limit=10`, {
@@ -212,12 +213,49 @@ function EventDetailPageContent() {
             .filter(Boolean) as Event[];
 
           setSimilarEvents(mappedSims);
+        } else {
+          usedFallback = true;
         }
       } catch (err) {
         console.error("Failed to fetch similar events from FastAPI:", err);
-      } finally {
-        setLoadingSimilar(false);
+        usedFallback = true;
       }
+      
+      if (usedFallback) {
+        try {
+          const all = await getEvents();
+          const eventTags = event.tags || [];
+          
+          const fallbackSims = all
+            .filter((e) => e.id !== event.id)
+            .map((e) => {
+              let score = 0;
+              if (e.category === event.category) score += 40;
+              if (e.city === event.city) score += 30;
+              
+              const eTags = e.tags || [];
+              const commonTags = eTags.filter((t) => eventTags.includes(t));
+              score += commonTags.length * 10;
+              
+              const reason = commonTags.length > 0 
+                ? `Shared tags: ${commonTags.slice(0, 2).join(', ')}` 
+                : e.category === event.category 
+                  ? `Similar Category` 
+                  : `Popular in ${e.city}`;
+
+              return { ...e, matchScore: Math.min(score, 99), reason };
+            })
+            .filter((e) => e.matchScore && e.matchScore >= 30)
+            .sort((a, b) => b.matchScore! - a.matchScore!)
+            .slice(0, 10);
+            
+          setSimilarEvents(fallbackSims);
+        } catch (fallbackErr) {
+          console.error("Fallback similarity failed:", fallbackErr);
+        }
+      }
+
+      setLoadingSimilar(false);
     };
 
     fetchSimilar();

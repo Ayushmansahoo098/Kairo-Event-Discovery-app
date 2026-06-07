@@ -1,6 +1,7 @@
 import { adminDb } from "../firebase-admin";
 import { normalizeAllEventsEvent } from "./normalize";
 import https from "https";
+import { Event } from "@/lib/types";
 
 // Target cities mapped to AllEvents URL slugs
 const CITIES = [

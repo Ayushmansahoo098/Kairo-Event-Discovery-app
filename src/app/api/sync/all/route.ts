@@ -7,6 +7,8 @@ import { syncHackerEarthEvents } from "@/lib/scrapers/hackerearth";
 import { syncLumaEvents } from "@/lib/scrapers/luma";
 import { syncMeetupEvents } from "@/lib/scrapers/meetup";
 import { syncEventbriteEvents } from "@/lib/scrapers/eventbrite";
+import { syncBMSEvents } from "@/lib/scrapers/bookmyshow";
+import { syncAllEvents } from "@/lib/scrapers/allevents";
 import { adminDb } from "@/lib/firebase-admin";
 import { Event } from "@/lib/types";
 import crypto from "crypto";
@@ -42,12 +44,14 @@ function getSourcePriority(source?: string): number {
   if (s.includes("luma")) return 5;
   if (s.includes("meetup")) return 4;
   if (s.includes("eventbrite")) return 3;
+  if (s.includes("bookmyshow")) return 2;
+  if (s.includes("allevents")) return 1;
   return 0;
 }
 
 function getCanonicalId(title: string, date: string): string {
   const slug = title.toLowerCase()
-    .replace(/^(devfolio|mlh|gdg|unstop|hackerearth|luma|meetup|eventbrite)\s+/i, "")
+    .replace(/^(devfolio|mlh|gdg|unstop|hackerearth|luma|meetup|eventbrite|bookmyshow|allevents)\s+/i, "")
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/(^-|-$)/g, "");
   
@@ -287,6 +291,42 @@ export async function POST() {
     } catch (err: unknown) {
       console.error("Eventbrite Sync failed inside unified runner:", err);
       summaries["Eventbrite"] = { success: false, count: 0, error: String(err) };
+    }
+
+    // 9. Run BookMyShow (Experimental - Gated behind env flag due to execution duration and Cloudflare limits)
+    if (process.env.ENABLE_EXPERIMENTAL_BMS === "true") {
+      try {
+        console.log("Crawling BookMyShow Events (in-memory)...");
+        const res = await syncBMSEvents({ writeToDb: false });
+        summaries["BookMyShow"] = {
+          success: res.success,
+          count: res.count || 0,
+          error: res.error || null,
+        };
+        if (res.success && res.events) {
+          freshScrapedEvents.push(...res.events);
+        }
+      } catch (err: unknown) {
+        console.error("BookMyShow Sync failed inside unified runner:", err);
+        summaries["BookMyShow"] = { success: false, count: 0, error: String(err) };
+      }
+    }
+
+    // 10. Run AllEvents
+    try {
+      console.log("Crawling AllEvents.in (in-memory)...");
+      const res = await syncAllEvents({ writeToDb: false }); 
+      summaries["AllEvents"] = {
+        success: res.success,
+        count: res.count || 0,
+        error: null,
+      };
+      if (res.success && res.events) {
+        freshScrapedEvents.push(...res.events);
+      }
+    } catch (err: unknown) {
+      console.error("AllEvents Sync failed inside unified runner:", err);
+      summaries["AllEvents"] = { success: false, count: 0, error: String(err) };
     }
 
     console.log(`Aggregated ${freshScrapedEvents.length} raw events in-memory. Starting cross-source deduplication...`);

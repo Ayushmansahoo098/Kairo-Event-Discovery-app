@@ -512,6 +512,134 @@ export function normalizeLumaEvent(raw: RawScrapedLumaEvent): Event & { lastUpda
   };
 }
 
+export interface RawScrapedBMSEvent {
+  title: string;
+  url: string;
+  bannerImage?: string;
+  venue?: string;
+  city: string;
+  categoryText?: string;
+  priceText?: string;
+  watermarkDateText?: string;
+}
+
+export function cleanBMSImageUrl(url?: string): string {
+  if (!url) return "";
+  try {
+    // Replace any transform segments between events/ and the filename
+    return url.replace(/\/events\/tr:[^\/]+\//, "/events/");
+  } catch {
+    return url;
+  }
+}
+
+export function parseBMSWatermarkDate(watermarkText?: string): string {
+  if (!watermarkText) {
+    return new Date().toISOString().split("T")[0];
+  }
+  try {
+    const parts = watermarkText.split(",").map(p => p.trim());
+    const datePart = parts[1] || parts[0]; // e.g. "7 Jun"
+    const dateSubParts = datePart.split(" ").filter(Boolean); // ["7", "Jun"]
+    
+    let dayStr = "";
+    let monthStr = "";
+    if (dateSubParts.length === 2) {
+      if (isNaN(parseInt(dateSubParts[0]))) {
+        monthStr = dateSubParts[0];
+        dayStr = dateSubParts[1];
+      } else {
+        dayStr = dateSubParts[0];
+        monthStr = dateSubParts[1];
+      }
+    }
+    
+    if (dayStr && monthStr) {
+      const months: Record<string, string> = {
+        jan: "01", feb: "02", mar: "03", apr: "04", may: "05", jun: "06",
+        jul: "07", aug: "08", sep: "09", oct: "10", nov: "11", dec: "12"
+      };
+      const monthNum = months[monthStr.toLowerCase().substring(0, 3)];
+      if (monthNum) {
+        const dayNum = dayStr.padStart(2, "0");
+        const currentYear = new Date().getFullYear();
+        const currentMonth = new Date().getMonth() + 1;
+        
+        let year = currentYear;
+        if (parseInt(monthNum) < currentMonth) {
+          year = currentYear + 1;
+        }
+        return `${year}-${monthNum}-${dayNum}`;
+      }
+    }
+  } catch (e) {
+    console.error("Failed to parse watermark date:", watermarkText, e);
+  }
+  return new Date().toISOString().split("T")[0];
+}
+
+export function normalizeBMSEvent(raw: RawScrapedBMSEvent): Event & { lastUpdated: string; source: string; expiresAt: string } {
+  let slug = raw.title.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "");
+  if (raw.url) {
+    try {
+      const urlObj = new URL(raw.url);
+      const paths = urlObj.pathname.split("/").filter(Boolean);
+      if (paths.length > 0) {
+        slug = paths[paths.length - 1];
+      }
+    } catch {
+      // Ignore
+    }
+  }
+
+  const id = `bms-${slug}`;
+  const isOnline = !raw.venue || 
+                   raw.venue.toLowerCase().includes("online") || 
+                   raw.venue.toLowerCase().includes("virtual");
+
+  const city = isOnline ? "Online" : (raw.city.charAt(0).toUpperCase() + raw.city.slice(1).toLowerCase());
+  
+  let category: Category = "workshop";
+  const catLower = (raw.categoryText || "").toLowerCase();
+  if (catLower.includes("workshop") || catLower.includes("exhibition") || catLower.includes("conference")) {
+    category = "workshop";
+  } else if (catLower.includes("music") || catLower.includes("concert")) {
+    category = "concert";
+  } else if (catLower.includes("comedy") || catLower.includes("roast") || catLower.includes("play") || catLower.includes("performance") || catLower.includes("theatre")) {
+    category = "festival";
+  } else if (catLower.includes("meetup") || catLower.includes("talk") || catLower.includes("storytelling") || catLower.includes("spoken word")) {
+    category = "meetup";
+  } else if (catLower.includes("gaming") || catLower.includes("esports")) {
+    category = "gaming";
+  }
+
+  const date = parseBMSWatermarkDate(raw.watermarkDateText);
+  const cleanImage = cleanBMSImageUrl(raw.bannerImage);
+
+  const desc = `Experience "${raw.title.trim()}" live in ${city}! Category: ${raw.categoryText || "Event"}. Venue: ${raw.venue || "Local Venue"}. Price: ${raw.priceText || "Check details"}. Book your tickets on BookMyShow.`;
+
+  return {
+    id,
+    title: raw.title.trim(),
+    description: desc,
+    bannerImage: getCategoryBanner(category, cleanImage),
+    image: cleanImage || getCategoryBanner(category, cleanImage),
+    date,
+    time: "07:00 PM", // Default evening time
+    location: raw.venue?.trim() || `${city} Event`,
+    city,
+    isOnline,
+    category,
+    organizer: "BookMyShow Partner",
+    registrationUrl: raw.url,
+    tags: ["bookmyshow", category, raw.categoryText?.toLowerCase().trim() || "entertainment"].filter(Boolean),
+    isTrending: false,
+    source: "BookMyShow",
+    expiresAt: date,
+    lastUpdated: new Date().toISOString(),
+  };
+}
+
 /**
  * Sweeps the entire Firestore 'events' collection and deletes documents whose 
  * event date or registration deadline has passed.
@@ -566,4 +694,83 @@ export async function cleanupExpiredEvents() {
     console.error("Expired events cleanup encountered an error:", error);
     return { success: false, error: String(error) };
   }
+}
+
+export function normalizeAllEventsEvent(raw: any, categoryText: string, searchCity: string): Event & { lastUpdated: string; source: string; expiresAt: string } {
+  const name = raw.name || "Event";
+  let slug = name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "");
+  if (raw.url) {
+    try {
+      const urlObj = new URL(raw.url);
+      const paths = urlObj.pathname.split("/").filter(Boolean);
+      if (paths.length > 0) {
+        slug = paths[paths.length - 1];
+      }
+    } catch {
+      // Ignore
+    }
+  }
+
+  const id = `allevents-${slug}`;
+  const isOnline = raw.eventAttendanceMode === "https://schema.org/OnlineEventAttendanceMode" || 
+                   raw.location?.name?.toLowerCase().includes("online");
+
+  const city = isOnline ? "Online" : (raw.location?.address?.addressLocality || searchCity.charAt(0).toUpperCase() + searchCity.slice(1).toLowerCase());
+  
+  let category: Category = "meetup";
+  const catLower = categoryText.toLowerCase();
+  if (catLower.includes("concert")) {
+    category = "concert";
+  } else if (catLower.includes("comedy")) {
+    category = "festival";
+  } else if (catLower.includes("food")) {
+    category = "meetup";
+  } else if (catLower.includes("part")) {
+    category = "festival"; // "parties" -> festival
+  }
+
+  // startDate is usually ISO string "2026-06-05T19:00:00" or similar
+  let date = new Date().toISOString().split("T")[0];
+  let time = "07:00 PM";
+  if (raw.startDate) {
+    try {
+      const parsedDate = new Date(raw.startDate);
+      if (!isNaN(parsedDate.getTime())) {
+        date = parsedDate.toISOString().split("T")[0];
+        // simple time formatting
+        let hours = parsedDate.getHours();
+        const mins = parsedDate.getMinutes().toString().padStart(2, "0");
+        const ampm = hours >= 12 ? "PM" : "AM";
+        hours = hours % 12;
+        hours = hours ? hours : 12; // the hour '0' should be '12'
+        time = `${hours.toString().padStart(2, "0")}:${mins} ${ampm}`;
+      }
+    } catch (e) {
+      date = raw.startDate.split("T")[0] || date;
+    }
+  }
+
+  const cleanImage = raw.image || "";
+  const desc = `Join "${name}" in ${city}! ${raw.description ? raw.description.substring(0, 150) + "..." : ""} Check out AllEvents.in for more details and tickets.`;
+
+  return {
+    id,
+    title: name.trim(),
+    description: desc.trim(),
+    bannerImage: getCategoryBanner(category, cleanImage),
+    image: cleanImage || getCategoryBanner(category, cleanImage),
+    date,
+    time,
+    location: raw.location?.name?.trim() || `${city} Venue`,
+    city,
+    isOnline,
+    category,
+    organizer: raw.organizer?.name || "AllEvents Partner",
+    registrationUrl: raw.url || `https://allevents.in`,
+    tags: ["allevents", category, categoryText.toLowerCase().trim()].filter(Boolean),
+    isTrending: false,
+    source: "AllEvents",
+    expiresAt: date,
+    lastUpdated: new Date().toISOString(),
+  };
 }

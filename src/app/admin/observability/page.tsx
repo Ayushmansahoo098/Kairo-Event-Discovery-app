@@ -129,6 +129,7 @@ export default function ObservabilityDashboard() {
           else if (srcLower.includes("luma")) source = "Luma";
           else if (srcLower.includes("meetup")) source = "Meetup";
           else if (srcLower.includes("eventbrite")) source = "Eventbrite";
+          else if (srcLower.includes("bookmyshow")) source = "BookMyShow";
 
           if (!sourceCounts[source]) {
             sourceCounts[source] = { active: 0, expired: 0 };
@@ -302,6 +303,7 @@ export default function ObservabilityDashboard() {
     { name: "Luma", label: "Luma Scraper" },
     { name: "Meetup", label: "Meetup Scraper" },
     { name: "Eventbrite", label: "Eventbrite API" },
+    { name: "BookMyShow", label: "BookMyShow Scraper" },
   ];
 
   return (

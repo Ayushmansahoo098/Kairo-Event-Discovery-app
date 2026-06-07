@@ -4,6 +4,7 @@ import { useState } from "react";
 import { HeroSection } from "@/components/hero-section";
 import { TrendingSection } from "@/components/trending-section";
 import { motion, AnimatePresence } from "framer-motion";
+import { RecommendedSection } from "@/components/recommended-section";
 
 export default function HomePage() {
   const [hoveredImage, setHoveredImage] = useState<string | null>(null);
@@ -35,6 +36,11 @@ export default function HomePage() {
       <div className="relative z-10">
         {/* ── Hero ── */}
         <HeroSection />
+
+        {/* ── Recommended Events ── */}
+        <section className="relative">
+          <RecommendedSection onHoverEvent={(image) => setHoveredImage(image)} />
+        </section>
 
         {/* ── Trending Events ── */}
         <section className="relative">

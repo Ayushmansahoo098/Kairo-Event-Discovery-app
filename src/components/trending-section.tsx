@@ -44,12 +44,12 @@ export function TrendingSection({ onHoverEvent }: TrendingSectionProps) {
       className="py-32 relative bg-transparent border-y border-kairo-dark-gray/30 z-10"
       onMouseLeave={() => onHoverEvent?.(null)}
     >
-      <div className="max-w-7xl mx-auto px-6 sm:px-10 mb-12 flex items-center justify-between">
-        <h2 className="text-3xl md:text-5xl font-serif font-light flex items-center gap-4 uppercase tracking-wide">
-          <Flame className="w-8 h-8 text-kairo-orange drop-shadow-[0_0_15px_var(--color-kairo-orange)]" />
-          <span className="text-kairo-white">Trending Now</span>
+      <div className="max-w-7xl mx-auto px-6 sm:px-10 mb-12 flex items-center justify-between gap-4">
+        <h2 className="text-xl sm:text-3xl md:text-5xl font-serif font-light flex items-center gap-3 sm:gap-4 uppercase tracking-wide">
+          <Flame className="w-6 h-6 sm:w-8 sm:h-8 shrink-0 text-kairo-orange drop-shadow-[0_0_15px_var(--color-kairo-orange)]" />
+          <span className="text-kairo-white whitespace-nowrap">Trending Now</span>
         </h2>
-        <Link href="/feed" className="text-[10px] font-bold tracking-[0.3em] uppercase text-kairo-light-gray hover:text-kairo-orange transition-colors">
+        <Link href="/feed" className="text-[10px] font-bold tracking-[0.3em] uppercase text-kairo-light-gray hover:text-kairo-orange transition-colors whitespace-nowrap shrink-0">
           View all
         </Link>
       </div>
@@ -72,7 +72,7 @@ export function TrendingSection({ onHoverEvent }: TrendingSectionProps) {
               >
                 {/* Magnetic / 3D Hover container */}
                 <motion.div 
-                  className="relative h-[320px] w-full"
+                  className="relative h-[320px] w-full bg-black"
                   whileHover={{ scale: 0.99 }}
                   transition={{ type: "spring", stiffness: 400, damping: 30 }}
                 >
@@ -81,7 +81,7 @@ export function TrendingSection({ onHoverEvent }: TrendingSectionProps) {
                     alt={event.title}
                     fill
                     sizes="(max-width: 640px) 100vw, 450px"
-                    className="object-cover transition-transform duration-1000 group-hover:scale-105"
+                    className="object-contain object-center transition-transform duration-1000 group-hover:scale-105"
                   />
                   {/* Heavy dark gradient overlay for text readability and cinematic feel */}
                   <div className="absolute inset-0 bg-gradient-to-t from-kairo-primary via-kairo-primary/40 to-transparent opacity-90 group-hover:opacity-75 transition-opacity duration-500" />

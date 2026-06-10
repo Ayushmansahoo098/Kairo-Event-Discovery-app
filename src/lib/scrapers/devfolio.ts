@@ -1,4 +1,4 @@
-import { chromium } from "playwright";
+import { chromium, Browser } from "playwright";
 import { RawScrapedHackathon, normalizeHackathon } from "./normalize";
 import { adminDb } from "../firebase-admin";
 import { Event } from "../types";
@@ -7,20 +7,28 @@ import { Event } from "../types";
  * Headless browser scraper that queries https://devfolio.co/hackathons structurally
  * and synchronizes live events into the Cloud Firestore 'events' database.
  */
-export async function syncDevfolioEvents({ writeToDb = true }: { writeToDb?: boolean } = {}) {
+export async function syncDevfolioEvents({ 
+  writeToDb = true,
+  browser: externalBrowser
+}: { 
+  writeToDb?: boolean;
+  browser?: Browser;
+} = {}) {
   console.log("Starting Playwright headless Chromium Devfolio scraper...");
-  let browser;
+  let browser = externalBrowser;
   try {
-    browser = await chromium.launch({
-      headless: true,
-      args: [
-        "--no-sandbox",
-        "--disable-setuid-sandbox",
-        "--disable-dev-shm-usage",
-        "--disable-accelerated-2d-canvas",
-        "--disable-gpu"
-      ],
-    });
+    if (!browser) {
+      browser = await chromium.launch({
+        headless: true,
+        args: [
+          "--no-sandbox",
+          "--disable-setuid-sandbox",
+          "--disable-dev-shm-usage",
+          "--disable-accelerated-2d-canvas",
+          "--disable-gpu"
+        ],
+      });
+    }
     
     // Configure realistic screen bounds and User Agent on the browser context to bypass bot prevention
     const context = await browser.newContext({
@@ -171,7 +179,7 @@ export async function syncDevfolioEvents({ writeToDb = true }: { writeToDb?: boo
     console.error("Playwright Devfolio crawler encountered an error:", error);
     return { success: false, error: String(error) };
   } finally {
-    if (browser) {
+    if (browser && !externalBrowser) {
       await browser.close();
       console.log("Playwright browser closed safely.");
     }

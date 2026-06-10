@@ -1,4 +1,4 @@
-import { chromium } from "playwright";
+import { chromium, Browser } from "playwright";
 import { adminDb } from "../firebase-admin";
 import { Event, Category } from "../types";
 import { getCategoryBanner, normalizeDate } from "./normalize";
@@ -113,25 +113,33 @@ export function normalizeMeetupEvent(raw: RawScrapedMeetupEvent): Event & { last
   };
 }
 
-export async function syncMeetupEvents({ writeToDb = true }: { writeToDb?: boolean } = {}) {
+export async function syncMeetupEvents({ 
+  writeToDb = true,
+  browser: externalBrowser
+}: { 
+  writeToDb?: boolean;
+  browser?: Browser;
+} = {}) {
   console.log("Starting Playwright headless Chromium Meetup scraper...");
-  let browser;
+  let browser = externalBrowser;
   const startTime = Date.now();
   let successCount = 0;
   let failureCount = 0;
   const syncedEvents: Event[] = [];
 
   try {
-    browser = await chromium.launch({
-      headless: true,
-      args: [
-        "--no-sandbox",
-        "--disable-setuid-sandbox",
-        "--disable-dev-shm-usage",
-        "--disable-accelerated-2d-canvas",
-        "--disable-gpu"
-      ],
-    });
+    if (!browser) {
+      browser = await chromium.launch({
+        headless: true,
+        args: [
+          "--no-sandbox",
+          "--disable-setuid-sandbox",
+          "--disable-dev-shm-usage",
+          "--disable-accelerated-2d-canvas",
+          "--disable-gpu"
+        ],
+      });
+    }
 
     const context = await browser.newContext({
       userAgent: "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36",
@@ -305,7 +313,7 @@ export async function syncMeetupEvents({ writeToDb = true }: { writeToDb?: boole
       duration,
     };
   } finally {
-    if (browser) {
+    if (browser && !externalBrowser) {
       await browser.close();
       console.log("Playwright Meetup browser closed safely.");
     }

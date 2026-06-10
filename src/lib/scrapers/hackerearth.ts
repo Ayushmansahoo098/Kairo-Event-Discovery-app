@@ -1,4 +1,4 @@
-import { chromium } from "playwright";
+import { chromium, Browser } from "playwright";
 import { RawScrapedHackerEarthEvent, normalizeHackerEarthEvent, cleanupExpiredEvents } from "./normalize";
 import { adminDb } from "../firebase-admin";
 import { Event } from "../types";
@@ -8,24 +8,32 @@ import { Event } from "../types";
  * from https://www.hackerearth.com/challenges/, maps them to Kairo Event schemas, and saves to Firestore.
  * Triggers the Expired Events Cleanup sweeper and writes telemetry logs to the 'scrape_logs' collection.
  */
-export async function syncHackerEarthEvents({ writeToDb = true }: { writeToDb?: boolean } = {}) {
+export async function syncHackerEarthEvents({ 
+  writeToDb = true,
+  browser: externalBrowser
+}: { 
+  writeToDb?: boolean;
+  browser?: Browser;
+} = {}) {
   console.log("Starting Playwright headless Chromium HackerEarth scraper...");
-  let browser;
+  let browser = externalBrowser;
   const startTime = Date.now();
   let successCount = 0;
   let failureCount = 0;
 
   try {
-    browser = await chromium.launch({
-      headless: true,
-      args: [
-        "--no-sandbox",
-        "--disable-setuid-sandbox",
-        "--disable-dev-shm-usage",
-        "--disable-accelerated-2d-canvas",
-        "--disable-gpu"
-      ],
-    });
+    if (!browser) {
+      browser = await chromium.launch({
+        headless: true,
+        args: [
+          "--no-sandbox",
+          "--disable-setuid-sandbox",
+          "--disable-dev-shm-usage",
+          "--disable-accelerated-2d-canvas",
+          "--disable-gpu"
+        ],
+      });
+    }
 
     const context = await browser.newContext({
       userAgent: "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36",
@@ -258,7 +266,7 @@ export async function syncHackerEarthEvents({ writeToDb = true }: { writeToDb?: 
       duration,
     };
   } finally {
-    if (browser) {
+    if (browser && !externalBrowser) {
       await browser.close();
       console.log("Playwright browser closed safely.");
     }

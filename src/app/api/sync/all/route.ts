@@ -13,6 +13,7 @@ import { adminDb } from "@/lib/firebase-admin";
 import { Event } from "@/lib/types";
 import crypto from "crypto";
 import { triggerEmbeddingsSync } from "@/lib/recommendations";
+import { chromium } from "playwright";
 
 
 export const dynamic = "force-dynamic";
@@ -155,12 +156,25 @@ export async function POST() {
 
   const summaries: Record<string, { success: boolean; count: number; error?: string | null }> = {};
   const freshScrapedEvents: Event[] = [];
+  let browser: any = null;
 
   try {
+    console.log("Launching shared Playwright browser instance...");
+    browser = await chromium.launch({
+      headless: true,
+      args: [
+        "--no-sandbox",
+        "--disable-setuid-sandbox",
+        "--disable-dev-shm-usage",
+        "--disable-accelerated-2d-canvas",
+        "--disable-gpu"
+      ],
+    });
+
     // 1. Run Devfolio
     try {
       console.log("Crawling Devfolio Hackathons (in-memory)...");
-      const res = await syncDevfolioEvents({ writeToDb: false });
+      const res = await syncDevfolioEvents({ writeToDb: false, browser });
       summaries["Devfolio"] = {
         success: res.success,
         count: res.count || 0,
@@ -177,7 +191,7 @@ export async function POST() {
     // 2. Run MLH
     try {
       console.log("Crawling MLH Hackathons (in-memory)...");
-      const res = await syncMLHEvents({ writeToDb: false });
+      const res = await syncMLHEvents({ writeToDb: false, browser });
       summaries["MLH"] = {
         success: res.success,
         count: res.count || 0,
@@ -194,7 +208,7 @@ export async function POST() {
     // 3. Run GDG
     try {
       console.log("Crawling GDG Events (in-memory)...");
-      const res = await syncGDGEvents({ writeToDb: false });
+      const res = await syncGDGEvents({ writeToDb: false, browser });
       summaries["GDG"] = {
         success: res.success,
         count: res.count || 0,
@@ -211,7 +225,7 @@ export async function POST() {
     // 4. Run Unstop
     try {
       console.log("Crawling Unstop Competitions (in-memory)...");
-      const res = await syncUnstopEvents({ writeToDb: false });
+      const res = await syncUnstopEvents({ writeToDb: false, browser });
       summaries["Unstop"] = {
         success: res.success,
         count: res.count || 0,
@@ -228,7 +242,7 @@ export async function POST() {
     // 5. Run HackerEarth
     try {
       console.log("Crawling HackerEarth Challenges (in-memory)...");
-      const res = await syncHackerEarthEvents({ writeToDb: false });
+      const res = await syncHackerEarthEvents({ writeToDb: false, browser });
       summaries["HackerEarth"] = {
         success: res.success,
         count: res.count || 0,
@@ -245,7 +259,7 @@ export async function POST() {
     // 6. Run Luma
     try {
       console.log("Crawling Luma Events (in-memory)...");
-      const res = await syncLumaEvents({ writeToDb: false });
+      const res = await syncLumaEvents({ writeToDb: false, browser });
       summaries["Luma"] = {
         success: res.success,
         count: res.count || 0,
@@ -262,7 +276,7 @@ export async function POST() {
     // 7. Run Meetup
     try {
       console.log("Crawling Meetup Tech Events (in-memory)...");
-      const res = await syncMeetupEvents({ writeToDb: false });
+      const res = await syncMeetupEvents({ writeToDb: false, browser });
       summaries["Meetup"] = {
         success: res.success,
         count: res.count || 0,
@@ -297,7 +311,7 @@ export async function POST() {
     if (process.env.ENABLE_EXPERIMENTAL_BMS === "true") {
       try {
         console.log("Crawling BookMyShow Events (in-memory)...");
-        const res = await syncBMSEvents({ writeToDb: false });
+        const res = await syncBMSEvents({ writeToDb: false, browser });
         summaries["BookMyShow"] = {
           success: res.success,
           count: res.count || 0,
@@ -591,6 +605,10 @@ export async function POST() {
       summaries,
     });
   } finally {
+    if (browser) {
+      console.log("Closing shared Playwright browser instance...");
+      await browser.close().catch((err: any) => console.error("Error closing shared browser:", err));
+    }
     // ─── Release the concurrency lock ───
     try {
       await lockRef.set({

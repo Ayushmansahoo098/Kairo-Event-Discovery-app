@@ -10,7 +10,13 @@ import path from "path";
  * targeting major cities, normalizes them, and syncs to Cloud Firestore.
  * Implements anti-bot evasion and extracts the date watermark from images.
  */
-export async function syncBMSEvents({ writeToDb = true }: { writeToDb?: boolean } = {}) {
+export async function syncBMSEvents({ 
+  writeToDb = true,
+  browser
+}: { 
+  writeToDb?: boolean;
+  browser?: any;
+} = {}) {
   console.log("Starting Playwright headless Chromium BookMyShow scraper...");
   const cities = ["bengaluru", "mumbai", "delhi-ncr", "hyderabad", "pune"];
   const startTime = Date.now();

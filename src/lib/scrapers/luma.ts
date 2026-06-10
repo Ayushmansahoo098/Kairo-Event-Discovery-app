@@ -1,4 +1,4 @@
-import { chromium } from "playwright";
+import { chromium, Browser } from "playwright";
 import { RawScrapedLumaEvent, normalizeLumaEvent, cleanupExpiredEvents } from "./normalize";
 import { adminDb } from "../firebase-admin";
 import { Event } from "../types";
@@ -8,26 +8,34 @@ import { Event } from "../types";
  * targeting major tech cities, normalizes them, and syncs to Cloud Firestore.
  * Implements a 3-tier parsing hierarchy: API/JSON intercept -> __NEXT_DATA__ payload -> DOM scraping.
  */
-export async function syncLumaEvents({ writeToDb = true }: { writeToDb?: boolean } = {}) {
+export async function syncLumaEvents({ 
+  writeToDb = true,
+  browser: externalBrowser
+}: { 
+  writeToDb?: boolean;
+  browser?: Browser;
+} = {}) {
   console.log("Starting Playwright headless Chromium Luma scraper...");
   const cities = ["bengaluru", "mumbai", "new-delhi"];
   const startTime = Date.now();
   let successCount = 0;
   let failureCount = 0;
   const ingestedEvents: Event[] = [];
-  let browser;
+  let browser = externalBrowser;
 
   try {
-    browser = await chromium.launch({
-      headless: true,
-      args: [
-        "--no-sandbox",
-        "--disable-setuid-sandbox",
-        "--disable-dev-shm-usage",
-        "--disable-accelerated-2d-canvas",
-        "--disable-gpu"
-      ],
-    });
+    if (!browser) {
+      browser = await chromium.launch({
+        headless: true,
+        args: [
+          "--no-sandbox",
+          "--disable-setuid-sandbox",
+          "--disable-dev-shm-usage",
+          "--disable-accelerated-2d-canvas",
+          "--disable-gpu"
+        ],
+      });
+    }
 
     const context = await browser.newContext({
       userAgent: "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36",
@@ -277,7 +285,7 @@ export async function syncLumaEvents({ writeToDb = true }: { writeToDb?: boolean
       duration,
     };
   } finally {
-    if (browser) {
+    if (browser && !externalBrowser) {
       await browser.close();
       console.log("Playwright browser for Luma closed successfully.");
     }

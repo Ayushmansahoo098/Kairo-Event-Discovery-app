@@ -1,4 +1,4 @@
-import { chromium } from "playwright";
+import { chromium, Browser } from "playwright";
 import { RawScrapedUnstopEvent, normalizeUnstopEvent, cleanupExpiredEvents } from "./normalize";
 import { adminDb } from "../firebase-admin";
 import { Event } from "../types";
@@ -8,24 +8,32 @@ import { Event } from "../types";
  * from https://unstop.com/hackathons, maps them into standard schemas, and saves to Cloud Firestore.
  * Triggers the Expired Events Cleanup sweep post-sync.
  */
-export async function syncUnstopEvents({ writeToDb = true }: { writeToDb?: boolean } = {}) {
+export async function syncUnstopEvents({ 
+  writeToDb = true,
+  browser: externalBrowser
+}: { 
+  writeToDb?: boolean;
+  browser?: Browser;
+} = {}) {
   console.log("Starting Playwright headless Chromium Unstop scraper...");
-  let browser;
+  let browser = externalBrowser;
   const startTime = Date.now();
   let successCount = 0;
   let failureCount = 0;
 
   try {
-    browser = await chromium.launch({
-      headless: true,
-      args: [
-        "--no-sandbox",
-        "--disable-setuid-sandbox",
-        "--disable-dev-shm-usage",
-        "--disable-accelerated-2d-canvas",
-        "--disable-gpu"
-      ],
-    });
+    if (!browser) {
+      browser = await chromium.launch({
+        headless: true,
+        args: [
+          "--no-sandbox",
+          "--disable-setuid-sandbox",
+          "--disable-dev-shm-usage",
+          "--disable-accelerated-2d-canvas",
+          "--disable-gpu"
+        ],
+      });
+    }
 
     const context = await browser.newContext({
       userAgent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36",
@@ -209,7 +217,7 @@ export async function syncUnstopEvents({ writeToDb = true }: { writeToDb?: boole
       duration: Math.round((Date.now() - startTime) / 1000),
     };
   } finally {
-    if (browser) {
+    if (browser && !externalBrowser) {
       await browser.close();
       console.log("Playwright browser closed successfully.");
     }

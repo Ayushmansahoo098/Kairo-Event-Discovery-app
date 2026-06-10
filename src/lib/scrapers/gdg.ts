@@ -1,4 +1,4 @@
-import { chromium } from "playwright";
+import { chromium, Browser } from "playwright";
 import { RawScrapedGDGEvent, normalizeGDGEvent, cleanupExpiredEvents } from "./normalize";
 import { adminDb } from "../firebase-admin";
 import { Event } from "../types";
@@ -7,25 +7,33 @@ import { Event } from "../types";
  * Headless browser scraper that crawls live Google Developer Group (GDG) events
  * from https://gdg.community.dev/events/, normalizes data, and syncs to Cloud Firestore.
  */
-export async function syncGDGEvents({ writeToDb = true }: { writeToDb?: boolean } = {}) {
+export async function syncGDGEvents({ 
+  writeToDb = true,
+  browser: externalBrowser
+}: { 
+  writeToDb?: boolean;
+  browser?: Browser;
+} = {}) {
   console.log("Starting Playwright headless Chromium GDG scraper...");
-  let browser;
+  let browser = externalBrowser;
   const startTime = Date.now();
   let successCount = 0;
   let failureCount = 0;
   const ingestedEvents: Event[] = [];
 
   try {
-    browser = await chromium.launch({
-      headless: true,
-      args: [
-        "--no-sandbox",
-        "--disable-setuid-sandbox",
-        "--disable-dev-shm-usage",
-        "--disable-accelerated-2d-canvas",
-        "--disable-gpu"
-      ],
-    });
+    if (!browser) {
+      browser = await chromium.launch({
+        headless: true,
+        args: [
+          "--no-sandbox",
+          "--disable-setuid-sandbox",
+          "--disable-dev-shm-usage",
+          "--disable-accelerated-2d-canvas",
+          "--disable-gpu"
+        ],
+      });
+    }
 
     const context = await browser.newContext({
       userAgent: "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36",
@@ -199,7 +207,7 @@ export async function syncGDGEvents({ writeToDb = true }: { writeToDb?: boolean 
       duration,
     };
   } finally {
-    if (browser) {
+    if (browser && !externalBrowser) {
       await browser.close();
       console.log("Playwright browser for GDG closed successfully.");
     }

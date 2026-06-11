@@ -52,7 +52,9 @@
 [![Firebase](https://img.shields.io/badge/Firebase-12.13-orange?style=for-the-badge&logo=firebase&logoColor=white)](https://firebase.google.com)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.0-3178C6?style=for-the-badge&logo=typescript&logoColor=white)](https://typescriptlang.org)
 [![Tailwind CSS](https://img.shields.io/badge/Tailwind-4.0-06B6D4?style=for-the-badge&logo=tailwindcss&logoColor=white)](https://tailwindcss.com)
+[![FastAPI](https://img.shields.io/badge/FastAPI-0.111-009688?style=for-the-badge&logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com)
 [![Playwright](https://img.shields.io/badge/Playwright-1.60-2EAD33?style=for-the-badge&logo=playwright&logoColor=white)](https://playwright.dev)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg?style=for-the-badge)](https://opensource.org/licenses/MIT)
 
 **Kairo** is an AI-powered, real-time event discovery platform that aggregates hackathons, workshops, conferences, and meetups from **Devfolio**, **Unstop**, **HackerEarth**, **Eventbrite**, and **Meetup.com** into a single, beautifully personalized glassmorphic dashboard.
 
@@ -147,6 +149,36 @@ graph TD
     R <-->|Fetches Telemetry & Events| N & Q
     R -->|Builds TF-IDF Feature Profiles| N
     B <-->|Cosine Similarity Match| R
+```
+
+---
+
+## 📂 Directory Layout
+
+Below is a map of the repository's file structure to help navigate the codebase:
+
+```text
+├── .github/                  # GitHub Issue & Pull Request Templates
+├── public/                   # Static assets, PWA icons, and offline fallback
+├── scripts/                  # Scraper testing & telemetry validation scripts
+│   ├── test_bms_scraper.mjs  # Playwright scraper with anti-bot evasion checks
+│   ├── audit_bms.mjs         # Deduplication & schema validator for scraper payloads
+│   └── render-sync.mjs       # Render Cron task trigger script
+├── src/
+│   ├── app/                  # Next.js App Router root
+│   │   ├── admin/            # Observability & Conversion Analytics dashboards
+│   │   ├── api/              # Scraper endpoints (/scrape) & sync triggers (/sync)
+│   │   ├── events/           # Event Details pages with Framer Motion countdowns
+│   │   ├── feed/             # Tabbed event discovery feed (trending, near you)
+│   │   ├── globals.css       # Core Tailwind CSS rules & Glassmorphic variables
+│   │   └── sw.ts             # Serwist Service Worker handler
+│   ├── components/           # Reusable UI component cards and layouts
+│   ├── context/              # Authentication & User Profile contexts
+│   ├── hooks/                # Custom React hooks (useAuth, useScrapers)
+│   └── lib/                  # Firestore db drivers & recommendation sync triggers
+├── worker/                   # Scraper edge execution workers scaffolding
+├── Dockerfile                # Deployment dockerfile on Playwright-supported OS
+└── render.yaml               # Infrastructure-as-code spec for Render deployments
 ```
 
 ---
@@ -251,6 +283,45 @@ You can trigger the in-memory scraper queue and database update pipeline manuall
 curl -X POST http://localhost:3000/api/sync/all \
   -H "x-kairo-sync-key: your_cron_secret_here"
 ```
+
+### 6. Setup FastAPI Recommendation Engine (Python)
+Kairo requires the FastAPI recommendation microservice to compute personalized event rankings.
+
+1. **Navigate to the recommendation engine directory**:
+   ```bash
+   cd recommendation-service
+   ```
+2. **Create and activate a Python virtual environment**:
+   ```bash
+   python3 -m venv venv
+   source venv/bin/activate
+   ```
+3. **Install dependencies**:
+   ```bash
+   pip install fastapi uvicorn scikit-learn pydantic firebase-admin
+   ```
+4. **Configure FastAPI Environment**:
+   Ensure your local Python environment has the `google-services.json` or necessary environment variables matching your Firestore instance.
+5. **Run the FastAPI server**:
+   ```bash
+   uvicorn main:app --host 0.0.0.0 --port 8000 --reload
+   ```
+6. **Add the environment variable** to your `.env.local` in the Next.js root folder:
+   ```env
+   NEXT_PUBLIC_RECOMMENDATION_API_URL=http://localhost:8000
+   ```
+
+### 7. Run Scraper Integration Tests
+To test browser scraping anti-bot evasion and Jaccard deduplication logic before scheduling cron triggers:
+
+*   **Test Playwright browser scraping (BookMyShow prototype)**:
+    ```bash
+    node scripts/test_bms_scraper.mjs
+    ```
+*   **Run Jaccard index check audits on events metadata**:
+    ```bash
+    node scripts/audit_bms.mjs
+    ```
 
 ---
 

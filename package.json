@@ -1,6 +1,11 @@
 {
-  "name": "kairo-temp",
+  "name": "kairo-event-discovery-app",
   "version": "0.1.0",
+  "description": "AI-powered real-time event discovery aggregator for hackathons, workshops, and meetups.",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Ayushmansahoo098/Kairo-Event-Discovery-app.git"
+  },
   "private": true,
   "scripts": {
     "dev": "next dev --webpack",

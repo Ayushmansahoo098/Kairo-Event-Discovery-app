@@ -286,6 +286,27 @@ curl -X POST http://localhost:3000/api/sync/all \
 
 ---
 
+## 🗺️ Future Roadmap
+
+Kairo is designed to grow into a comprehensive event discovery and collaboration ecosystem. Future plans include:
+
+*   🔌 **Expanded Event Catalog**:
+    *   Deploying the **BookMyShow** crawler (currently prototyping at [test_bms_scraper.mjs](file:///Users/ayushmansahoo/Documents/GitHub/Kairo-Event-Discovery-app/scripts/test_bms_scraper.mjs)) to harvest local cultural, social, and tech-entertainment experiences.
+    *   Adding connectors for **Luma** and **Partiful** to capture private community-driven gatherings and local tech meetups.
+*   🧠 **Semantic AI Embeddings**:
+    *   Transitioning from TF-IDF vector matching to dense vector embeddings using **Gemini API** (via Firebase AI Logic) for richer, context-aware semantic matching.
+    *   Implementing LLM-powered categorization to auto-tag event themes and generate concise one-sentence TL;DR summaries.
+*   👥 **Social Hub & Team Formation**:
+    *   **Hackathon Team Matcher**: An opt-in portal connecting developers, designers, and managers attending the same hackathon based on complementary skills.
+    *   **Attending Feeds**: Seeing which of your GitHub connections or peers are RSVPing to specific events.
+*   🗺️ **Geospatial Map View**:
+    *   Integrating interactive maps (via **Mapbox** or **Leaflet**) so users can browse workshops, meetups, and local events geographically.
+*   📅 **Calendar Integration & Alerts**:
+    *   One-click exporting to **Google Calendar**, **Outlook**, and **Apple Calendar** (`.ics`).
+    *   Automated notification alerts (Email, Discord webhooks, or Telegram) when a newly scraped event scores above an 85% match for your profile.
+
+---
+
 ## 👨‍💻 Author
 
 **Ayushman Sahoo**

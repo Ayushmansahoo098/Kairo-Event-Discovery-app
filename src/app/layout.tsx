@@ -7,6 +7,7 @@ import { Navbar } from "@/components/navbar";
 import { InitialLoader } from "@/components/initial-loader";
 import { VisualGrid } from "@/components/visual-grid";
 import { cn } from "@/lib/utils";
+import { Analytics } from "@vercel/analytics/next";
 
 const plusJakarta = Plus_Jakarta_Sans({
   subsets: ["latin"],
@@ -51,6 +52,7 @@ export default function RootLayout({
             <main className="pb-20 md:pb-0 md:pt-16 relative z-10">{children}</main>
           </BookmarkProvider>
         </AuthProvider>
+        <Analytics />
       </body>
     </html>
   );

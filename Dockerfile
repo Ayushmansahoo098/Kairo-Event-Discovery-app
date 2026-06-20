@@ -18,20 +18,8 @@ WORKDIR /app
 ENV NODE_ENV=production
 ENV HOSTNAME=0.0.0.0
 ENV PORT=3000
-ENV PLAYWRIGHT_BROWSERS_PATH=/ms-playwright
 
-# Install system dependencies needed for Playwright Chromium execution
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    wget \
-    gnupg \
-    ca-certificates \
-    && rm -rf /var/lib/apt/lists/*
-
-# Install Playwright Chromium and its OS dependencies
-RUN npx playwright install-deps chromium
-RUN npx playwright install chromium
-
-# Copy standalone output and assets
+# Copy standalone output and assets from builder
 COPY --from=builder /app/.next/standalone ./
 COPY --from=builder /app/.next/static ./.next/static
 COPY --from=builder /app/public ./public

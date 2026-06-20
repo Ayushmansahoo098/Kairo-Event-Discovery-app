@@ -1,0 +1,42 @@
+name: Event Scraper Cron
+
+on:
+  schedule:
+    - cron: '0 */12 * * *'
+  workflow_dispatch:
+    inputs:
+      enable_bms:
+        description: 'Enable experimental BookMyShow scraper'
+        type: boolean
+        required: false
+        default: false
+
+jobs:
+  scrape-and-sync:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+
+      - name: Install Dependencies
+        run: npm ci
+
+      - name: Install Playwright Chromium
+        run: |
+          npx playwright install-deps chromium
+          npx playwright install chromium
+
+      - name: Execute Scraper Sync Script
+        env:
+          FIREBASE_PROJECT_ID: ${{ secrets.FIREBASE_PROJECT_ID }}
+          FIREBASE_CLIENT_EMAIL: ${{ secrets.FIREBASE_CLIENT_EMAIL }}
+          FIREBASE_PRIVATE_KEY: ${{ secrets.FIREBASE_PRIVATE_KEY }}
+          ENABLE_EXPERIMENTAL_BMS: ${{ github.event.inputs.enable_bms || 'false' }}
+          NEXT_PUBLIC_RECOMMENDATION_API_URL: "https://kairo-recommender.onrender.com" # Expose production FastAPI recommendation base URL
+        run: npx tsx scripts/sync.ts

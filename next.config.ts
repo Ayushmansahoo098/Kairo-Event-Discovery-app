@@ -10,7 +10,7 @@ const withSerwist = withSerwistInit({
 const nextConfig: NextConfig = {
   output: "standalone",
   outputFileTracingRoot: process.cwd(),
-  serverExternalPackages: ["firebase-admin"],
+  serverExternalPackages: ["firebase-admin", "playwright", "playwright-core"],
   images: {
     remotePatterns: [
       {

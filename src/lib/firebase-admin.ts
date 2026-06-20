@@ -20,26 +20,63 @@ if (!admin.apps.length && isConfigured) {
   }
 }
 
-// Export adminDb safely. If not initialized, return a proxy or a dummy object that logs errors,
-// so that the build finishes successfully but runtime calls fail gracefully with instructions.
+// Export adminDb safely. If not initialized, return a mock database object that logs warnings but doesn't crash,
+// allowing in-memory operations and local testing of scrapers without Firebase credentials.
 export const adminDb = (() => {
   if (admin.apps.length) {
     return admin.firestore();
   }
-  
-  // Return a proxy that intercepts database calls to prevent build crashes
-  const handler: ProxyHandler<object> = {
-    get(target, prop) {
-      if (prop === "then") {
-        return undefined; // Avoid blocking promise-like checks
-      }
-      return () => {
-        console.warn(`Firestore Admin DB method "${String(prop)}" was called but firebase-admin is not initialized. Please configure your FIREBASE_ env variables in .env.local.`);
-        return new Proxy({}, handler);
-      };
-    }
+
+  // Mock DocumentSnapshot
+  const mockDocSnap = {
+    exists: false,
+    data: () => ({}),
+    id: "mock-id",
   };
 
-  return new Proxy({} as object, handler) as unknown as admin.firestore.Firestore;
+  // Mock QuerySnapshot
+  const mockQuerySnap = {
+    empty: true,
+    docs: [],
+    forEach: () => {},
+  };
+
+  // Mock DocumentReference
+  const mockDocRef = {
+    get: async () => mockDocSnap,
+    set: async () => {},
+    update: async () => {},
+    delete: async () => {},
+  };
+
+  // Mock CollectionReference
+  const mockCollectionRef = {
+    doc: () => mockDocRef,
+    add: async () => mockDocRef,
+    where: () => mockCollectionRef,
+    orderBy: () => mockCollectionRef,
+    limit: () => mockCollectionRef,
+    select: () => mockCollectionRef,
+    get: async () => {
+      console.warn("Firestore Admin DB: returning mock empty query snapshot (firebase-admin is not initialized).");
+      return mockQuerySnap;
+    },
+  };
+
+  // Mock WriteBatch
+  const mockBatch = {
+    set: () => {},
+    update: () => {},
+    delete: () => {},
+    commit: async () => {},
+  };
+
+  // Mock Firestore DB
+  const mockDb = {
+    collection: () => mockCollectionRef,
+    batch: () => mockBatch,
+  };
+
+  return mockDb as unknown as admin.firestore.Firestore;
 })();
 

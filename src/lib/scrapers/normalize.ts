@@ -648,15 +648,8 @@ export async function cleanupExpiredEvents() {
   console.log("Sweep: Cleaning up expired events from Firestore database...");
   try {
     const todayStr = new Date().toISOString().split("T")[0]; // YYYY-MM-DD
-    const nowStr = new Date().toISOString();
     
-    // Prune cutoff: 30 days ago
-    const thirtyDaysAgo = new Date();
-    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-    const thirtyDaysAgoStr = thirtyDaysAgo.toISOString();
-
     const querySnapshot = await adminDb.collection("events").get();
-    let expireCount = 0;
     let pruneCount = 0;
 
     for (const docSnapshot of querySnapshot.docs) {
@@ -664,32 +657,19 @@ export async function cleanupExpiredEvents() {
       const eventDate = data.date; // YYYY-MM-DD
       const expiresAt = data.expiresAt; // YYYY-MM-DD
       const status = data.status || "active";
-      const expiredAt = data.expiredAt;
 
       const targetDate = expiresAt || eventDate;
 
-      if (status === "active" && targetDate && targetDate < todayStr) {
-        // Soft expire
-        await docSnapshot.ref.update({
-          status: "expired",
-          expiredAt: nowStr,
-          lastUpdated: nowStr
-        });
-        expireCount++;
-        console.log(`Soft expired event: "${data.title}" (${docSnapshot.id})`);
-      } else if (status === "expired") {
-        // Hard prune if expired for more than 30 days
-        const compareTime = expiredAt || data.lastUpdated || nowStr;
-        if (compareTime < thirtyDaysAgoStr) {
-          await docSnapshot.ref.delete();
-          pruneCount++;
-          console.log(`Hard pruned event older than 30 days: "${data.title}" (${docSnapshot.id})`);
-        }
+      // Hard prune completed or already expired event immediately
+      if ((targetDate && targetDate < todayStr) || status === "expired") {
+        await docSnapshot.ref.delete();
+        pruneCount++;
+        console.log(`Hard pruned completed/expired event: "${data.title}" (${docSnapshot.id})`);
       }
     }
 
-    console.log(`Sweep finished: Soft-expired ${expireCount} events, Hard-pruned ${pruneCount} events.`);
-    return { success: true, count: expireCount + pruneCount, expiredCount: expireCount, prunedCount: pruneCount };
+    console.log(`Sweep finished: Hard-pruned ${pruneCount} completed/expired events.`);
+    return { success: true, count: pruneCount, expiredCount: 0, prunedCount: pruneCount };
   } catch (error) {
     console.error("Expired events cleanup encountered an error:", error);
     return { success: false, error: String(error) };

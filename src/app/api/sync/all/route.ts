@@ -383,12 +383,21 @@ export async function POST() {
 
     console.log(`Deduplicated down to ${mergedScrapedEvents.size} canonical events in-memory.`);
 
+    // Filter out completed events from scraped events so we don't save them
+    const todayStr = new Date().toISOString().split("T")[0];
+    for (const [canonicalId, freshEvent] of mergedScrapedEvents.entries()) {
+      const targetDate = freshEvent.expiresAt || freshEvent.date;
+      if (targetDate && targetDate < todayStr) {
+        mergedScrapedEvents.delete(canonicalId);
+      }
+    }
+
     // ─── Fetch existing events from Firestore ───
     console.log("Fetching existing events from Firestore...");
     const dbEventsSnapshot = await adminDb.collection("events").select(
       "registrationUrl", "sourceUrls", "title", "date", "status", 
       "viewsCount", "savesCount", "registrationsCount", "popularityScore", 
-      "embedding", "contentHash", "createdAt", "lastUpdated", "source"
+      "embedding", "contentHash", "createdAt", "lastUpdated", "source", "expiresAt"
     ).get();
     const existingEvents = dbEventsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Event));
 
@@ -479,8 +488,7 @@ export async function POST() {
       console.log(`Preserving events for failed/empty sources from expiration: ${sourcesToPreserve.join(", ")}`);
     }
 
-    // ─── Expire events not found in crawl ───
-    const newlyExpiredEvents: Event[] = [];
+    // ─── Delete events not found in crawl / completed events ───
     const activeDbEventsCount = existingEvents.filter(e => e.status === "active").length;
 
     if (mergedScrapedEvents.size === 0 && activeDbEventsCount > 0) {
@@ -493,48 +501,32 @@ export async function POST() {
           continue;
         }
 
-        if (dbEvent.status === "active") {
-          newlyExpiredEvents.push({
-            ...dbEvent,
-            status: "expired",
-            expiredAt: new Date().toISOString(),
-            lastUpdated: new Date().toISOString(),
-          });
-        }
+        // Hard prune stale missing events immediately
+        docIdsToDelete.push(dbEvent.id);
       }
     }
 
-    // ─── Prune expired events older than 30 days ───
-    const thirtyDaysAgo = new Date();
-    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-    const thirtyDaysAgoStr = thirtyDaysAgo.toISOString();
-
+    // ─── Query and prune any existing expired events ───
     const expiredSnapshot = await adminDb.collection("events")
       .where("status", "==", "expired")
       .get();
 
-    const docIdsToPrune: string[] = [];
     for (const docSnapshot of expiredSnapshot.docs) {
-      const data = docSnapshot.data();
-      const expiredAt = data.expiredAt;
-      if (expiredAt && expiredAt < thirtyDaysAgoStr) {
-        docIdsToPrune.push(docSnapshot.id);
-      }
+      docIdsToDelete.push(docSnapshot.id);
     }
 
     // ─── Batch DB execution ───
     const BATCH_SIZE = 500;
     
     // Deletes
-    const allDeletes = [...docIdsToDelete, ...docIdsToPrune];
-    for (let i = 0; i < allDeletes.length; i += BATCH_SIZE) {
-      const chunk = allDeletes.slice(i, i + BATCH_SIZE);
+    for (let i = 0; i < docIdsToDelete.length; i += BATCH_SIZE) {
+      const chunk = docIdsToDelete.slice(i, i + BATCH_SIZE);
       const batch = adminDb.batch();
       for (const id of chunk) {
         batch.delete(adminDb.collection("events").doc(id));
       }
       await batch.commit();
-      console.log(`Batch deleted ${chunk.length} stale/duplicate documents.`);
+      console.log(`Batch deleted ${chunk.length} stale/duplicate/expired documents.`);
     }
 
     // Writes for fresh/updated events (Full overwrite)
@@ -548,21 +540,6 @@ export async function POST() {
       console.log(`Batch wrote/updated ${chunk.length} fresh event documents.`);
     }
 
-    // Merge updates for expired events (so we don't erase unselected fields)
-    for (let i = 0; i < newlyExpiredEvents.length; i += BATCH_SIZE) {
-      const chunk = newlyExpiredEvents.slice(i, i + BATCH_SIZE);
-      const batch = adminDb.batch();
-      for (const event of chunk) {
-        batch.update(adminDb.collection("events").doc(event.id), {
-          status: "expired",
-          expiredAt: event.expiredAt,
-          lastUpdated: event.lastUpdated
-        });
-      }
-      await batch.commit();
-      console.log(`Batch marked ${chunk.length} event documents as expired.`);
-    }
-
     const duration = Math.round((Date.now() - startTime) / 1000);
     const totalSuccessfulScrapers = Object.values(summaries).filter((s) => s.success).length;
 
@@ -574,8 +551,8 @@ export async function POST() {
         completedAt: new Date().toISOString(),
         successCount: eventsToUpdate.length,
         skipCount,
-        expiredCount: newlyExpiredEvents.length,
-        prunedCount: docIdsToPrune.length,
+        expiredCount: 0,
+        prunedCount: docIdsToDelete.length,
         deletedDuplicatesCount: docIdsToDelete.length,
         duration,
         status: totalSuccessfulScrapers === Object.keys(summaries).length ? "success" : "partial_success",
@@ -597,8 +574,8 @@ export async function POST() {
         deduplicatedScraped: mergedScrapedEvents.size,
         writtenUpdates: eventsToUpdate.length,
         skippedWrites: skipCount,
-        newlyExpired: newlyExpiredEvents.length,
-        prunedExpired: docIdsToPrune.length,
+        newlyExpired: 0,
+        prunedExpired: docIdsToDelete.length,
         deletedDuplicates: docIdsToDelete.length,
         durationSeconds: duration,
       },

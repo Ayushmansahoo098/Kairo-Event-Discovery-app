@@ -1,11 +1,17 @@
 export type Category =
   | "hackathon"
   | "workshop"
-  | "concert"
-  | "festival"
   | "meetup"
-  | "gaming"
-  | "startup";
+  | "startup"
+  | "conference"
+  | "concert"
+  | "comedy"
+  | "food-festival"
+  | "party"
+  | "networking"
+  | "tech-talk"
+  | "ai-ml"
+  | "gaming";
 
 export interface Event {
   id: string;

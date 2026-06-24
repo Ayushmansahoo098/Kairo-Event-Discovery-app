@@ -133,8 +133,9 @@ function getTitleSimilarity(t1: string, t2: string): number {
   const set1 = new Set(tokens1);
   const set2 = new Set(tokens2);
   const intersection = new Set([...set1].filter((x) => set2.has(x)));
+  const union = new Set([...set1, ...set2]);
   
-  return intersection.size / Math.max(set1.size, set2.size);
+  return intersection.size / union.size;
 }
 
 /**
@@ -145,58 +146,75 @@ function getTitleSimilarity(t1: string, t2: string): number {
  * Preserves the highest priority source, merges tags, and retains the earliest deadline.
  */
 export function dedupeEvents(events: Event[]): Event[] {
+  const beforeCount = events.length;
+
+  const areDuplicates = (a: Event, b: Event): boolean => {
+    // Rule 1: Exact registration URL match
+    if (
+      a.registrationUrl && 
+      b.registrationUrl && 
+      cleanUrl(a.registrationUrl) === cleanUrl(b.registrationUrl)
+    ) {
+      return true;
+    }
+    
+    // Rule 2: Title and Date fuzzy overlap match
+    if (a.date && b.date && a.date === b.date) {
+      if (getTitleSimilarity(a.title, b.title) >= 0.70) {
+        return true;
+      }
+    }
+    
+    return false;
+  };
+
+  const n = events.length;
+  const adj: number[][] = Array.from({ length: n }, () => []);
+  for (let i = 0; i < n; i++) {
+    for (let j = i + 1; j < n; j++) {
+      if (areDuplicates(events[i], events[j])) {
+        adj[i].push(j);
+        adj[j].push(i);
+      }
+    }
+  }
+
+  const visited = new Uint8Array(n);
   const deduped: Event[] = [];
-  const visited = new Set<string>();
 
-  for (let i = 0; i < events.length; i++) {
-    const current = events[i];
-    if (visited.has(current.id)) continue;
+  for (let i = 0; i < n; i++) {
+    if (visited[i]) continue;
 
-    // Build duplicates cluster
-    const duplicates = [current];
+    const componentIndices: number[] = [];
+    const queue: number[] = [i];
+    visited[i] = 1;
 
-    for (let j = i + 1; j < events.length; j++) {
-      const candidate = events[j];
-      if (visited.has(candidate.id)) continue;
-
-      let isDuplicate = false;
-
-      // Rule 1: Exact registration URL match
-      if (
-        current.registrationUrl && 
-        candidate.registrationUrl && 
-        cleanUrl(current.registrationUrl) === cleanUrl(candidate.registrationUrl)
-      ) {
-        isDuplicate = true;
-      }
-      
-      // Rule 2: Title and Date fuzzy overlap match
-      if (!isDuplicate && current.date && candidate.date && current.date === candidate.date) {
-        if (getTitleSimilarity(current.title, candidate.title) >= 0.70) {
-          isDuplicate = true;
+    while (queue.length > 0) {
+      const curr = queue.shift()!;
+      componentIndices.push(curr);
+      for (const neighbor of adj[curr]) {
+        if (!visited[neighbor]) {
+          visited[neighbor] = 1;
+          queue.push(neighbor);
         }
-      }
-
-      if (isDuplicate) {
-        duplicates.push(candidate);
-        visited.add(candidate.id);
       }
     }
 
-    visited.add(current.id);
-
-    if (duplicates.length === 1) {
-      deduped.push(current);
+    if (componentIndices.length === 1) {
+      deduped.push(events[componentIndices[0]]);
     } else {
+      // Merge cluster
+      const cluster = componentIndices.map(idx => events[idx]);
+      
       // Sort cluster to select the highest-quality source
-      duplicates.sort((a, b) => {
+      cluster.sort((a, b) => {
         const sourceA = a.source || "";
         const sourceB = b.source || "";
         return getSourcePriority(sourceB) - getSourcePriority(sourceA);
       });
 
-      const base = duplicates[0];
-      const otherDuplicates = duplicates.slice(1);
+      const base = cluster[0];
+      const otherDuplicates = cluster.slice(1);
 
       // Merge tags intelligently
       const mergedTags = Array.from(new Set([
@@ -212,21 +230,41 @@ export function dedupeEvents(events: Event[]): Event[] {
       const allExpires = [base.expiresAt, ...otherDuplicates.map((d) => d.expiresAt)].filter(Boolean);
       const earliestExpires = (allExpires as string[]).sort()[0] || earliestDate;
 
-      // Standardize content hash
-      const sourceName = base.source || "Unknown";
-      const contentHash = sha256(base.title + earliestDate + sourceName);
+      // Merge sources and sourceUrls
+      const targetSources = new Set<string>();
+      if (base.source) targetSources.add(base.source);
+      if (base.sources) base.sources.forEach(s => targetSources.add(s));
+      otherDuplicates.forEach(d => {
+        if (d.source) targetSources.add(d.source);
+        if (d.sources) d.sources.forEach(s => targetSources.add(s));
+      });
+      const mergedSources = Array.from(targetSources);
+
+      const mergedSourceUrls: Record<string, string> = { ...(base.sourceUrls || {}) };
+      if (base.source && base.registrationUrl) mergedSourceUrls[base.source] = base.registrationUrl;
+      otherDuplicates.forEach(d => {
+        if (d.source && d.registrationUrl) mergedSourceUrls[d.source] = d.registrationUrl;
+        if (d.sourceUrls) Object.assign(mergedSourceUrls, d.sourceUrls);
+      });
+
+      const contentHash = sha256(base.title + earliestDate + (base.source || "Unknown"));
 
       const mergedEvent: Event = {
         ...base,
         date: earliestDate,
         tags: mergedTags,
         expiresAt: earliestExpires,
+        sources: mergedSources,
+        sourceUrls: mergedSourceUrls,
         contentHash,
       };
 
       deduped.push(mergedEvent);
     }
   }
+
+  const afterCount = deduped.length;
+  console.log(`[Deduplication Stats] Before: ${beforeCount}, After: ${afterCount}, Merged/Removed: ${beforeCount - afterCount}`);
 
   return deduped;
 }

@@ -4,6 +4,7 @@ import crypto from "crypto";
 import { triggerRecommendationRefresh } from "@/lib/recommendations";
 import { syncEventbriteEvents } from "@/lib/scrapers/eventbrite";
 import { syncAllEvents } from "@/lib/scrapers/allevents";
+import { dedupeEvents } from "@/lib/feed/dedupe";
 
 export interface SyncOptions {
   runBms?: boolean;
@@ -108,6 +109,7 @@ function mergeTwoEvents(target: Event, src: Event) {
 export async function runSync(options: SyncOptions = {}) {
   const startTime = Date.now();
   console.log("Shared Ingestion Sync Pipeline execution started...");
+  let syncStatus = "Failed";
 
   // Check Playwright availability
   let playwrightAvailable = false;
@@ -149,7 +151,8 @@ export async function runSync(options: SyncOptions = {}) {
       isActive: true,
       lockedAt: new Date().toISOString(),
       lockedBy: "runSync",
-    });
+      status: "Syncing",
+    }, { merge: true });
     console.log("Sync lock acquired successfully.");
   } catch (lockErr) {
     console.error("Failed to check/acquire sync lock:", lockErr);
@@ -395,42 +398,14 @@ export async function runSync(options: SyncOptions = {}) {
     console.log(`Aggregated ${freshScrapedEvents.length} raw events in-memory. Starting cross-source deduplication...`);
 
     // ─── Deduplicate and Merge Scraped Events ───
+    const dedupedList = dedupeEvents(freshScrapedEvents);
     const mergedScrapedEvents: Map<string, Event> = new Map();
-
-    for (const event of freshScrapedEvents) {
-      let matchedCanonicalId: string | null = null;
-      
-      for (const [canonicalId, mergedEvent] of mergedScrapedEvents.entries()) {
-        const isUrlMatch = event.registrationUrl === mergedEvent.registrationUrl || 
-                           (event.sourceUrls && mergedEvent.sourceUrls && 
-                            Object.values(event.sourceUrls).some(u => Object.values(mergedEvent.sourceUrls!).includes(u)));
-        
-        const isTitleDateMatch = getJaccardSimilarity(event.title, mergedEvent.title) >= 0.7 && 
-                                 event.date === mergedEvent.date;
-                                 
-        if (isUrlMatch || isTitleDateMatch) {
-          matchedCanonicalId = canonicalId;
-          break;
-        }
-      }
-      
-      if (matchedCanonicalId) {
-        const target = mergedScrapedEvents.get(matchedCanonicalId)!;
-        mergeTwoEvents(target, event);
-      } else {
-        const canonicalId = getCanonicalId(event.title, event.date);
-        const newMergedEvent: Event = {
-          ...event,
-          id: canonicalId,
-          sources: event.sources || (event.source ? [event.source] : []),
-          sourceUrls: event.sourceUrls || (event.source ? { [event.source]: event.registrationUrl } : {}),
-          status: "active",
-        };
-        mergedScrapedEvents.set(canonicalId, newMergedEvent);
-      }
+    for (const event of dedupedList) {
+      const canonicalId = getCanonicalId(event.title, event.date);
+      event.id = canonicalId;
+      event.status = "active";
+      mergedScrapedEvents.set(canonicalId, event);
     }
-
-    console.log(`Deduplicated down to ${mergedScrapedEvents.size} canonical events in-memory.`);
 
     // Filter out completed events from scraped events so we don't save them
     const todayStr = new Date().toISOString().split("T")[0];
@@ -522,20 +497,11 @@ export async function runSync(options: SyncOptions = {}) {
       }
     }
 
-    // ─── Delete events not found in crawl / completed events ───
-    const activeDbEventsCount = existingEvents.filter(e => e.status === "active").length;
-
-    if (mergedScrapedEvents.size === 0 && activeDbEventsCount > 0) {
-      console.warn(`Safety Threshold Triggered: Scrapers returned 0 events, but there are ${activeDbEventsCount} active events in the database. Skipping expiration sweep to prevent accidental data loss.`);
-    } else {
-      for (const dbEvent of dbEventsToProcess) {
-        const eventSource = (dbEvent.source || "").toLowerCase();
-        if (sourcesToPreserve.includes(eventSource)) {
-          // Skip expiration sweep for failed/empty scrapers
-          continue;
-        }
-
-        // Hard prune stale missing events immediately
+    // ─── Delete events that are expired or have invalid dates ───
+    for (const dbEvent of dbEventsToProcess) {
+      const targetDate = dbEvent.expiresAt || dbEvent.date;
+      const isValidDate = targetDate && /^\d{4}-\d{2}-\d{2}$/.test(targetDate);
+      if (!isValidDate || (targetDate && targetDate < todayStr) || dbEvent.status === "expired" || dbEvent.status === "archived") {
         docIdsToDelete.push(dbEvent.id);
       }
     }
@@ -600,6 +566,7 @@ export async function runSync(options: SyncOptions = {}) {
     // Trigger embeddings sync and reload on recommendation server
     await triggerRecommendationRefresh();
 
+    syncStatus = "Completed";
     return {
       success: true,
       message: `Successfully completed ingest pipeline.`,
@@ -622,11 +589,16 @@ export async function runSync(options: SyncOptions = {}) {
     }
     // ─── Release the concurrency lock ───
     try {
-      await lockRef.set({
+      const updateData: any = {
         isActive: false,
         releasedAt: new Date().toISOString(),
         lastCompletedBy: "runSync",
-      });
+        status: syncStatus,
+      };
+      if (syncStatus === "Completed") {
+        updateData.lastSuccessAt = new Date().toISOString();
+      }
+      await lockRef.set(updateData, { merge: true });
       console.log("Sync lock released successfully.");
     } catch (releaseLockErr) {
       console.error("Failed to release sync lock:", releaseLockErr);

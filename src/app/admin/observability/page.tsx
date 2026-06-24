@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { db } from "@/lib/firebase";
+import { db, hasCredentials } from "@/lib/firebase";
 import { 
   collection, 
   onSnapshot, 
@@ -10,7 +10,8 @@ import {
   limit,
   where,
   getDocs,
-  getCountFromServer
+  getCountFromServer,
+  doc
 } from "firebase/firestore";
 import { 
   Activity, 
@@ -49,6 +50,27 @@ interface ScrapeLog {
 export default function ObservabilityDashboard() {
   const [logs, setLogs] = useState<ScrapeLog[]>([]);
   const [loading, setLoading] = useState(true);
+
+  // Real-time Sync Lock State
+  const [syncLock, setSyncLock] = useState<{
+    isActive?: boolean;
+    status?: string;
+    lockedAt?: string;
+    releasedAt?: string;
+    lastSuccessAt?: string;
+  } | null>(null);
+
+  useEffect(() => {
+    if (!hasCredentials) return;
+    const unsubscribeSync = onSnapshot(doc(db, "locks", "sync"), (docSnap) => {
+      if (docSnap.exists()) {
+        setSyncLock(docSnap.data() as any);
+      }
+    }, (err) => {
+      console.warn("Sync lock listener error:", err);
+    });
+    return () => unsubscribeSync();
+  }, []);
 
   const [activeTab, setActiveTab] = useState<"observability" | "analytics">("analytics");
   const [loadingAnalytics, setLoadingAnalytics] = useState(true);
@@ -216,6 +238,10 @@ export default function ObservabilityDashboard() {
 
   // Set up real-time listener for scrape logs
   useEffect(() => {
+    if (!hasCredentials) {
+      setLoading(false);
+      return;
+    }
     const q = query(
       collection(db, "scrape_logs"),
       orderBy("completedAt", "desc"),
@@ -334,6 +360,47 @@ export default function ObservabilityDashboard() {
           <span className="text-xs font-black tracking-widest text-emerald-400 uppercase">
             Live Listeners Active
           </span>
+        </div>
+      </div>
+
+      {/* ── Sync status banner in dashboard ── */}
+      <div className="mb-8 grid grid-cols-1 md:grid-cols-2 gap-4 bg-kairo-dark-gray/40 border border-kairo-gray/50 rounded-2xl p-4">
+        <div className="flex items-center gap-3">
+          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-kairo-primary border border-kairo-orange/10">
+            <RefreshCw className={cn(
+              "h-5 w-5",
+              syncLock?.isActive && "animate-spin text-kairo-orange"
+            )} />
+          </div>
+          <div>
+            <p className="text-[10px] font-bold text-kairo-light-gray uppercase tracking-widest">Global Sync Status</p>
+            <p className={cn(
+              "text-lg font-black uppercase tracking-wider",
+              syncLock?.isActive ? "text-kairo-orange animate-pulse" :
+              syncLock?.status === "Completed" ? "text-emerald-400" :
+              syncLock?.status === "Failed" ? "text-rose-400" : "text-kairo-light-gray"
+            )}>
+              {syncLock?.isActive ? "Syncing" : (syncLock?.status || "Idle")}
+            </p>
+          </div>
+        </div>
+        
+        <div className="flex items-center md:justify-end gap-3">
+          <div className="text-left md:text-right">
+            <p className="text-[10px] font-bold text-kairo-light-gray uppercase tracking-widest">Last Successful Sync</p>
+            <p className="text-sm font-extrabold text-kairo-white mt-0.5">
+              {syncLock?.lastSuccessAt 
+                ? new Date(syncLock.lastSuccessAt).toLocaleString("en-US", {
+                    month: "short",
+                    day: "numeric",
+                    hour: "2-digit",
+                    minute: "2-digit",
+                    second: "2-digit"
+                  })
+                : "Never"
+              }
+            </p>
+          </div>
         </div>
       </div>
 

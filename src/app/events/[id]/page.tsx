@@ -608,7 +608,8 @@ function EventDetailPageContent() {
             </div>
           ) : (
             <div className="flex h-[150px] flex-col items-center justify-center rounded-none border border-kairo-orange/15 bg-kairo-dark-gray/10 p-6 text-center">
-              <p className="text-xs tracking-wider text-kairo-light-gray uppercase font-bold">No similar events found at the moment.</p>
+              <h3 className="mb-1 text-sm font-bold uppercase tracking-wider text-kairo-white">No events yet</h3>
+              <p className="text-xs text-kairo-light-gray font-light">Check back soon for new events.</p>
             </div>
           )}
         </motion.div>

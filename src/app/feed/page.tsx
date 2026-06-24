@@ -543,22 +543,24 @@ export default function FeedPage() {
         </>
       ) : (
         /* ── Empty State ── */
-        <div className="flex flex-col items-center justify-center py-24 text-center bg-kairo-dark-gray/10 rounded-none border border-kairo-orange/15 shadow-md">
+        <div className="flex flex-col items-center justify-center py-24 text-center bg-kairo-dark-gray/10 rounded-none border border-kairo-orange/15 shadow-md animate-in fade-in duration-500">
           <div className="mb-6 flex h-16 w-16 items-center justify-center rounded-none bg-kairo-primary border border-kairo-orange/20">
             <Compass className="h-6 w-6 text-kairo-orange" />
           </div>
           <h3 className="mb-2 text-xl font-serif uppercase tracking-wider text-kairo-white">
-            No events found
+            No events yet
           </h3>
           <p className="mb-8 max-w-sm text-kairo-light-gray text-xs font-light tracking-wide leading-relaxed">
-            We couldn&apos;t find any events matching your filters. Try adjusting your search or resetting filters.
+            Check back soon for new events.
           </p>
-          <button
-            onClick={clearFilters}
-            className="inline-flex items-center gap-2 bg-kairo-orange text-kairo-primary px-8 py-4 text-xs font-bold uppercase tracking-[0.25em] transition-all hover:scale-105 rounded-none cursor-pointer border border-kairo-orange"
-          >
-            Reset Filters
-          </button>
+          {hasActiveFilters && (
+            <button
+              onClick={clearFilters}
+              className="inline-flex items-center gap-2 bg-kairo-orange text-kairo-primary px-8 py-4 text-xs font-bold uppercase tracking-[0.25em] transition-all hover:scale-105 rounded-none cursor-pointer border border-kairo-orange"
+            >
+              Reset Filters
+            </button>
+          )}
         </div>
       )}
     </div>

@@ -196,7 +196,8 @@ export default function ObservabilityDashboard() {
   useEffect(() => {
     const fetchRecommenderStats = async () => {
       try {
-        const res = await fetch("http://localhost:8000/health");
+        const apiBase = process.env.NEXT_PUBLIC_RECOMMENDATION_API_URL || "http://localhost:8000";
+        const res = await fetch(`${apiBase}/health`);
         if (res.ok) {
           const data = await res.json();
           setRecommendationStats(data);

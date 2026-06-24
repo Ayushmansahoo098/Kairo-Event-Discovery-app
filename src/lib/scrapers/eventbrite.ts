@@ -1,5 +1,5 @@
 import { Category, Event } from "../types";
-import { cleanupExpiredEvents } from "./normalize";
+import { cleanupExpiredEvents, classifyCategory, getCategoryBanner, validateAndNormalizeCity } from "./normalize";
 import { adminDb } from "../firebase-admin";
 
 const EVENTBRITE_TOKEN = "RML67REZA27DEFDI7GTH";
@@ -30,7 +30,7 @@ export async function syncEventbriteEvents({ writeToDb = true }: { writeToDb?: b
 
   try {
     const searchQueries = [
-      { query: "conferences", category: "workshop" as Category },
+      { query: "conferences", category: "conference" as Category },
       { query: "startup events", category: "startup" as Category },
       { query: "webinars", category: "workshop" as Category },
       { query: "hackathon", category: "hackathon" as Category },
@@ -98,40 +98,37 @@ export async function syncEventbriteEvents({ writeToDb = true }: { writeToDb?: b
             }
           }
 
-          // Fallback image formats
-          if (!bannerImage) {
-            if (item.category === "startup") {
-              bannerImage = "/images/startup.png";
-            } else {
-              bannerImage = "/images/workshop.png";
-            }
-          }
-
           // Resolve city name
           let city = "Online";
           if (!raw.is_online_event && raw.locations && raw.locations.length > 0) {
             const locationItem = raw.locations.find(
               (l) => l.type === "locality" || l.type === "region" || l.type === "country"
             );
-            city = locationItem ? locationItem.name : "Bangalore";
+            city = validateAndNormalizeCity(locationItem ? locationItem.name : "Bangalore", false);
+          } else {
+            city = "Online";
           }
 
           const date = raw.start_date || new Date().toISOString().split("T")[0];
           
+          const tags = raw.tags?.slice(0, 4).map((t) => t.display_name.toLowerCase()) || [item.query];
+          const category = classifyCategory(raw.name, raw.summary || "", tags, item.category);
+          const finalBannerImage = getCategoryBanner(category, bannerImage);
+
           const mappedEvent: Event = {
             id: `eb-${raw.id}`,
             title: raw.name,
             description: raw.summary || "No description provided.",
-            bannerImage: bannerImage,
+            bannerImage: finalBannerImage,
             date: date,
             time: raw.start_time || "09:00 AM",
             location: raw.is_online_event ? "Online Event" : city,
             city: city,
             isOnline: raw.is_online_event,
-            category: item.category,
+            category: category,
             organizer: "Eventbrite Organizer",
             registrationUrl: raw.url,
-            tags: raw.tags?.slice(0, 4).map((t) => t.display_name.toLowerCase()) || [item.query],
+            tags: tags,
             isTrending: false,
             source: "Eventbrite",
             expiresAt: date,

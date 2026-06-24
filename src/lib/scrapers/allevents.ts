@@ -9,12 +9,15 @@ const CITIES = [
   { original: "mumbai", slug: "mumbai" },
   { original: "delhi-ncr", slug: "new-delhi" },
   { original: "hyderabad", slug: "hyderabad" },
-  { original: "pune", slug: "pune" },
+  { original: "pune", slug: "pune-in" },
 ];
 
 const CATEGORIES = ["concerts", "comedy-shows", "food-drinks", "parties"];
 
-function fetchHtml(url: string): Promise<{ status: number; html: string }> {
+function fetchHtml(url: string, redirectCount = 0): Promise<{ status: number; html: string }> {
+  if (redirectCount > 5) {
+    return Promise.reject(new Error("Too many redirects"));
+  }
   return new Promise((resolve, reject) => {
     https.get(url, {
       headers: {
@@ -22,9 +25,17 @@ function fetchHtml(url: string): Promise<{ status: number; html: string }> {
         "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8",
       }
     }, (res) => {
+      const status = res.statusCode || 500;
+      if (status >= 300 && status < 400 && res.headers.location) {
+        const nextUrl = res.headers.location.startsWith("http") 
+          ? res.headers.location 
+          : new URL(res.headers.location, url).toString();
+        resolve(fetchHtml(nextUrl, redirectCount + 1));
+        return;
+      }
       let data = "";
       res.on("data", chunk => data += chunk);
-      res.on("end", () => resolve({ status: res.statusCode || 500, html: data }));
+      res.on("end", () => resolve({ status, html: data }));
     }).on("error", reject);
   });
 }

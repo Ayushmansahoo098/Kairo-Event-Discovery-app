@@ -118,7 +118,16 @@ export async function syncUnstopEvents({
           ) {
             dateText = line;
           } else if (lower.includes(",") && line.length < 35) {
-            locationText = line;
+            const excludes = [
+              "student", "mba", "engineering", "undergrad", "graduate", "college", 
+              "school", "team", "individual", "member", "free", "registration", 
+              "prize", "reward", "inr", "usd", "starts", "ends", "left", "day", 
+              "hour", "open to", "eligibility", "eligible", "register", "apply",
+              "fee", "deadline"
+            ];
+            if (!excludes.some(e => lower.includes(e))) {
+              locationText = line;
+            }
           }
         });
 

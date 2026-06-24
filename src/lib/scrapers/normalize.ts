@@ -1,6 +1,144 @@
 import { Category, Event } from "../../lib/types";
 import { adminDb } from "../firebase-admin";
 
+/**
+ * Classifies an event dynamically into one of the 13 supported categories.
+ */
+export function classifyCategory(
+  title: string,
+  description = "",
+  tags: string[] = [],
+  defaultCat: Category = "meetup"
+): Category {
+  const combined = `${title} ${description} ${tags.join(" ")}`.toLowerCase();
+
+  if (
+    combined.includes("ai") ||
+    combined.includes("artificial intelligence") ||
+    combined.includes("machine learning") ||
+    combined.includes(" ml ") ||
+    combined.includes("ml-") ||
+    combined.includes("deep learning") ||
+    combined.includes("llm") ||
+    combined.includes("neural network") ||
+    combined.includes("nlp") ||
+    combined.includes("generative ai") ||
+    combined.includes("genai")
+  ) {
+    return "ai-ml";
+  }
+  if (
+    combined.includes("gaming") ||
+    combined.includes("esports") ||
+    combined.includes("game dev") ||
+    combined.includes("lan party") ||
+    combined.includes("board game")
+  ) {
+    return "gaming";
+  }
+  if (
+    combined.includes("comedy") ||
+    combined.includes("standup") ||
+    combined.includes("stand-up") ||
+    combined.includes("roast show") ||
+    combined.includes("improv")
+  ) {
+    return "comedy";
+  }
+  if (
+    combined.includes("food festival") ||
+    combined.includes("food and drink") ||
+    combined.includes("food & drink") ||
+    combined.includes("culinary") ||
+    combined.includes("beer fest") ||
+    combined.includes("wine tasting") ||
+    combined.includes("brunch") ||
+    combined.includes("dinner")
+  ) {
+    return "food-festival";
+  }
+  if (
+    combined.includes("party") ||
+    combined.includes("parties") ||
+    combined.includes("nightlife") ||
+    combined.includes("clubbing") ||
+    combined.includes("dance fest") ||
+    combined.includes("dj night")
+  ) {
+    return "party";
+  }
+  if (
+    combined.includes("hackathon") ||
+    combined.includes("buildathon") ||
+    combined.includes("coding challenge") ||
+    combined.includes("hacks")
+  ) {
+    return "hackathon";
+  }
+  if (
+    combined.includes("workshop") ||
+    combined.includes("bootcamp") ||
+    combined.includes("masterclass") ||
+    combined.includes("hands-on") ||
+    combined.includes("tutorial")
+  ) {
+    return "workshop";
+  }
+  if (
+    combined.includes("startup") ||
+    combined.includes("founder") ||
+    combined.includes(" pitch") ||
+    combined.includes("venture") ||
+    combined.includes("incubator") ||
+    combined.includes("accelerator") ||
+    combined.includes("demoday") ||
+    combined.includes("demo day")
+  ) {
+    return "startup";
+  }
+  if (
+    combined.includes("conference") ||
+    combined.includes("seminar") ||
+    combined.includes("summit") ||
+    combined.includes("symposium")
+  ) {
+    return "conference";
+  }
+  if (
+    combined.includes("concert") ||
+    combined.includes("music show") ||
+    combined.includes("gig ") ||
+    combined.includes("live band") ||
+    combined.includes("musical")
+  ) {
+    return "concert";
+  }
+  if (
+    combined.includes("networking") ||
+    combined.includes("mixer") ||
+    combined.includes("meet and greet") ||
+    combined.includes("meet & greet") ||
+    combined.includes("happy hour") ||
+    combined.includes("social gathering")
+  ) {
+    return "networking";
+  }
+  if (
+    combined.includes("tech talk") ||
+    combined.includes("panel discussion") ||
+    combined.includes("keynote") ||
+    combined.includes(" fireside") ||
+    combined.includes("speaker session")
+  ) {
+    return "tech-talk";
+  }
+  if (combined.includes("meetup") || combined.includes("meet-up")) {
+    return "meetup";
+  }
+
+  return defaultCat;
+}
+
 
 export interface RawScrapedHackathon {
   title: string;
@@ -149,10 +287,30 @@ export function normalizeDate(dateText?: string): string {
  */
 export function getCategoryBanner(category: string, image?: string): string {
   if (image && image.startsWith("http")) return image;
-  if (category === "startup") return "/images/startup.png";
-  if (category === "workshop") return "/images/workshop.png";
-  if (category === "meetup") return "/images/meetup.png";
-  return "/images/hackathon.png";
+  
+  switch (category) {
+    case "startup":
+      return "/images/startup.png";
+    case "workshop":
+    case "conference":
+    case "tech-talk":
+      return "/images/workshop.png";
+    case "meetup":
+    case "networking":
+      return "/images/meetup.png";
+    case "gaming":
+      return "/images/gaming.png";
+    case "concert":
+    case "comedy":
+      return "/images/concert.png";
+    case "party":
+    case "food-festival":
+      return "/images/festival.png";
+    case "hackathon":
+    case "ai-ml":
+    default:
+      return "/images/hackathon.png";
+  }
 }
 
 /**
@@ -181,7 +339,7 @@ export function normalizeHackathon(raw: RawScrapedHackathon): Event & { lastUpda
                    raw.locationText.toLowerCase().includes("online") || 
                    raw.locationText.toLowerCase().includes("virtual");
                    
-  const city = isOnline ? "Online" : (raw.locationText?.split(",")[0].trim() || "Bangalore");
+  const city = validateAndNormalizeCity(isOnline ? "Online" : (raw.locationText?.split(",")[0].trim() || "Bangalore"), isOnline);
 
   return {
     id,
@@ -193,7 +351,7 @@ export function normalizeHackathon(raw: RawScrapedHackathon): Event & { lastUpda
     location: raw.locationText?.trim() || "Online Event",
     city,
     isOnline,
-    category: "hackathon" as Category,
+    category: classifyCategory(raw.title, "", raw.tags || [], "hackathon"),
     organizer: raw.organizer?.trim() || "Devfolio Community",
     registrationUrl: raw.url,
     tags: raw.tags && raw.tags.length > 0 
@@ -229,19 +387,10 @@ export function normalizeUnstopEvent(raw: RawScrapedUnstopEvent): Event & { last
                    raw.locationText.toLowerCase().includes("online") || 
                    raw.locationText.toLowerCase().includes("virtual");
 
-  const city = isOnline ? "Online" : (raw.locationText?.split(",")[0].trim() || "Delhi");
+  const city = validateAndNormalizeCity(isOnline ? "Online" : (raw.locationText?.split(",")[0].trim() || "Delhi"), isOnline);
   
-  // Parse eventType categories dynamically
-  let category: Category = "hackathon";
   const typeStr = (raw.eventType || "").toLowerCase();
-  if (typeStr.includes("workshop")) {
-    category = "workshop";
-  } else if (typeStr.includes("startup") || typeStr.includes("pitch")) {
-    category = "startup";
-  } else if (typeStr.includes("conference") || typeStr.includes("seminar")) {
-    category = "workshop";
-  }
-
+  const category = classifyCategory(raw.title, typeStr, raw.tags || [], "hackathon");
   const expiresAt = normalizeDate(raw.dateText);
 
   return {
@@ -299,20 +448,10 @@ export function normalizeHackerEarthEvent(raw: RawScrapedHackerEarthEvent): Even
                    raw.locationText.toLowerCase().includes("online") || 
                    raw.locationText.toLowerCase().includes("virtual");
 
-  const city = isOnline ? "Online" : (raw.locationText?.split(",")[0].trim() || "Bangalore");
+  const city = validateAndNormalizeCity(isOnline ? "Online" : (raw.locationText?.split(",")[0].trim() || "Bangalore"), isOnline);
   
-  let category: Category = "hackathon";
   const typeStr = (raw.eventType || "").toLowerCase();
-  if (typeStr.includes("workshop") || typeStr.includes("webinar") || typeStr.includes("seminar")) {
-    category = "workshop";
-  } else if (typeStr.includes("startup") || typeStr.includes("pitch") || typeStr.includes("entrepreneurship")) {
-    category = "startup";
-  } else if (typeStr.includes("hiring") || typeStr.includes("job") || typeStr.includes("placement")) {
-    category = "startup";
-  } else if (typeStr.includes("meetup")) {
-    category = "meetup";
-  }
-
+  const category = classifyCategory(raw.title, typeStr, raw.tags || [], "hackathon");
   const expiresAt = normalizeDate(raw.dateText);
   const bannerImage = getCategoryBanner(category, raw.bannerImage);
 
@@ -365,7 +504,7 @@ export function normalizeMLHEvent(raw: RawScrapedMLHEvent): Event & { lastUpdate
                    raw.location.toLowerCase().includes("digital") || 
                    raw.location.toLowerCase().includes("virtual");
 
-  const city = isOnline ? "Online" : (raw.location?.split(",")[0].trim() || "Worldwide");
+  const city = validateAndNormalizeCity(isOnline ? "Online" : (raw.location?.split(",")[0].trim() || "Worldwide"), isOnline);
   const date = raw.startDate ? raw.startDate.split("T")[0] : new Date().toISOString().split("T")[0];
   const expiresAt = raw.endDate ? raw.endDate.split("T")[0] : date;
 
@@ -379,7 +518,7 @@ export function normalizeMLHEvent(raw: RawScrapedMLHEvent): Event & { lastUpdate
     location: raw.location?.trim() || "Online Event",
     city,
     isOnline,
-    category: "hackathon" as Category,
+    category: classifyCategory(raw.title, "", raw.tags || [], "hackathon"),
     organizer: "Major League Hacking",
     registrationUrl: raw.url,
     tags: raw.tags && raw.tags.length > 0 
@@ -414,15 +553,9 @@ export function normalizeGDGEvent(raw: RawScrapedGDGEvent): Event & { lastUpdate
                    raw.locationText.toLowerCase().includes("online") || 
                    raw.locationText.toLowerCase().includes("virtual");
 
-  const city = isOnline ? "Online" : (raw.city || raw.locationText?.split(",")[0].trim() || "Bangalore");
+  const city = validateAndNormalizeCity(isOnline ? "Online" : (raw.city || raw.locationText?.split(",")[0].trim() || "Bangalore"), isOnline);
   
-  let category: Category = "meetup";
-  const titleLower = raw.title.toLowerCase();
-  if (titleLower.includes("workshop") || titleLower.includes("bootcamp") || titleLower.includes("hands-on")) {
-    category = "workshop";
-  } else if (titleLower.includes("conference") || titleLower.includes("summit") || titleLower.includes("io extended")) {
-    category = "workshop";
-  }
+  const category = classifyCategory(raw.title, raw.description || "", raw.tags || [], "meetup");
 
   const date = normalizeDate(raw.dateText);
 
@@ -471,21 +604,9 @@ export function normalizeLumaEvent(raw: RawScrapedLumaEvent): Event & { lastUpda
                    raw.location.toLowerCase().includes("online") || 
                    raw.location.toLowerCase().includes("virtual");
 
-  const city = isOnline ? "Online" : (raw.city || raw.location?.split(",")[0].trim() || "Bangalore");
+  const city = validateAndNormalizeCity(isOnline ? "Online" : (raw.city || raw.location?.split(",")[0].trim() || "Bangalore"), isOnline);
 
-  let category: Category = "meetup";
-  const titleLower = raw.title.toLowerCase();
-  const descLower = (raw.description || "").toLowerCase();
-  
-  if (titleLower.includes("hackathon") || descLower.includes("hackathon")) {
-    category = "hackathon";
-  } else if (titleLower.includes("workshop") || titleLower.includes("bootcamp") || descLower.includes("workshop")) {
-    category = "workshop";
-  } else if (titleLower.includes("startup") || titleLower.includes("pitch") || titleLower.includes("founder") || descLower.includes("startup") || descLower.includes("founder")) {
-    category = "startup";
-  } else if (titleLower.includes("conference") || titleLower.includes("summit")) {
-    category = "workshop";
-  }
+  const category = classifyCategory(raw.title, raw.description || "", raw.tags || [], "meetup");
 
   const date = raw.date ? raw.date.split("T")[0] : new Date().toISOString().split("T")[0];
 
@@ -597,21 +718,22 @@ export function normalizeBMSEvent(raw: RawScrapedBMSEvent): Event & { lastUpdate
                    raw.venue.toLowerCase().includes("online") || 
                    raw.venue.toLowerCase().includes("virtual");
 
-  const city = isOnline ? "Online" : (raw.city.charAt(0).toUpperCase() + raw.city.slice(1).toLowerCase());
+  const city = validateAndNormalizeCity(isOnline ? "Online" : (raw.city.charAt(0).toUpperCase() + raw.city.slice(1).toLowerCase()), isOnline);
   
-  let category: Category = "workshop";
+  let defaultCat: Category = "workshop";
   const catLower = (raw.categoryText || "").toLowerCase();
-  if (catLower.includes("workshop") || catLower.includes("exhibition") || catLower.includes("conference")) {
-    category = "workshop";
-  } else if (catLower.includes("music") || catLower.includes("concert")) {
-    category = "concert";
+  if (catLower.includes("music") || catLower.includes("concert")) {
+    defaultCat = "concert";
   } else if (catLower.includes("comedy") || catLower.includes("roast") || catLower.includes("play") || catLower.includes("performance") || catLower.includes("theatre")) {
-    category = "festival";
-  } else if (catLower.includes("meetup") || catLower.includes("talk") || catLower.includes("storytelling") || catLower.includes("spoken word")) {
-    category = "meetup";
+    defaultCat = "comedy";
   } else if (catLower.includes("gaming") || catLower.includes("esports")) {
-    category = "gaming";
+    defaultCat = "gaming";
+  } else if (catLower.includes("conference") || catLower.includes("exhibition")) {
+    defaultCat = "conference";
+  } else if (catLower.includes("meetup") || catLower.includes("talk")) {
+    defaultCat = "meetup";
   }
+  const category = classifyCategory(raw.title, `Category: ${raw.categoryText || "Event"}. Venue: ${raw.venue || "Local Venue"}.`, [], defaultCat);
 
   const date = parseBMSWatermarkDate(raw.watermarkDateText);
   const cleanImage = cleanBMSImageUrl(raw.bannerImage);
@@ -695,19 +817,22 @@ export function normalizeAllEventsEvent(raw: any, categoryText: string, searchCi
   const isOnline = raw.eventAttendanceMode === "https://schema.org/OnlineEventAttendanceMode" || 
                    raw.location?.name?.toLowerCase().includes("online");
 
-  const city = isOnline ? "Online" : (raw.location?.address?.addressLocality || searchCity.charAt(0).toUpperCase() + searchCity.slice(1).toLowerCase());
+  const city = validateAndNormalizeCity(isOnline ? "Online" : (raw.location?.address?.addressLocality || searchCity.charAt(0).toUpperCase() + searchCity.slice(1).toLowerCase()), isOnline);
   
-  let category: Category = "meetup";
+  let defaultCat: Category = "meetup";
   const catLower = categoryText.toLowerCase();
   if (catLower.includes("concert")) {
-    category = "concert";
+    defaultCat = "concert";
   } else if (catLower.includes("comedy")) {
-    category = "festival";
+    defaultCat = "comedy";
   } else if (catLower.includes("food")) {
-    category = "meetup";
+    defaultCat = "food-festival";
   } else if (catLower.includes("part")) {
-    category = "festival"; // "parties" -> festival
+    defaultCat = "party";
   }
+  const cleanImage = raw.image || "";
+  const desc = `Join "${name}" in ${city}! ${raw.description ? raw.description.substring(0, 150) + "..." : ""} Check out AllEvents.in for more details and tickets.`;
+  const category = classifyCategory(name, desc, [], defaultCat);
 
   // startDate is usually ISO string "2026-06-05T19:00:00" or similar
   let date = new Date().toISOString().split("T")[0];
@@ -730,8 +855,6 @@ export function normalizeAllEventsEvent(raw: any, categoryText: string, searchCi
     }
   }
 
-  const cleanImage = raw.image || "";
-  const desc = `Join "${name}" in ${city}! ${raw.description ? raw.description.substring(0, 150) + "..." : ""} Check out AllEvents.in for more details and tickets.`;
 
   return {
     id,
@@ -753,4 +876,30 @@ export function normalizeAllEventsEvent(raw: any, categoryText: string, searchCi
     expiresAt: date,
     lastUpdated: new Date().toISOString(),
   };
+}
+
+/**
+ * Validates a parsed city against the allowed list of cities:
+ * 'Bengaluru', 'Mumbai', 'Delhi', 'Hyderabad', 'Pune', 'Online'.
+ * Normalizes synonyms and abbreviations.
+ */
+export function validateAndNormalizeCity(city?: string, isOnline = false): string {
+  const allowed = ["Bengaluru", "Mumbai", "Delhi", "Hyderabad", "Pune", "Online"];
+  if (isOnline) return "Online";
+  if (!city) return "Online";
+
+  const c = city.trim();
+  const lower = c.toLowerCase();
+
+  if (lower.includes("bengaluru") || lower.includes("bangalore")) return "Bengaluru";
+  if (lower.includes("mumbai") || lower.includes("bombay")) return "Mumbai";
+  if (lower.includes("delhi") || lower.includes("ncr") || lower.includes("noida") || lower.includes("gurgaon")) return "Delhi";
+  if (lower.includes("hyderabad")) return "Hyderabad";
+  if (lower.includes("pune")) return "Pune";
+
+  const matched = allowed.find(a => a.toLowerCase() === lower);
+  if (matched) return matched;
+
+  // Default invalid/unsupported offline locations to Online as a safe fallback
+  return "Online";
 }

@@ -1,7 +1,7 @@
 import { chromium, Browser } from "playwright";
 import { adminDb } from "../firebase-admin";
 import { Event, Category } from "../types";
-import { getCategoryBanner, normalizeDate } from "./normalize";
+import { getCategoryBanner, normalizeDate, classifyCategory, validateAndNormalizeCity } from "./normalize";
 
 export interface RawScrapedMeetupEvent {
   title: string;
@@ -69,25 +69,39 @@ export function normalizeMeetupEvent(raw: RawScrapedMeetupEvent): Event & { last
                    raw.locationText.toLowerCase().includes("online") || 
                    raw.locationText.toLowerCase().includes("virtual");
 
-  const city = isOnline ? "Online" : (raw.locationText?.split(",")[0].trim() || "Bangalore");
-  
-  let category: Category = "meetup";
-  const titleLower = raw.title.toLowerCase();
-  const descLower = (raw.description || "").toLowerCase();
-  if (
-    titleLower.includes("startup") || 
-    titleLower.includes("pitch") || 
-    titleLower.includes("founder") ||
-    titleLower.includes("vc") ||
-    descLower.includes("startup") ||
-    descLower.includes("pitch")
-  ) {
-    category = "startup";
-  } else if (titleLower.includes("workshop") || titleLower.includes("bootcamp") || titleLower.includes("learn") || titleLower.includes("class")) {
-    category = "workshop";
-  } else if (titleLower.includes("hackathon")) {
-    category = "hackathon";
+  let parsedCity = "Bangalore";
+  if (isOnline) {
+    parsedCity = "Online";
+  } else if (raw.locationText) {
+    const locLower = raw.locationText.toLowerCase();
+    if (locLower.includes("bengaluru") || locLower.includes("bangalore")) {
+      parsedCity = "Bengaluru";
+    } else if (locLower.includes("mumbai") || locLower.includes("bombay")) {
+      parsedCity = "Mumbai";
+    } else if (locLower.includes("delhi") || locLower.includes("ncr") || locLower.includes("noida") || locLower.includes("gurgaon")) {
+      parsedCity = "Delhi";
+    } else if (locLower.includes("hyderabad")) {
+      parsedCity = "Hyderabad";
+    } else if (locLower.includes("pune")) {
+      parsedCity = "Pune";
+    } else {
+      const parts = raw.locationText.split(",").map(p => p.trim()).filter(Boolean);
+      if (parts.length > 1) {
+        const last = parts[parts.length - 1];
+        if (last.toLowerCase() === "india" && parts.length > 2) {
+          parsedCity = parts[parts.length - 2];
+        } else {
+          parsedCity = last;
+        }
+      } else {
+        parsedCity = parts[0] || "Bangalore";
+      }
+    }
   }
+
+  const city = validateAndNormalizeCity(parsedCity, isOnline);
+  
+  const category = classifyCategory(raw.title, raw.description || "", [], "meetup");
 
   const cleanedDate = cleanMeetupDateText(raw.dateText);
   const date = normalizeDate(cleanedDate);
@@ -205,8 +219,23 @@ export async function syncMeetupEvents({
             lower.includes("tomorrow")
           ) {
             dateText = line;
-          } else if (lower.includes(",") && line.length < 40) {
-            locationText = line;
+          } else {
+            const hasExclude = [
+              "hosted by", "by ", "attendees", "going", "members", "free", 
+              "ticket", "interested", "group", "public"
+            ].some(e => lower.includes(e));
+            
+            const hasLocationSignifiers = [
+              "bengaluru", "bangalore", "mumbai", "delhi", "hyderabad", "pune", 
+              "noida", "gurgaon", "wework", "office", "hall", "street", "road", 
+              "building", "space", "floor", "hub", "center", "lounge", "room", 
+              "cafe", "campus", "hotel", "house", "studio", "ground", "arena", 
+              "plaza", "avenue", ","
+            ].some(k => lower.includes(k));
+            
+            if (!hasExclude && hasLocationSignifiers && line.length < 45) {
+              locationText = line;
+            }
           }
         });
 

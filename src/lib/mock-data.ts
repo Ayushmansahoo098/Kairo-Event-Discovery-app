@@ -178,7 +178,7 @@ export const staticEvents: Event[] = [
     location: "Mahalaxmi Lawns, Kharadi",
     city: "Pune",
     isOnline: false,
-    category: "festival",
+    category: "concert",
     organizer: "OML Entertainment",
     registrationUrl: "https://nh7.in/weekender",
     tags: ["music-festival", "multi-genre", "outdoor", "camping"],
@@ -195,7 +195,7 @@ export const staticEvents: Event[] = [
     location: "HITEX Exhibition Centre",
     city: "Hyderabad",
     isOnline: false,
-    category: "festival",
+    category: "gaming",
     organizer: "Comic Con India",
     registrationUrl: "https://comicconindia.com/hyderabad",
     tags: ["pop-culture", "cosplay", "comics", "fandom"],
@@ -212,7 +212,7 @@ export const staticEvents: Event[] = [
     location: "Palace Grounds, Sadashivanagar",
     city: "Bangalore",
     isOnline: false,
-    category: "festival",
+    category: "conference",
     organizer: "Govt. of Karnataka IT/BT Dept.",
     registrationUrl: "https://bengalurutechsummit.com",
     tags: ["deep-tech", "startup", "policy", "exhibition"],
@@ -383,14 +383,22 @@ export const staticEvents: Event[] = [
 export const events: Event[] = staticEvents;
 
 export const categories: CategoryInfo[] = [
-  { id: "hackathon", name: "Hackathons", icon: "Code", color: "text-violet-500", count: 3 },
-  { id: "workshop", name: "Workshops", icon: "GraduationCap", color: "text-blue-500", count: 3 },
-  { id: "concert", name: "Concerts", icon: "Music", color: "text-pink-500", count: 3 },
-  { id: "festival", name: "Festivals", icon: "PartyPopper", color: "text-amber-500", count: 3 },
+  { id: "hackathon", name: "Hackathons", icon: "Code2", color: "text-violet-500", count: 3 },
+  { id: "workshop", name: "Workshops", icon: "BookOpen", color: "text-blue-500", count: 3 },
   { id: "meetup", name: "Meetups", icon: "Users", color: "text-green-500", count: 3 },
-  { id: "gaming", name: "Gaming", icon: "Gamepad2", color: "text-red-500", count: 3 },
-  { id: "startup", name: "Startups", icon: "Rocket", color: "text-cyan-500", count: 3 },
+  { id: "startup", name: "Startup Events", icon: "Rocket", color: "text-cyan-500", count: 3 },
+  { id: "conference", name: "Conferences", icon: "Presentation", color: "text-indigo-500", count: 3 },
+  { id: "concert", name: "Concerts", icon: "Music", color: "text-pink-500", count: 3 },
+  { id: "comedy", name: "Comedy Shows", icon: "Laugh", color: "text-amber-500", count: 3 },
+  { id: "food-festival", name: "Food Festivals", icon: "Utensils", color: "text-red-500", count: 3 },
+  { id: "party", name: "Parties", icon: "Sparkles", color: "text-yellow-500", count: 3 },
+  { id: "networking", name: "Networking Events", icon: "Share2", color: "text-teal-500", count: 3 },
+  { id: "tech-talk", name: "Tech Talks", icon: "MessageSquare", color: "text-purple-500", count: 3 },
+  { id: "ai-ml", name: "AI/ML Events", icon: "Brain", color: "text-emerald-500", count: 3 },
+  { id: "gaming", name: "Gaming Events", icon: "Gamepad2", color: "text-rose-500", count: 3 },
 ];
+
+const isProduction = process.env.NODE_ENV === "production" || process.env.NEXT_PUBLIC_VERCEL_ENV === "production";
 
 /**
  * Helper to check if client Firestore config is loaded and valid.
@@ -405,7 +413,7 @@ function isFirebaseConfigured(): boolean {
 export async function getEvents(): Promise<Event[]> {
   let list: Event[] = [];
   if (!isFirebaseConfigured()) {
-    list = staticEvents;
+    list = isProduction ? [] : staticEvents;
   } else {
     try {
       const querySnapshot = await getDocs(collection(db, "events"));
@@ -442,7 +450,7 @@ export async function getEvents(): Promise<Event[]> {
  */
 export async function getEventById(id: string): Promise<Event | undefined> {
   if (!isFirebaseConfigured()) {
-    return staticEvents.find((e) => e.id === id);
+    return isProduction ? undefined : staticEvents.find((e) => e.id === id);
   }
   try {
     const docSnap = await getDoc(doc(db, "events", id));
@@ -469,7 +477,7 @@ export async function getEventsByCategory(category: Category): Promise<Event[]> 
     return all.filter((e) => e.category === category);
   } catch (error) {
     console.error("getEventsByCategory error, falling back:", error);
-    return staticEvents.filter((e) => e.category === category);
+    return isProduction ? [] : staticEvents.filter((e) => e.category === category);
   }
 }
 
@@ -482,7 +490,7 @@ export async function getTrendingEvents(): Promise<Event[]> {
     return all.filter((e) => e.isTrending);
   } catch (error) {
     console.error("getTrendingEvents error, falling back:", error);
-    return staticEvents.filter((e) => e.isTrending);
+    return isProduction ? [] : staticEvents.filter((e) => e.isTrending);
   }
 }
 
@@ -495,7 +503,7 @@ export async function getEventsByCity(city: string): Promise<Event[]> {
     return all.filter((e) => e.city.toLowerCase() === city.toLowerCase());
   } catch (error) {
     console.error("Firestore getEventsByCity error, falling back:", error);
-    return staticEvents.filter((e) => e.city.toLowerCase() === city.toLowerCase());
+    return isProduction ? [] : staticEvents.filter((e) => e.city.toLowerCase() === city.toLowerCase());
   }
 }
 

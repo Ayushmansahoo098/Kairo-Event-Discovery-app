@@ -3,7 +3,7 @@
 import { CategoryInfo } from "@/lib/types";
 import { categories } from "@/lib/mock-data";
 import { cn } from "@/lib/utils";
-import { Code2, BookOpen, Music, PartyPopper, Users, Gamepad2, Rocket, LayoutGrid } from "lucide-react";
+import { Code2, BookOpen, Users, Rocket, Presentation, Music, Laugh, Utensils, Sparkles, Share2, MessageSquare, Brain, Gamepad2, LayoutGrid } from "lucide-react";
 import { motion } from "framer-motion";
 
 interface CategoryFilterProps {
@@ -14,11 +14,17 @@ interface CategoryFilterProps {
 const iconMap: Record<string, React.ReactNode> = {
   hackathon: <Code2 className="w-4 h-4" />,
   workshop: <BookOpen className="w-4 h-4" />,
-  concert: <Music className="w-4 h-4" />,
-  festival: <PartyPopper className="w-4 h-4" />,
   meetup: <Users className="w-4 h-4" />,
-  gaming: <Gamepad2 className="w-4 h-4" />,
   startup: <Rocket className="w-4 h-4" />,
+  conference: <Presentation className="w-4 h-4" />,
+  concert: <Music className="w-4 h-4" />,
+  comedy: <Laugh className="w-4 h-4" />,
+  "food-festival": <Utensils className="w-4 h-4" />,
+  party: <Sparkles className="w-4 h-4" />,
+  networking: <Share2 className="w-4 h-4" />,
+  "tech-talk": <MessageSquare className="w-4 h-4" />,
+  "ai-ml": <Brain className="w-4 h-4" />,
+  gaming: <Gamepad2 className="w-4 h-4" />,
 };
 
 export function CategoryFilter({ selectedCategory, onSelectCategory }: CategoryFilterProps) {

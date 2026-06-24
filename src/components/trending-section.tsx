@@ -32,10 +32,31 @@ export function TrendingSection({ onHoverEvent }: TrendingSectionProps) {
     target: containerRef,
     offset: ["start end", "end start"],
   });
-
-  // Fade section in as it scrolls into view
   const opacity = useTransform(scrollYProgress, [0, 0.2, 0.8, 1], [0, 1, 1, 0]);
   const y = useTransform(scrollYProgress, [0, 0.2], [100, 0]);
+
+  if (trendingEvents.length === 0) {
+    return (
+      <motion.section 
+        ref={containerRef}
+        style={{ opacity, y }}
+        className="py-32 relative bg-transparent border-y border-kairo-dark-gray/30 z-10"
+      >
+        <div className="max-w-7xl mx-auto px-6 sm:px-10 mb-12 flex items-center justify-between gap-4">
+          <h2 className="text-xl sm:text-3xl md:text-5xl font-serif font-light flex items-center gap-3 sm:gap-4 uppercase tracking-wide">
+            <Flame className="w-6 h-6 sm:w-8 sm:h-8 shrink-0 text-kairo-orange drop-shadow-[0_0_15px_var(--color-kairo-orange)]" />
+            <span className="text-kairo-white whitespace-nowrap">Trending Now</span>
+          </h2>
+        </div>
+        <div className="max-w-7xl mx-auto px-6 sm:px-10">
+          <div className="flex h-[200px] flex-col items-center justify-center rounded-none border border-kairo-orange/15 bg-kairo-dark-gray/10 p-6 text-center">
+            <h3 className="mb-1 text-sm font-bold uppercase tracking-wider text-kairo-white">No events yet</h3>
+            <p className="text-xs text-kairo-light-gray font-light">Check back soon for new events.</p>
+          </div>
+        </div>
+      </motion.section>
+    );
+  }
 
   return (
     <motion.section 

@@ -8,6 +8,8 @@ import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
 import { Logo } from "@/components/logo";
 import { useAuthContext } from "@/context/auth-context";
+import { db, hasCredentials } from "@/lib/firebase";
+import { doc, onSnapshot } from "firebase/firestore";
 
 const navItems = [
   { label: "Home", href: "/", icon: Home, num: "01" },
@@ -33,10 +35,66 @@ export function Navbar() {
     return () => { document.body.style.overflow = ""; };
   }, [menuOpen]);
 
+  // Real-time sync status hooks
+  const [isSyncing, setIsSyncing] = useState(false);
+  const [lastSuccessAt, setLastSuccessAt] = useState<string | null>(null);
+  const [syncStatusText, setSyncStatusText] = useState("");
+
+  useEffect(() => {
+    if (!hasCredentials) return;
+    const unsubscribe = onSnapshot(doc(db, "locks", "sync"), (docSnap) => {
+      if (docSnap.exists()) {
+        const data = docSnap.data();
+        setIsSyncing(!!data?.isActive);
+        setLastSuccessAt(data?.lastSuccessAt || null);
+      }
+    }, (err) => {
+      console.warn("Sync status listener error:", err);
+    });
+    return () => unsubscribe();
+  }, []);
+
+  useEffect(() => {
+    if (!lastSuccessAt) {
+      setSyncStatusText("never synced");
+      return;
+    }
+
+    const updateText = () => {
+      const diffMs = Date.now() - new Date(lastSuccessAt).getTime();
+      const diffSecs = Math.floor(diffMs / 1000);
+      const diffMins = Math.floor(diffSecs / 60);
+      const diffHours = Math.floor(diffMins / 60);
+      const diffDays = Math.floor(diffHours / 24);
+
+      if (diffSecs < 60) {
+        setSyncStatusText("just now");
+      } else if (diffMins < 60) {
+        setSyncStatusText(`${diffMins}m ago`);
+      } else if (diffHours < 24) {
+        setSyncStatusText(`${diffHours}h ago`);
+      } else {
+        setSyncStatusText(`${diffDays}d ago`);
+      }
+    };
+
+    updateText();
+    const interval = setInterval(updateText, 30000); // update every 30s
+    return () => clearInterval(interval);
+  }, [lastSuccessAt]);
+
   const profileHref = user ? "/profile" : "/login";
 
   return (
     <>
+      {/* ── Global Sync Banner ── */}
+      {isSyncing && (
+        <div className="fixed top-0 left-0 right-0 z-[70] bg-kairo-orange text-kairo-primary text-center py-2 px-4 text-[9px] font-black tracking-widest uppercase flex items-center justify-center gap-2 shadow-md h-8 select-none">
+          <span className="w-1.5 h-1.5 rounded-full bg-kairo-primary animate-ping"></span>
+          <span>Refreshing event catalog... Last successful sync: {syncStatusText}</span>
+        </div>
+      )}
+
       {/* ── Mobile Bottom Navigation ── */}
       <div className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-kairo-primary/90 backdrop-blur-xl border-t border-kairo-orange/10 pb-safe">
         <nav className="flex items-center justify-around px-4 py-3">
@@ -66,7 +124,10 @@ export function Navbar() {
       </div>
 
       {/* ── Desktop Top Bar ── */}
-      <div className="hidden md:block fixed top-0 left-0 right-0 z-[60] bg-kairo-primary/80 backdrop-blur-xl border-b border-kairo-orange/10">
+      <div className={cn(
+        "hidden md:block fixed left-0 right-0 z-[60] bg-kairo-primary/80 backdrop-blur-xl border-b border-kairo-orange/10 transition-all duration-300",
+        isSyncing ? "top-8" : "top-0"
+      )}>
         <div className="max-w-7xl mx-auto px-6">
           <nav className="flex items-center justify-between h-16">
             {/* Logo */}

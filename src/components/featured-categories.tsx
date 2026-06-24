@@ -2,16 +2,22 @@
 
 import { categories } from "@/lib/mock-data";
 import Link from "next/link";
-import { Code2, BookOpen, Music, PartyPopper, Users, Gamepad2, Rocket, ArrowRight } from "lucide-react";
+import { Code2, BookOpen, Users, Rocket, Presentation, Music, Laugh, Utensils, Sparkles, Share2, MessageSquare, Brain, Gamepad2, ArrowRight } from "lucide-react";
 
 const iconMap: Record<string, React.ReactNode> = {
   hackathon: <Code2 className="w-6 h-6" />,
   workshop: <BookOpen className="w-6 h-6" />,
-  concert: <Music className="w-6 h-6" />,
-  festival: <PartyPopper className="w-6 h-6" />,
   meetup: <Users className="w-6 h-6" />,
-  gaming: <Gamepad2 className="w-6 h-6" />,
   startup: <Rocket className="w-6 h-6" />,
+  conference: <Presentation className="w-6 h-6" />,
+  concert: <Music className="w-6 h-6" />,
+  comedy: <Laugh className="w-6 h-6" />,
+  "food-festival": <Utensils className="w-6 h-6" />,
+  party: <Sparkles className="w-6 h-6" />,
+  networking: <Share2 className="w-6 h-6" />,
+  "tech-talk": <MessageSquare className="w-6 h-6" />,
+  "ai-ml": <Brain className="w-6 h-6" />,
+  gaming: <Gamepad2 className="w-6 h-6" />,
 };
 
 export function FeaturedCategories() {

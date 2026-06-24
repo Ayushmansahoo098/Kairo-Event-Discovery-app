@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { ArrowRight, Sparkles, ChevronDown, X, Mail, Lock, Loader2 } from "lucide-react";
 import { motion, useScroll, useTransform, useSpring, Variants, AnimatePresence } from "framer-motion";
-import { getEvents, getCities } from "@/lib/mock-data";
+import { getEvents, getCities, categories } from "@/lib/mock-data";
 import Image from "next/image";
 
 import { useAuthContext } from "@/context/auth-context";
@@ -106,9 +106,9 @@ export function HeroSection() {
     const fetchStats = async () => {
       try {
         const [all, cities] = await Promise.all([getEvents(), getCities()]);
-        setStats({ events: all.length || 120, cities: cities.length || 12, categories: 8 });
+        setStats({ events: all.length || 120, cities: cities.length || 12, categories: categories.length });
       } catch {
-        setStats({ events: 120, cities: 12, categories: 8 });
+        setStats({ events: 120, cities: 12, categories: categories.length });
       }
     };
     fetchStats();

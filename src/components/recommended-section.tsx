@@ -104,7 +104,26 @@ export function RecommendedSection({ onHoverEvent }: RecommendedSectionProps) {
   }
 
   if (recommendedEvents.length === 0) {
-    return null; // Hide if no recommendations could be hydrated
+    return (
+      <motion.section 
+        ref={containerRef}
+        style={{ opacity, y }}
+        className="py-24 relative bg-transparent z-10"
+      >
+        <div className="max-w-7xl mx-auto px-6 sm:px-10 mb-10">
+          <h2 className="text-3xl md:text-5xl font-serif font-light flex items-center gap-4 uppercase tracking-wide">
+            <Sparkles className="w-8 h-8 text-kairo-orange drop-shadow-[0_0_15px_var(--color-kairo-orange)]" />
+            <span className="text-kairo-white">Recommended For You</span>
+          </h2>
+        </div>
+        <div className="max-w-7xl mx-auto px-6 sm:px-10">
+          <div className="flex h-[200px] flex-col items-center justify-center rounded-none border border-kairo-orange/15 bg-kairo-dark-gray/10 p-6 text-center">
+            <h3 className="mb-1 text-sm font-bold uppercase tracking-wider text-kairo-white">No events yet</h3>
+            <p className="text-xs text-kairo-light-gray font-light">Check back soon for new events.</p>
+          </div>
+        </div>
+      </motion.section>
+    );
   }
 
   return (

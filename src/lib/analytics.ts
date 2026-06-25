@@ -1,5 +1,6 @@
-import { db } from "@/lib/firebase";
+import { db, hasCredentials } from "@/lib/firebase";
 import { collection, addDoc, doc, updateDoc, increment, setDoc, getDoc } from "firebase/firestore";
+import { getRecommendationApiBase } from "@/lib/api-config";
 
 /**
  * Kairo — Enhanced User Interaction Analytics Engine
@@ -23,7 +24,12 @@ export type InteractionAction =
   | "recommendations_served"
   | "recommendation_click"
   | "recommendation_save"
-  | "recommendation_register";
+  | "recommendation_register"
+  | "chat_open"
+  | "chat_message_sent"
+  | "chat_suggestion_click"
+  | "chat_register_click"
+  | "chat_details_click";
 
 interface InteractionPayload {
   userId?: string;
@@ -43,6 +49,10 @@ interface InteractionPayload {
  * Runs entirely client-side using the Firebase Web SDK.
  */
 export async function logInteractionEvent(payload: InteractionPayload): Promise<void> {
+  if (!hasCredentials) {
+    // Firebase credentials are not loaded (common in local development), bypass logging silently
+    return;
+  }
   const { userId, eventId, action, category, source, tags, query, dwellTime, isRecommendation, recommendedEvents } = payload;
 
   // Map standard actions to recommendation-specific actions if flagged
@@ -158,7 +168,7 @@ export async function logInteractionEvent(payload: InteractionPayload): Promise<
 
     // 5. Invalidate user recommendations cache (fire-and-forget)
     if (userId && userId !== "anonymous") {
-      const apiBase = process.env.NEXT_PUBLIC_RECOMMENDATION_API_URL || "http://localhost:8000";
+      const apiBase = getRecommendationApiBase();
       void fetch(`${apiBase}/recommendations/invalidate?userId=${userId}`, {
         method: "POST"
       }).catch(() => {});

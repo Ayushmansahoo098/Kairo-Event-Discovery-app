@@ -77,6 +77,8 @@ Finding the right tech event means hopping across 5+ fragmented directories dail
 *   👥 **Centroid-Based Behavioral User Profiles**: Dynamically weights and combines user interactions from Firestore (Explicit Interests: 4.0, Searches: 2.0, Views: 3.0, Bookmarks: 7.0, Registrations: 10.0) into a user profile centroid vector within the TF-IDF feature space.
 *   ⚡ **Two-Tier Caching & Invalidation**: Accelerates recommendation loads with in-memory user profile centroid caching (30-minute TTL). Fires a completely non-blocking, fire-and-forget `POST /recommendations/invalidate` request on any user activity to keep listings fresh.
 *   🎯 **Four-Factor Scoring Formula**: Ranks recommendations via a weighted score combining TF-IDF Cosine Similarity (70%), Popularity (15%), Event Proximity/Recency (10%), and Location Match (5%).
+*   💬 **Kairo AI Event Assistant**: Floating glassmorphic chat drawer mounted globally and lazy-loaded dynamically to conserve client-side performance. Includes auto-focus inputs, double-submit protection, smooth scroll, and ChatGPT-style typing status animations.
+*   🛡️ **Connection-Safe Client Routing**: Integrates a Next.js runtime API rewrite proxy (`/api/recommendation-proxy/*`) to route chat/recommendation requests. Resolves CORS issues and avoids build-time environment variable compilation conflicts.
 
 
 ---
@@ -310,6 +312,9 @@ Kairo requires the FastAPI recommendation microservice to compute personalized e
    ```env
    NEXT_PUBLIC_RECOMMENDATION_API_URL=http://localhost:8000
    ```
+   > [!NOTE]
+   > **Production Deployments**: In production (e.g. on Render/Vercel), Kairo client calls are proxied dynamically via the relative path `/api/recommendation-proxy/*` to bypass CORS and avoid build-time inlining. You can configure the target URL dynamically in your deployment settings by setting the environment variable `RECOMMENDATION_API_URL` (or `NEXT_PUBLIC_RECOMMENDATION_API_URL`) at runtime without needing to rebuild the Next.js Docker image.
+
 
 ### 7. Run Scraper Integration Tests
 To test browser scraping anti-bot evasion and Jaccard deduplication logic before scheduling cron triggers:

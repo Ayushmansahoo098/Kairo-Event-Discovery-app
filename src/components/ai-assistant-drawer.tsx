@@ -111,7 +111,14 @@ export function AIAssistantDrawer() {
       const savedConvId = localStorage.getItem("kairo_chat_conversation_id");
 
       if (savedMessages) {
-        setMessages(JSON.parse(savedMessages));
+        let parsed = JSON.parse(savedMessages) as Message[];
+        // Sanitize any messages that were left in a streaming state from a previous session
+        parsed = parsed.map(m => 
+          m.isStreaming 
+            ? { ...m, isStreaming: false, isError: true, text: "Conversation interrupted due to page reload." } 
+            : m
+        );
+        setMessages(parsed);
       } else {
         setMessages([initialWelcomeMessage]);
       }
@@ -223,6 +230,9 @@ export function AIAssistantDrawer() {
        *   setMessages(prev => prev.map(msg => msg.id === assistantMsgId ? { ...msg, text: msg.text + chunk } : msg));
        * }
        */
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 60000); // 60 seconds timeout
+
       const res = await fetch(`${apiBase}/chat`, {
         method: "POST",
         headers: {
@@ -233,7 +243,9 @@ export function AIAssistantDrawer() {
           conversationId: conversationId || null,
           message: userMessageText,
         }),
+        signal: controller.signal,
       });
+      clearTimeout(timeoutId);
 
       if (!res.ok) {
         if (res.status === 503) {
@@ -262,11 +274,13 @@ export function AIAssistantDrawer() {
             : msg
         )
       );
-    } catch (err) {
+    } catch (err: any) {
       console.error("AI Assistant Chat Error:", err);
       let errMsg = err instanceof Error ? err.message : "Something went wrong. Please check your connection.";
       if (errMsg === "Failed to fetch") {
         errMsg = "Failed to connect to Kairo AI. The recommendation service may be offline or the API URL is unconfigured.";
+      } else if (err?.name === "AbortError") {
+        errMsg = "Request timed out. The AI is taking too long to respond. Please try again.";
       }
       
       setMessages((prev) =>

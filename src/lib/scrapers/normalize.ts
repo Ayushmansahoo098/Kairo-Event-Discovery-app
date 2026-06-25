@@ -903,3 +903,114 @@ export function validateAndNormalizeCity(city?: string, isOnline = false): strin
   // Default invalid/unsupported offline locations to Online as a safe fallback
   return "Online";
 }
+
+export interface RawScrapedInsiderEvent {
+  title: string;
+  url: string;
+  bannerImage?: string;
+  venue?: string;
+  city: string;
+  categoryText?: string;
+  priceText?: string;
+  dateText?: string;
+}
+
+export function parseInsiderDateText(dateText?: string): string {
+  if (!dateText) {
+    return new Date().toISOString().split("T")[0];
+  }
+  try {
+    const today = new Date();
+    const currentYear = today.getFullYear();
+    const months: Record<string, string> = {
+      jan: "01", feb: "02", mar: "03", apr: "04", may: "05", jun: "06",
+      jul: "07", aug: "08", sep: "09", oct: "10", nov: "11", dec: "12"
+    };
+
+    const textLower = dateText.toLowerCase();
+    
+    if (textLower.includes("today") || textLower.includes("daily")) {
+      return today.toISOString().split("T")[0];
+    }
+    
+    const match = dateText.match(/(\d{1,2})\s+(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)/i);
+    if (match) {
+      const day = match[1].padStart(2, "0");
+      const month = months[match[2].toLowerCase()];
+      if (month) {
+        let year = currentYear;
+        const currentMonth = today.getMonth() + 1;
+        if (parseInt(month) < currentMonth) {
+          year = currentYear + 1;
+        }
+        return `${year}-${month}-${day}`;
+      }
+    }
+  } catch (err) {
+    console.error("Error parsing Paytm Insider date text:", dateText, err);
+  }
+  return new Date().toISOString().split("T")[0];
+}
+
+export function normalizeInsiderEvent(raw: RawScrapedInsiderEvent): Event & { lastUpdated: string; source: string; expiresAt: string } {
+  let slug = raw.title.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "");
+  if (raw.url) {
+    try {
+      const urlObj = new URL(raw.url);
+      const paths = urlObj.pathname.split("/").filter(Boolean);
+      if (paths.length > 0) {
+        slug = paths[paths.length - 1];
+      }
+    } catch {
+      // Ignore
+    }
+  }
+
+  const id = `insider-${slug}`;
+  const isOnline = !raw.venue || 
+                   raw.venue.toLowerCase().includes("online") || 
+                   raw.venue.toLowerCase().includes("virtual");
+
+  const city = validateAndNormalizeCity(isOnline ? "Online" : (raw.city.charAt(0).toUpperCase() + raw.city.slice(1).toLowerCase()), isOnline);
+  
+  let defaultCat: Category = "workshop";
+  const catLower = (raw.categoryText || "").toLowerCase();
+  if (catLower.includes("music") || catLower.includes("concert")) {
+    defaultCat = "concert";
+  } else if (catLower.includes("comedy") || catLower.includes("roast") || catLower.includes("play") || catLower.includes("performance") || catLower.includes("theatre")) {
+    defaultCat = "comedy";
+  } else if (catLower.includes("gaming") || catLower.includes("esports")) {
+    defaultCat = "gaming";
+  } else if (catLower.includes("conference") || catLower.includes("exhibition")) {
+    defaultCat = "conference";
+  } else if (catLower.includes("meetup") || catLower.includes("talk")) {
+    defaultCat = "meetup";
+  }
+  
+  const category = classifyCategory(raw.title, `Category: ${raw.categoryText || "Event"}. Venue: ${raw.venue || "Local Venue"}.`, [], defaultCat);
+  const date = parseInsiderDateText(raw.dateText);
+
+  const desc = `Experience "${raw.title.trim()}" live in ${city}! Category: ${raw.categoryText || "Event"}. Venue: ${raw.venue || "Local Venue"}. Price: ${raw.priceText || "Check details"}. Book your tickets on Paytm Insider.`;
+
+  return {
+    id,
+    title: raw.title.trim(),
+    description: desc,
+    bannerImage: getCategoryBanner(category, raw.bannerImage),
+    image: raw.bannerImage || getCategoryBanner(category, raw.bannerImage),
+    date,
+    time: "07:00 PM", // Default evening time
+    location: raw.venue?.trim() || `${city} Event`,
+    city,
+    isOnline,
+    category,
+    organizer: "Paytm Insider Partner",
+    registrationUrl: raw.url,
+    tags: ["paytm-insider", category, raw.categoryText?.toLowerCase().trim() || "entertainment"].filter(Boolean),
+    isTrending: false,
+    source: "Paytm Insider",
+    expiresAt: date,
+    lastUpdated: new Date().toISOString(),
+  };
+}
+

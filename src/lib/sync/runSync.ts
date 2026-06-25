@@ -37,6 +37,7 @@ function getSourcePriority(source?: string): number {
   if (s.includes("luma")) return 5;
   if (s.includes("meetup")) return 4;
   if (s.includes("eventbrite")) return 3;
+  if (s.includes("paytm") || s.includes("insider")) return 2.5;
   if (s.includes("bookmyshow")) return 2;
   if (s.includes("allevents")) return 1;
   return 0;
@@ -44,7 +45,7 @@ function getSourcePriority(source?: string): number {
 
 function getCanonicalId(title: string, date: string): string {
   const slug = title.toLowerCase()
-    .replace(/^(devfolio|mlh|gdg|unstop|hackerearth|luma|meetup|eventbrite|bookmyshow|allevents)\s+/i, "")
+    .replace(/^(devfolio|mlh|gdg|unstop|hackerearth|luma|meetup|eventbrite|paytm-insider|insider|bookmyshow|allevents)\s+/i, "")
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/(^-|-$)/g, "");
   
@@ -393,6 +394,28 @@ export async function runSync(options: SyncOptions = {}) {
       console.error("AllEvents Sync failed:", err);
       summaries["AllEvents"] = { success: false, count: 0, error: String(err) };
       sourcesToPreserve.push("allevents");
+    }
+
+    // 11. Run Paytm Insider (Playwright)
+    if (playwrightAvailable) {
+      try {
+        console.log("Crawling Paytm Insider Events (in-memory)...");
+        const { syncInsiderEvents } = await import("@/lib/scrapers/insider");
+        const res = await syncInsiderEvents({ writeToDb: false, browser });
+        summaries["PaytmInsider"] = { success: res.success, count: res.count || 0, error: res.error || null };
+        if (res.success && res.events) {
+          freshScrapedEvents.push(...res.events);
+        } else {
+          sourcesToPreserve.push("paytm-insider");
+        }
+      } catch (err: any) {
+        console.error("Paytm Insider Sync failed:", err);
+        summaries["PaytmInsider"] = { success: false, count: 0, error: String(err) };
+        sourcesToPreserve.push("paytm-insider");
+      }
+    } else {
+      summaries["PaytmInsider"] = { success: false, count: 0, error: "Playwright browser not available." };
+      sourcesToPreserve.push("paytm-insider");
     }
 
     console.log(`Aggregated ${freshScrapedEvents.length} raw events in-memory. Starting cross-source deduplication...`);

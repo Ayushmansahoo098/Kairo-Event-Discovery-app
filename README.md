@@ -56,7 +56,7 @@
 [![Playwright](https://img.shields.io/badge/Playwright-1.60-2EAD33?style=for-the-badge&logo=playwright&logoColor=white)](https://playwright.dev)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg?style=for-the-badge)](https://opensource.org/licenses/MIT)
 
-**Kairo** is an AI-powered, real-time event discovery platform that aggregates hackathons, workshops, conferences, and meetups from **Devfolio**, **Unstop**, **HackerEarth**, **Eventbrite**, and **Meetup.com** into a single, beautifully personalized glassmorphic dashboard.
+**Kairo** is an AI-powered, real-time event discovery platform that aggregates hackathons, workshops, conferences, and meetups from **Devfolio**, **Unstop**, **HackerEarth**, **Eventbrite**, **Meetup.com**, and **Paytm Insider (District by Zomato)** into a single, beautifully personalized glassmorphic dashboard.
 
 [Live Demo](#) · [Report Bug](https://github.com/Ayushmansahoo098/Kairo-Event-Discovery-app/issues) · [Request Feature](https://github.com/Ayushmansahoo098/Kairo-Event-Discovery-app/issues)
 
@@ -68,7 +68,7 @@
 
 Finding the right tech event means hopping across 5+ fragmented directories daily. Kairo resolves this through a highly optimized, production-ready backend sync architecture:
 
-*   🕷️ **Multi-Source Crawling**: In-memory scrapers execute headless browser crawls using **Playwright Chromium** to harvest events from Devfolio, Unstop, HackerEarth, and Meetup, while querying the Eventbrite API.
+*   🕷️ **Multi-Source Crawling**: In-memory scrapers execute headless browser crawls using **Playwright Chromium** to harvest events from Devfolio, Unstop, HackerEarth, Meetup, and Paytm Insider (District), while querying the Eventbrite API.
 *   🧹 **Jaccard Fuzzy Deduplication**: Merges events in-memory using **Jaccard Title Token overlap index ($\ge$ 70%)** combined with matching calendar dates or exact registration links.
 *   💾 **Content-Hash Skip Writes**: Computes a SHA-256 `contentHash` on merged schemas and compares it to database values to **skip redundant writes**, reducing Firestore write costs to near-zero.
 *   🔄 **Soft-Expiry Archiving**: Instead of deleting expired events (which breaks historical analytics and recommendations), stale documents are soft-expired (`status: "expired"`) and automatically pruned after **30 days**.

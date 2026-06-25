@@ -41,6 +41,22 @@ const nextConfig: NextConfig = {
         protocol: "https",
         hostname: "api.dicebear.com",
       },
+      {
+        protocol: "https",
+        hostname: "media.insider.in",
+      },
+      {
+        protocol: "https",
+        hostname: "cdn.district.in",
+      },
+      {
+        protocol: "https",
+        hostname: "**.insider.in",
+      },
+      {
+        protocol: "https",
+        hostname: "**.district.in",
+      },
     ],
   },
   async rewrites() {

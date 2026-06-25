@@ -8,6 +8,9 @@ import { InitialLoader } from "@/components/initial-loader";
 import { VisualGrid } from "@/components/visual-grid";
 import { cn } from "@/lib/utils";
 import { Analytics } from "@vercel/analytics/next";
+import { AIAssistant } from "@/components/ai-assistant";
+import { ChatProvider } from "@/context/chat-context";
+import { AIAssistantDrawerContainer } from "@/components/ai-assistant-drawer-container";
 
 const plusJakarta = Plus_Jakarta_Sans({
   subsets: ["latin"],
@@ -48,8 +51,12 @@ export default function RootLayout({
         <VisualGrid />
         <AuthProvider>
           <BookmarkProvider>
-            <Navbar />
-            <main className="pb-20 md:pb-0 md:pt-16 relative z-10">{children}</main>
+            <ChatProvider>
+              <Navbar />
+              <main className="pb-20 md:pb-0 md:pt-16 relative z-10">{children}</main>
+              <AIAssistant />
+              <AIAssistantDrawerContainer />
+            </ChatProvider>
           </BookmarkProvider>
         </AuthProvider>
         <Analytics />
@@ -57,4 +64,3 @@ export default function RootLayout({
     </html>
   );
 }
-

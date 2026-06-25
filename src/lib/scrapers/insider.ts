@@ -144,7 +144,7 @@ export async function syncInsiderEvents({
           city = "Bengaluru";
         } else if (locationLower.includes("mumbai")) {
           city = "Mumbai";
-        } else if (locationLower.includes("delhi") || locationLower.includes("ncr") || locationLower.includes("noida") || locationLower.includes("gurgaon")) {
+        } else if (locationLower.includes("delhi") || locationLower.includes("ncr") || locationLower.includes("noida") || locationLower.includes("gurgaon") || locationLower.includes("gurugram")) {
           city = "Delhi";
         } else if (locationLower.includes("pune")) {
           city = "Pune";

@@ -13,7 +13,7 @@ export function classifyCategory(
   const combined = `${title} ${description} ${tags.join(" ")}`.toLowerCase();
 
   if (
-    combined.includes("ai") ||
+    /\bai\b/.test(combined) ||
     combined.includes("artificial intelligence") ||
     combined.includes("machine learning") ||
     combined.includes(" ml ") ||
@@ -893,7 +893,7 @@ export function validateAndNormalizeCity(city?: string, isOnline = false): strin
 
   if (lower.includes("bengaluru") || lower.includes("bangalore")) return "Bengaluru";
   if (lower.includes("mumbai") || lower.includes("bombay")) return "Mumbai";
-  if (lower.includes("delhi") || lower.includes("ncr") || lower.includes("noida") || lower.includes("gurgaon")) return "Delhi";
+  if (lower.includes("delhi") || lower.includes("ncr") || lower.includes("noida") || lower.includes("gurgaon") || lower.includes("gurugram")) return "Delhi";
   if (lower.includes("hyderabad")) return "Hyderabad";
   if (lower.includes("pune")) return "Pune";
 

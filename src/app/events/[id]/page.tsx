@@ -5,6 +5,7 @@ import { EventCard } from "@/components/event-card";
 import { useAuthContext } from "@/context/auth-context";
 import { logInteractionEvent } from "@/lib/analytics";
 import { getEventById, getEvents } from "@/lib/mock-data";
+import { getRecommendationApiBase } from "@/lib/api-config";
 import { Event } from "@/lib/types";
 import { AnimatePresence, motion } from "framer-motion";
 import {
@@ -184,7 +185,7 @@ function EventDetailPageContent() {
       setLoadingSimilar(true);
       let usedFallback = false;
       try {
-        const apiBase = process.env.NEXT_PUBLIC_RECOMMENDATION_API_URL || "http://localhost:8000";
+        const apiBase = getRecommendationApiBase();
         const res = await fetch(`${apiBase}/similar?eventId=${event.id}&limit=10`, {
           method: "GET",
           headers: {

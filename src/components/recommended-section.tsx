@@ -8,6 +8,7 @@ import { Event } from "@/lib/types";
 import { getEventById } from "@/lib/mock-data";
 import { motion, useScroll, useTransform } from "framer-motion";
 import { useAuthContext } from "@/context/auth-context";
+import { getRecommendationApiBase } from "@/lib/api-config";
 
 interface RecommendedSectionProps {
   onHoverEvent?: (imageUrl: string | null) => void;
@@ -26,7 +27,7 @@ export function RecommendedSection({ onHoverEvent }: RecommendedSectionProps) {
         return;
       }
       try {
-        const apiBase = process.env.NEXT_PUBLIC_RECOMMENDATION_API_URL || "http://localhost:8000";
+        const apiBase = getRecommendationApiBase();
         const res = await fetch(`${apiBase}/recommendations?userId=${user.id}&limit=10`, {
           method: "GET",
           headers: {

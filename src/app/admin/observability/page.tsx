@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { db, hasCredentials } from "@/lib/firebase";
+import { getRecommendationApiBase } from "@/lib/api-config";
 import { 
   collection, 
   onSnapshot, 
@@ -218,7 +219,7 @@ export default function ObservabilityDashboard() {
   useEffect(() => {
     const fetchRecommenderStats = async () => {
       try {
-        const apiBase = process.env.NEXT_PUBLIC_RECOMMENDATION_API_URL || "http://localhost:8000";
+        const apiBase = getRecommendationApiBase();
         const res = await fetch(`${apiBase}/health`);
         if (res.ok) {
           const data = await res.json();

@@ -1,6 +1,7 @@
 "use client";
 
 import { useAuthContext } from "@/context/auth-context";
+import { getRecommendationApiBase } from "@/lib/api-config";
 import { useBookmarkContext } from "@/context/bookmark-context";
 import { db, storage } from "@/lib/firebase";
 import { getEvents } from "@/lib/mock-data";
@@ -576,7 +577,7 @@ export default function ProfilePage() {
       if (newAvatar) updateAvatar(newAvatar);
 
       // Invalidate recommendations cache (fire-and-forget)
-      const apiBase = process.env.NEXT_PUBLIC_RECOMMENDATION_API_URL || "http://localhost:8000";
+      const apiBase = getRecommendationApiBase();
       void fetch(`${apiBase}/recommendations/invalidate?userId=${user.id}`, {
         method: "POST"
       }).catch(() => {});
@@ -601,7 +602,7 @@ export default function ProfilePage() {
       setTimeout(() => setPrefsSaved(false), 2500);
 
       // Invalidate recommendations cache (fire-and-forget)
-      const apiBase = process.env.NEXT_PUBLIC_RECOMMENDATION_API_URL || "http://localhost:8000";
+      const apiBase = getRecommendationApiBase();
       void fetch(`${apiBase}/recommendations/invalidate?userId=${user.id}`, {
         method: "POST"
       }).catch(() => {});

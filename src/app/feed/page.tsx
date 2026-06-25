@@ -24,6 +24,7 @@ import { db } from "@/lib/firebase";
 import { collection, doc, getDoc, getDocs } from "firebase/firestore";
 import { useAuthContext } from "@/context/auth-context";
 import { logInteractionEvent } from "@/lib/analytics";
+import { getRecommendationApiBase } from "@/lib/api-config";
 
 function EventCardSkeleton() {
   return (
@@ -138,7 +139,7 @@ export default function FeedPage() {
     const fetchRecommendations = async () => {
       setLoadingRecommendations(true);
       try {
-        const apiBase = process.env.NEXT_PUBLIC_RECOMMENDATION_API_URL || "http://localhost:8000";
+        const apiBase = getRecommendationApiBase();
         const res = await fetch(`${apiBase}/recommendations?userId=${user.id}&limit=30`, {
           method: "GET",
           headers: {
@@ -187,7 +188,7 @@ export default function FeedPage() {
         }
 
         setLoadingRecommendations(true);
-        const apiBase = process.env.NEXT_PUBLIC_RECOMMENDATION_API_URL || "http://localhost:8000";
+        const apiBase = getRecommendationApiBase();
         const res = await fetch(`${apiBase}/similar?eventId=${latestBookmarkId}&limit=6`, {
           method: "GET",
           headers: {

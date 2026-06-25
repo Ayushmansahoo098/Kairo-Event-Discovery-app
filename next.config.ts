@@ -43,6 +43,17 @@ const nextConfig: NextConfig = {
       },
     ],
   },
+  async rewrites() {
+    const apiBase = process.env.NEXT_PUBLIC_RECOMMENDATION_API_URL || 
+                    process.env.RECOMMENDATION_API_URL || 
+                    "http://localhost:8000";
+    return [
+      {
+        source: "/api/recommendation-proxy/:path*",
+        destination: `${apiBase}/:path*`,
+      },
+    ];
+  },
 };
 
 export default withSerwist(nextConfig);

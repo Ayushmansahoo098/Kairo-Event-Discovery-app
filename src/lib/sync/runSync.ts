@@ -112,6 +112,15 @@ export async function runSync(options: SyncOptions = {}) {
   console.log("Shared Ingestion Sync Pipeline execution started...");
   let syncStatus = "Failed";
 
+  // Prevent silent failures in production due to Mock DB fallback
+  if (process.env.NODE_ENV === "production" && (!process.env.FIREBASE_PROJECT_ID || !process.env.FIREBASE_PRIVATE_KEY)) {
+    console.error("FATAL: Firebase Admin credentials missing in production. Scraper will fail to save to DB.");
+    return {
+      success: false,
+      message: "Firebase credentials missing in production. Sync aborted to prevent silent failure.",
+    };
+  }
+
   // Check Playwright availability
   let playwrightAvailable = false;
   try {

@@ -933,6 +933,18 @@ export function parseInsiderDateText(dateText?: string): string {
       return today.toISOString().split("T")[0];
     }
     
+    if (textLower.includes("tomorrow")) {
+      const tmrw = new Date(today);
+      tmrw.setDate(tmrw.getDate() + 1);
+      return tmrw.toISOString().split("T")[0];
+    }
+    
+    if (textLower.includes("weekend")) {
+      const weekend = new Date(today);
+      weekend.setDate(weekend.getDate() + ((6 - weekend.getDay() + 7) % 7 || 7));
+      return weekend.toISOString().split("T")[0];
+    }
+    
     const match = dateText.match(/(\d{1,2})\s+(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)/i);
     if (match) {
       const day = match[1].padStart(2, "0");

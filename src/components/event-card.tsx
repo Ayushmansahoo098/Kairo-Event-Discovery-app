@@ -63,7 +63,7 @@ export function EventCard({ event, isRecommendation }: { event: Event; isRecomme
         {/* Full Bleed Banner Image */}
         <div className="absolute inset-0 w-full h-full bg-black">
           <Image
-            src={event.bannerImage}
+            src={event.bannerImage || event.image || "/images/hackathon.png"}
             alt={event.title}
             fill
             sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"

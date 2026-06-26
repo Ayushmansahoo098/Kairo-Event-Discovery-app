@@ -214,7 +214,7 @@ export default function FeedPage() {
         />
       </div>
 
-      {(loading || loadingRecommendations) ? (
+      {loading ? (
         <div className="flex overflow-x-hidden gap-6">
           {Array.from({ length: 4 }).map((_, i) => (
             <EventCardSkeleton key={i} />
@@ -285,9 +285,25 @@ export default function FeedPage() {
         /* ── Discovery View (No Filters) ── */
         <div className="flex flex-col gap-4">
           <EventRow title="Trending Near You" icon={Flame} events={trendingEvents} />
-          {user && recommendedEvents.length > 0 && (
-            <EventRow title="Recommended For You" icon={Sparkles} events={recommendedEvents} isRecommendation />
+          
+          {user && (
+            loadingRecommendations ? (
+              <div className="mb-12">
+                <div className="flex items-center gap-2 mb-6">
+                  <Sparkles className="w-5 h-5 text-kairo-orange" />
+                  <h2 className="text-xl font-serif text-kairo-white">Recommended For You</h2>
+                </div>
+                <div className="flex overflow-x-hidden gap-6">
+                  {Array.from({ length: 4 }).map((_, i) => (
+                    <EventCardSkeleton key={i} />
+                  ))}
+                </div>
+              </div>
+            ) : recommendedEvents.length > 0 ? (
+              <EventRow title="Recommended For You" icon={Sparkles} events={recommendedEvents} isRecommendation />
+            ) : null
           )}
+
           <EventRow title="Upcoming This Week" icon={CalendarRange} events={upcomingEvents} />
 
           {/* Browse All Section */}

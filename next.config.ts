@@ -57,12 +57,28 @@ const nextConfig: NextConfig = {
         protocol: "https",
         hostname: "**.district.in",
       },
+      {
+        protocol: "https",
+        hostname: "images.lumacdn.com",
+      },
+      {
+        protocol: "https",
+        hostname: "cdn-ip.allevents.in",
+      },
+      {
+        protocol: "https",
+        hostname: "secure.meetupstatic.com",
+      },
+      {
+        protocol: "https",
+        hostname: "res.cloudinary.com",
+      },
     ],
   },
   async rewrites() {
-    const apiBase = process.env.NEXT_PUBLIC_RECOMMENDATION_API_URL || 
-                    process.env.RECOMMENDATION_API_URL || 
-                    "http://localhost:8000";
+    const apiBase = process.env.NEXT_PUBLIC_RECOMMENDATION_API_URL ||
+      process.env.RECOMMENDATION_API_URL ||
+      "http://localhost:8000";
     return [
       {
         source: "/api/recommendation-proxy/:path*",

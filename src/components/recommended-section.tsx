@@ -76,7 +76,7 @@ export function RecommendedSection({ onHoverEvent }: RecommendedSectionProps) {
         className="py-16 relative bg-transparent z-10"
       >
         <div className="max-w-7xl mx-auto px-6 sm:px-10">
-          <div className="relative overflow-hidden rounded-none border border-kairo-orange/20 bg-kairo-dark-gray/30 backdrop-blur-md p-10 flex flex-col items-center justify-center text-center">
+          <div className="relative overflow-hidden rounded-3xl shadow-[0_20px_50px_rgba(0,0,0,0.5)] bg-white/5 backdrop-blur-md p-10 flex flex-col items-center justify-center text-center">
             <div className="absolute inset-0 bg-gradient-to-r from-kairo-orange/5 via-transparent to-kairo-orange/5" />
             <div className="flex h-16 w-16 items-center justify-center rounded-full bg-kairo-orange/10 mb-6 relative z-10">
               <Sparkles className="h-8 w-8 text-kairo-orange" />
@@ -89,7 +89,7 @@ export function RecommendedSection({ onHoverEvent }: RecommendedSectionProps) {
             </p>
             <Link 
               href="/login"
-              className="group relative z-10 inline-flex items-center gap-3 overflow-hidden rounded-none border border-kairo-orange bg-kairo-orange/10 px-8 py-4 text-xs font-bold uppercase tracking-[0.25em] text-kairo-orange transition-all hover:bg-kairo-orange hover:text-kairo-primary"
+              className="group relative z-10 inline-flex items-center gap-3 overflow-hidden rounded-full bg-kairo-orange/20 backdrop-blur-sm px-8 py-4 text-xs font-bold uppercase tracking-[0.25em] text-kairo-orange transition-all hover:bg-kairo-orange hover:text-kairo-primary shadow-[0_0_20px_rgba(184,168,138,0.2)]"
             >
               <LogIn className="h-4 w-4" />
               <span>Sign In Now</span>
@@ -158,7 +158,7 @@ export function RecommendedSection({ onHoverEvent }: RecommendedSectionProps) {
             >
               <Link 
                 href={`/events/${event.id}`}
-                className="group block relative w-[85vw] sm:w-[400px] h-[450px] rounded-none overflow-hidden transition-all duration-500 shadow-2xl border border-kairo-orange/20 bg-kairo-dark-gray/40 backdrop-blur-sm hover:border-kairo-orange/60"
+                className="group block relative w-[85vw] sm:w-[400px] h-[450px] rounded-3xl overflow-hidden transition-all duration-500 shadow-[0_20px_50px_rgba(0,0,0,0.5)] bg-white/5 backdrop-blur-md hover:bg-white/10"
               >
                 <div className="relative h-full w-full flex flex-col">
                   {/* Image Header */}
@@ -174,7 +174,7 @@ export function RecommendedSection({ onHoverEvent }: RecommendedSectionProps) {
                     
                     {event.reason && (
                       <div className="absolute top-4 left-4 right-4 z-20">
-                        <div className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-kairo-primary/90 border border-kairo-orange/30 backdrop-blur-md text-[9px] font-bold tracking-widest text-kairo-orange uppercase shadow-lg">
+                        <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-kairo-orange/20 backdrop-blur-md text-[9px] font-bold tracking-widest text-kairo-orange uppercase shadow-lg">
                           <Sparkles className="w-3 h-3" />
                           <span className="truncate">{event.reason}</span>
                         </div>
@@ -183,7 +183,7 @@ export function RecommendedSection({ onHoverEvent }: RecommendedSectionProps) {
                   </div>
                   
                   {/* Content Body */}
-                  <div className="p-6 flex flex-col flex-grow justify-between bg-gradient-to-b from-kairo-primary via-kairo-primary/95 to-kairo-dark-gray/90">
+                  <div className="p-6 flex flex-col flex-grow justify-between bg-gradient-to-b from-transparent to-black/60">
                     <div>
                       <h3 className="text-xl font-serif font-light text-white mb-4 line-clamp-2 leading-tight tracking-wide uppercase group-hover:text-kairo-orange transition-colors duration-300">
                         {event.title}

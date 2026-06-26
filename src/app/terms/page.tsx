@@ -39,7 +39,7 @@ export default function TermsOfServicePage() {
 
           <section className="space-y-4">
             <h2 className="text-xl font-serif text-kairo-white uppercase tracking-wider">5. Contact Us</h2>
-            <p>If you have any questions about these Terms, please contact us at support@kairo.app.</p>
+            <p>If you have any questions about these Terms, please contact us at <a href="mailto:ayushmansahoo614@gmail.com" className="text-kairo-orange hover:underline">ayushmansahoo614@gmail.com</a>.</p>
           </section>
         </div>
       </div>

@@ -1,60 +1,131 @@
 "use client";
 
+import { useState, useRef, MouseEvent } from "react";
 import { categories } from "@/lib/mock-data";
 import Link from "next/link";
-import { Code2, BookOpen, Users, Rocket, Presentation, Music, Laugh, Utensils, Sparkles, Share2, MessageSquare, Brain, Gamepad2, ArrowRight } from "lucide-react";
+import { motion, AnimatePresence, useSpring } from "framer-motion";
+import { ArrowRight } from "lucide-react";
+import Image from "next/image";
 
-const iconMap: Record<string, React.ReactNode> = {
-  hackathon: <Code2 className="w-6 h-6" />,
-  workshop: <BookOpen className="w-6 h-6" />,
-  meetup: <Users className="w-6 h-6" />,
-  startup: <Rocket className="w-6 h-6" />,
-  conference: <Presentation className="w-6 h-6" />,
-  concert: <Music className="w-6 h-6" />,
-  comedy: <Laugh className="w-6 h-6" />,
-  "food-festival": <Utensils className="w-6 h-6" />,
-  party: <Sparkles className="w-6 h-6" />,
-  networking: <Share2 className="w-6 h-6" />,
-  "tech-talk": <MessageSquare className="w-6 h-6" />,
-  "ai-ml": <Brain className="w-6 h-6" />,
-  gaming: <Gamepad2 className="w-6 h-6" />,
+// Map some cool Unsplash images to categories for the hover reveal
+const categoryImages: Record<string, string> = {
+  hackathon: "https://images.unsplash.com/photo-1504384308090-c894fdcc538d?w=800&q=80",
+  workshop: "https://images.unsplash.com/photo-1544928147-79a2dbc1f389?w=800&q=80",
+  meetup: "https://images.unsplash.com/photo-1515169067868-5387ec356754?w=800&q=80",
+  startup: "https://images.unsplash.com/photo-1542744173-8e7e53415bb0?w=800&q=80",
+  conference: "https://images.unsplash.com/photo-1540575467063-178a50c2df87?w=800&q=80",
+  concert: "https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=800&q=80",
+  comedy: "https://images.unsplash.com/photo-1585699324551-f6c309eedeca?w=800&q=80",
+  "food-festival": "https://images.unsplash.com/photo-1555939594-58d7cb561ad1?w=800&q=80",
+  party: "https://images.unsplash.com/photo-1492684223066-81342ee5ff30?w=800&q=80",
+  networking: "https://images.unsplash.com/photo-1505373877841-8d25f7d46678?w=800&q=80",
+  "tech-talk": "https://images.unsplash.com/photo-1475721028314-3905d677a233?w=800&q=80",
+  "ai-ml": "https://images.unsplash.com/photo-1620712943543-bcc4688e7485?w=800&q=80",
+  gaming: "https://images.unsplash.com/photo-1542751371-adc38448a05e?w=800&q=80",
 };
 
 export function FeaturedCategories() {
+  const [hoveredCategory, setHoveredCategory] = useState<string | null>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  // Mouse tracking for the floating image
+  const mouseX = useSpring(0, { damping: 20, stiffness: 100, mass: 0.5 });
+  const mouseY = useSpring(0, { damping: 20, stiffness: 100, mass: 0.5 });
+
+  const handleMouseMove = (e: MouseEvent) => {
+    if (!containerRef.current) return;
+    const { left, top } = containerRef.current.getBoundingClientRect();
+    mouseX.set(e.clientX - left);
+    mouseY.set(e.clientY - top);
+  };
+
+  // Only take the top 6 for the list to keep it elegant
+  const displayCategories = categories.slice(0, 6);
+
   return (
-    <section className="py-20 bg-kairo-primary">
-      <div className="max-w-7xl mx-auto px-4">
-        <div className="text-center mb-12">
-          <h2 className="text-3xl md:text-4xl font-bold text-kairo-white mb-4">Explore Categories</h2>
-          <p className="text-lg text-kairo-light-gray max-w-2xl mx-auto">Find the perfect event matching your interests and passions.</p>
+    <section 
+      ref={containerRef}
+      onMouseMove={handleMouseMove}
+      className="py-32 relative"
+    >
+      <div className="max-w-7xl mx-auto px-4 lg:px-8">
+        <div className="mb-20">
+          <p className="text-kairo-orange tracking-widest uppercase text-sm font-bold mb-4">Discover</p>
+          <h2 className="text-4xl md:text-6xl font-serif text-kairo-white font-light">Explore by Vibe</h2>
         </div>
 
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-6">
-          {categories.map((cat) => (
-            <Link
-              key={cat.id}
-              href={`/feed?category=${cat.id}`}
-              className="group flex flex-col items-center justify-center p-6 bg-kairo-dark-gray border border-kairo-gray rounded-2xl transition-all duration-300 hover:-translate-y-1 hover:border-kairo-orange/50 hover:shadow-xl hover:shadow-kairo-orange/10 hover:bg-kairo-gray"
-            >
-              <div className={`w-14 h-14 mb-4 rounded-full flex items-center justify-center bg-kairo-primary text-kairo-orange shadow-sm transition-transform group-hover:scale-110`}>
-                {iconMap[cat.id]}
-              </div>
-              <h3 className="font-semibold text-kairo-white mb-1">{cat.name}</h3>
-              <p className="text-sm text-kairo-light-gray font-medium">{cat.count} Events</p>
-            </Link>
-          ))}
+        <div className="relative z-30 flex flex-col items-start gap-4 md:gap-8">
+          {displayCategories.map((cat) => {
+            const isHovered = hoveredCategory === cat.id;
+            const isOtherHovered = hoveredCategory !== null && hoveredCategory !== cat.id;
+            
+            return (
+              <Link
+                key={cat.id}
+                href={`/feed?category=${cat.id}`}
+                onMouseEnter={() => setHoveredCategory(cat.id)}
+                onMouseLeave={() => setHoveredCategory(null)}
+                className="group relative block w-full border-b border-white/5 pb-4 md:pb-8 transition-colors hover:border-white/20"
+              >
+                <div className="flex items-end justify-between w-full">
+                  <h3 
+                    className={`text-4xl md:text-6xl lg:text-7xl font-serif tracking-tight transition-all duration-500
+                      ${isHovered ? 'text-kairo-white translate-x-4 md:translate-x-8' : 'text-kairo-gray'}
+                      ${isOtherHovered ? 'opacity-30' : 'opacity-100'}
+                    `}
+                  >
+                    {cat.name}
+                  </h3>
+                  
+                  <span className={`text-sm md:text-lg font-mono transition-all duration-500
+                    ${isHovered ? 'text-kairo-orange' : 'text-kairo-gray/50'}
+                    ${isOtherHovered ? 'opacity-30' : 'opacity-100'}
+                  `}>
+                    ({cat.count})
+                  </span>
+                </div>
+              </Link>
+            );
+          })}
           
           <Link
             href="/feed"
-            className="group flex flex-col items-center justify-center p-6 bg-gradient-to-br from-kairo-dark-gray to-kairo-gray border border-kairo-gray rounded-2xl transition-all duration-300 hover:-translate-y-1 hover:border-kairo-orange/50 hover:shadow-xl hover:shadow-kairo-orange/15"
+            className="group flex items-center gap-4 mt-8 text-kairo-white hover:text-kairo-orange transition-colors"
           >
-            <div className="w-14 h-14 mb-4 rounded-full flex items-center justify-center bg-kairo-primary text-kairo-orange shadow-sm transition-transform group-hover:scale-110">
-              <ArrowRight className="w-6 h-6" />
+            <span className="text-xl md:text-2xl font-light">View All Categories</span>
+            <div className="w-12 h-12 rounded-full border border-white/20 flex items-center justify-center group-hover:border-kairo-orange group-hover:bg-kairo-orange/10 transition-all">
+              <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
             </div>
-            <h3 className="font-semibold text-kairo-white">View All</h3>
           </Link>
         </div>
       </div>
+
+      {/* Floating Hover Image */}
+      <AnimatePresence>
+        {hoveredCategory && categoryImages[hoveredCategory] && (
+          <motion.div
+            initial={{ opacity: 0, scale: 0.8, rotate: -5 }}
+            animate={{ opacity: 1, scale: 1, rotate: 0 }}
+            exit={{ opacity: 0, scale: 0.8, rotate: 5 }}
+            transition={{ duration: 0.4, ease: "easeOut" }}
+            style={{ 
+              x: mouseX, 
+              y: mouseY,
+              translateX: "-50%",
+              translateY: "-50%",
+            }}
+            className="absolute top-0 left-0 w-[300px] h-[400px] pointer-events-none z-20 rounded-2xl overflow-hidden shadow-2xl shadow-black/50 border border-white/10"
+          >
+            <Image 
+              src={categoryImages[hoveredCategory]}
+              alt="Category Preview"
+              fill
+              className="object-cover"
+            />
+            <div className="absolute inset-0 bg-gradient-to-t from-kairo-primary/80 to-transparent" />
+          </motion.div>
+        )}
+      </AnimatePresence>
     </section>
   );
 }

@@ -132,8 +132,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           document.cookie = "kairo_user_email=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT";
           setUser(null);
         }
-      } catch (err) {
-        console.error("Error in onAuthStateChanged profile lookup:", err);
+      } catch (err: any) {
+        if (err?.code === "permission-denied") {
+          console.warn("Error in onAuthStateChanged profile lookup (permission-denied). Check Firestore rules.");
+        } else {
+          console.warn("Error in onAuthStateChanged profile lookup:", err);
+        }
         setUser(null);
       } finally {
         setIsLoading(false);

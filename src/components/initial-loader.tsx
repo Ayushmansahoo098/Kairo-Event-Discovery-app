@@ -13,7 +13,6 @@ type LoaderStep = "loading" | "ready" | "dissolving" | "done";
 export function InitialLoader() {
   const [progress, setProgress] = useState(0);
   const [step, setStep] = useState<LoaderStep>("loading");
-  const [showButton, setShowButton] = useState(false);
 
   // Motion value for the opacity of the loader during dissolve transition
   const loaderOpacity = useMotionValue(1);
@@ -37,25 +36,21 @@ export function InitialLoader() {
     return () => clearInterval(timer);
   }, []);
 
-  // Show Enter button ONLY after the counter lines have finished fading out
-  // Lines fade: delay 2.2s + duration 0.5s = 2.7s → show button at 3.0s after 'ready'
+  // Auto dissolve after the counter lines have finished fading out
+  // Lines fade: delay 2.2s + duration 0.5s = 2.7s → trigger dissolve at 3.0s after 'ready'
   useEffect(() => {
     if (step === "ready") {
-      const t = setTimeout(() => setShowButton(true), 3000);
+      const t = setTimeout(() => {
+        setStep("dissolving");
+        animate(loaderOpacity, 0, {
+          duration: 0.8,
+          ease: "easeInOut",
+          onComplete: () => setStep("done"),
+        });
+      }, 3000);
       return () => clearTimeout(t);
     }
-  }, [step]);
-
-  // Dissolve transition on click: animate loaderOpacity from 1 → 0 with a smooth ease
-  const handleProceed = useCallback(() => {
-    setShowButton(false);
-    setStep("dissolving");
-    animate(loaderOpacity, 0, {
-      duration: 0.8,
-      ease: "easeInOut",
-      onComplete: () => setStep("done"),
-    });
-  }, [loaderOpacity]);
+  }, [step, loaderOpacity]);
 
   if (step === "done") return null;
 
@@ -124,9 +119,9 @@ export function InitialLoader() {
           initial={{ opacity: 0, y: 15 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.3, duration: 0.8 }}
-          className="text-[10px] sm:text-xs tracking-[0.5em] uppercase text-kairo-light-gray font-semibold mb-6"
+          className="text-[10px] sm:text-xs tracking-[0.2em] sm:tracking-[0.5em] uppercase text-kairo-light-gray font-semibold mb-6 text-center"
         >
-          T h e &nbsp; K a i r o &nbsp; C o n c l a v e
+          The Kairo Conclave
         </motion.p>
 
         <div className="overflow-hidden py-2">
@@ -141,7 +136,7 @@ export function InitialLoader() {
                 ease: [0.16, 1, 0.3, 1],
               },
             }}
-            className="text-5xl sm:text-7xl md:text-8xl lg:text-[100px] font-light tracking-[0.15em] uppercase text-center leading-none text-kairo-white font-serif"
+            className="text-5xl sm:text-7xl md:text-8xl lg:text-[100px] font-light tracking-[0.1em] sm:tracking-[0.15em] uppercase text-center leading-none text-kairo-white font-serif"
           >
             KAIRO
           </motion.h1>
@@ -151,32 +146,11 @@ export function InitialLoader() {
           initial={{ opacity: 0, y: -15 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.7, duration: 0.8 }}
-          className="text-[10px] sm:text-xs tracking-[0.4em] uppercase text-kairo-orange font-bold mt-6"
+          className="text-[10px] sm:text-xs tracking-[0.2em] sm:tracking-[0.4em] uppercase text-kairo-orange font-bold mt-6 text-center"
         >
-          E v e n t &nbsp; D i s c o v e r y
+          Event Discovery
         </motion.p>
       </div>
-
-      {/* ─── Enter Button (appears only after counter fades out) ─── */}
-      <AnimatePresence>
-        {showButton && step === "ready" && (
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -10 }}
-            transition={{ duration: 0.7, ease: [0.16, 1, 0.3, 1] }}
-            className="absolute bottom-24 left-1/2 -translate-x-1/2 z-[1000] pointer-events-auto"
-          >
-            <button
-              onClick={handleProceed}
-              className="group flex items-center gap-6 px-10 py-5 bg-transparent border border-kairo-orange/30 text-kairo-white hover:bg-kairo-orange hover:text-kairo-primary hover:border-kairo-orange transition-all duration-500 tracking-[0.5em] text-[10px] uppercase font-bold rounded-none cursor-pointer"
-            >
-              <span className="relative z-10">Enter</span>
-              <div className="w-6 h-[1px] bg-current transform origin-left transition-transform duration-500 group-hover:scale-x-150" />
-            </button>
-          </motion.div>
-        )}
-      </AnimatePresence>
     </motion.div>
   );
 }

@@ -9,16 +9,16 @@ export function Logo({ className }: { className?: string }) {
       className={cn("w-full h-full", className)}
     >
       {/* Top Left Rectangle */}
-      <path d="M20 25h20v22H20z" fill="var(--color-kairo-orange)" />
+      <path d="M20 25h20v22H20z" fill="#a99781" />
       
       {/* Bottom Left Rectangle */}
-      <path d="M20 53h20v22H20z" fill="var(--color-kairo-grad-2)" />
+      <path d="M20 53h20v22H20z" fill="#796752" />
       
       {/* Top Right Arm */}
-      <path d="M40 47L70 25h20L60 47z" fill="var(--color-kairo-light-gray)" />
+      <path d="M40 47L70 25h20L60 47z" fill="#c9c2b4" />
       
       {/* Bottom Right Arm */}
-      <path d="M40 53h20l30 22H70z" fill="var(--color-kairo-grad-4)" />
+      <path d="M40 53h20l30 22H70z" fill="#c9c2b4" />
     </svg>
   );
 }

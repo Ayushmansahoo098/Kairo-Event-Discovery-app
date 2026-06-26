@@ -173,8 +173,12 @@ export async function logInteractionEvent(payload: InteractionPayload): Promise<
         method: "POST"
       }).catch(() => {});
     }
-  } catch (error) {
+  } catch (error: any) {
     // Analytics failures should never block the user experience
-    console.error("Analytics log failed (non-blocking):", error);
+    if (error?.code === "permission-denied") {
+      console.warn("Analytics log failed (permission-denied). Check Firestore rules.");
+    } else {
+      console.warn("Analytics log failed (non-blocking):", error);
+    }
   }
 }

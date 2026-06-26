@@ -48,8 +48,12 @@ export function Navbar() {
         setIsSyncing(!!data?.isActive);
         setLastSuccessAt(data?.lastSuccessAt || null);
       }
-    }, (err) => {
-      console.warn("Sync status listener error:", err);
+    }, (err: any) => {
+      if (err?.code === "permission-denied") {
+        console.warn("Sync status listener error (permission-denied). Check Firestore rules.");
+      } else {
+        console.warn("Sync status listener error:", err);
+      }
     });
     return () => unsubscribe();
   }, []);

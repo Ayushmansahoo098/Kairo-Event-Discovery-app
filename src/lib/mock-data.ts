@@ -459,9 +459,13 @@ export async function getEvents(): Promise<Event[]> {
           }
         });
       }
-    } catch (error) {
-      console.error("Firestore getEvents error:", error);
-      list = []; // Return empty on DB error
+    } catch (error: any) {
+      if (error?.code === "permission-denied") {
+        console.warn("Firestore permission denied. Falling back to static events.");
+      } else {
+        console.warn("Firestore getEvents error:", error);
+      }
+      list = staticEvents; // Fallback to static on DB error to keep app functional
     }
   }
 
@@ -494,8 +498,12 @@ export async function getEventById(id: string): Promise<Event | undefined> {
       return { ...data, id: docSnap.id };
     }
     return undefined; // Only display scraped events
-  } catch (error) {
-    console.error(`Firestore getEventById(${id}) error:`, error);
+  } catch (error: any) {
+    if (error?.code === "permission-denied") {
+      console.warn(`Firestore getEventById(${id}) permission denied.`);
+    } else {
+      console.warn(`Firestore getEventById(${id}) error:`, error);
+    }
     return undefined;
   }
 }

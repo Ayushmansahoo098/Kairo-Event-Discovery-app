@@ -44,7 +44,7 @@ export default function PrivacyPolicyPage() {
 
           <section className="space-y-4">
             <h2 className="text-xl font-serif text-kairo-white uppercase tracking-wider">4. Contact Us</h2>
-            <p>If you have any questions about this Privacy Policy, please contact us at privacy@kairo.app.</p>
+            <p>If you have any questions about this Privacy Policy, please contact us at <a href="mailto:ayushmansahoo614@gmail.com" className="text-kairo-orange hover:underline">ayushmansahoo614@gmail.com</a>.</p>
           </section>
         </div>
       </div>

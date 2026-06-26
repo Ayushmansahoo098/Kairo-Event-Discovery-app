@@ -40,29 +40,37 @@ const CITIES = ["Bangalore", "Hyderabad", "Mumbai", "Delhi", "Chennai", "Pune", 
 const INTERESTS_LIST = ["AI", "Hackathons", "Startups", "Meetups", "Concerts", "Workshops", "Gaming", "Festivals"];
 
 /* ── Sub-components ──────────────────────────────────────────────── */
-function SectionCard({
+function BentoCard({
   title,
   icon: Icon,
   children,
   delay = 0,
+  className,
 }: {
   title: string;
   icon: React.ElementType;
   children: React.ReactNode;
   delay?: number;
+  className?: string;
 }) {
   return (
     <motion.div
-      initial={{ opacity: 0, y: 24 }}
+      initial={{ opacity: 0, y: 30 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ delay, duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
-      className="bg-kairo-dark-gray/30 border border-kairo-orange/10 overflow-hidden"
+      transition={{ delay, duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
+      className={cn(
+        "relative flex flex-col bg-kairo-white/[0.02] border border-kairo-white/[0.05] rounded-3xl overflow-hidden backdrop-blur-md group hover:bg-kairo-white/[0.04] transition-colors duration-500",
+        className
+      )}
     >
-      <div className="flex items-center gap-3 px-6 py-4 border-b border-kairo-orange/10 bg-kairo-dark-gray/50">
-        <Icon className="w-4 h-4 text-kairo-orange shrink-0" />
-        <h2 className="text-xs font-bold uppercase tracking-[0.3em] text-kairo-white">{title}</h2>
+      <div className="absolute inset-0 bg-gradient-to-br from-white/[0.02] to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none" />
+      <div className="flex items-center gap-3 px-6 py-5 border-b border-kairo-white/[0.05]">
+        <div className="w-8 h-8 rounded-full bg-kairo-white/[0.05] flex items-center justify-center">
+          <Icon className="w-4 h-4 text-kairo-orange" />
+        </div>
+        <h2 className="text-sm font-bold uppercase tracking-[0.2em] text-kairo-white">{title}</h2>
       </div>
-      <div className="p-6">{children}</div>
+      <div className="p-6 flex-1 flex flex-col">{children}</div>
     </motion.div>
   );
 }
@@ -84,31 +92,46 @@ function RowItem({
   danger?: boolean;
   badge?: string | number;
 }) {
-  const cls = cn(
-    "w-full flex items-center gap-4 py-3.5 px-1 border-b border-kairo-orange/5 last:border-0 transition-all duration-200 group cursor-pointer",
-    danger
-      ? "hover:text-red-400"
-      : "hover:text-kairo-orange"
-  );
+  const cls = "w-full flex items-center gap-4 py-4 px-3 -mx-3 rounded-2xl transition-all duration-300 group cursor-pointer relative overflow-hidden";
 
   const inner = (
     <>
-      <div className={cn("w-8 h-8 flex items-center justify-center border border-kairo-orange/10 shrink-0 transition-colors duration-200",
-        danger ? "group-hover:border-red-400/30" : "group-hover:border-kairo-orange/30")}>
-        <Icon className={cn("w-4 h-4 transition-colors duration-200",
-          danger ? "text-red-400/60 group-hover:text-red-400" : "text-kairo-light-gray group-hover:text-kairo-orange")} />
+      <div className={cn(
+        "absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300",
+        danger ? "bg-red-500/10" : "bg-kairo-white/5"
+      )} />
+      
+      <div className={cn(
+        "relative w-10 h-10 flex items-center justify-center rounded-xl shrink-0 transition-all duration-300",
+        danger ? "bg-red-500/10 group-hover:bg-red-500/20" : "bg-kairo-white/5 group-hover:bg-kairo-orange/10"
+      )}>
+        <Icon className={cn(
+          "w-5 h-5 transition-colors duration-300",
+          danger ? "text-red-400" : "text-kairo-light-gray group-hover:text-kairo-orange"
+        )} />
       </div>
-      <div className="flex-1 text-left">
-        <p className={cn("text-xs font-bold uppercase tracking-[0.2em] transition-colors duration-200",
-          danger ? "text-red-400/80 group-hover:text-red-400" : "text-kairo-white/80 group-hover:text-kairo-white")}>{label}</p>
-        {sublabel && <p className="text-[10px] text-kairo-light-gray/50 mt-0.5 tracking-wide">{sublabel}</p>}
+
+      <div className="relative flex-1 text-left">
+        <p className={cn(
+          "text-sm font-bold tracking-wide transition-colors duration-300",
+          danger ? "text-red-400" : "text-kairo-white"
+        )}>
+          {label}
+        </p>
+        {sublabel && <p className="text-xs text-kairo-light-gray/60 mt-0.5">{sublabel}</p>}
       </div>
+
       {badge !== undefined && (
-        <span className="text-[10px] font-bold tracking-wider bg-kairo-orange/10 text-kairo-orange border border-kairo-orange/20 px-2.5 py-0.5 shrink-0">
+        <span className="relative text-xs font-bold bg-kairo-orange/20 text-kairo-orange px-3 py-1 rounded-full shrink-0">
           {badge}
         </span>
       )}
-      {!danger && <ChevronRight className="w-3.5 h-3.5 text-kairo-light-gray/30 group-hover:text-kairo-orange transition-all duration-200 group-hover:translate-x-0.5 shrink-0" />}
+      
+      {!danger && (
+        <div className="relative w-6 h-6 flex items-center justify-center rounded-full bg-kairo-white/5 opacity-0 -translate-x-2 group-hover:opacity-100 group-hover:translate-x-0 transition-all duration-300 shrink-0">
+          <ChevronRight className="w-3.5 h-3.5 text-kairo-orange" />
+        </div>
+      )}
     </>
   );
 
@@ -128,22 +151,26 @@ function ToggleSwitch({
   sublabel?: string;
 }) {
   return (
-    <div className="flex items-center justify-between py-3 border-b border-kairo-orange/5 last:border-0">
+    <div className="flex items-center justify-between py-4">
       <div>
-        <p className="text-xs font-bold uppercase tracking-[0.2em] text-kairo-white/80">{label}</p>
-        {sublabel && <p className="text-[10px] text-kairo-light-gray/50 mt-0.5">{sublabel}</p>}
+        <p className="text-sm font-bold tracking-wide text-kairo-white">{label}</p>
+        {sublabel && <p className="text-xs text-kairo-light-gray/60 mt-0.5">{sublabel}</p>}
       </div>
       <button
         onClick={() => onChange(!checked)}
         className={cn(
-          "relative w-11 h-6 transition-colors duration-300 border shrink-0",
-          checked ? "bg-kairo-orange border-kairo-orange" : "bg-kairo-dark-gray border-kairo-gray/40"
+          "relative w-12 h-7 rounded-full transition-colors duration-300 shrink-0",
+          checked ? "bg-kairo-orange" : "bg-kairo-white/10"
         )}
       >
-        <span className={cn(
-          "absolute top-0.5 w-5 h-5 bg-kairo-primary transition-all duration-300",
-          checked ? "left-[22px]" : "left-0.5"
-        )} />
+        <motion.div
+          layout
+          transition={{ type: "spring", stiffness: 500, damping: 30 }}
+          className={cn(
+            "absolute top-1 w-5 h-5 rounded-full shadow-md bg-kairo-primary",
+            checked ? "left-[26px]" : "left-1"
+          )}
+        />
       </button>
     </div>
   );
@@ -162,13 +189,20 @@ function Chip({
     <button
       onClick={onClick}
       className={cn(
-        "px-3 py-1.5 text-[10px] font-bold uppercase tracking-[0.2em] transition-all duration-200 cursor-pointer",
-        selected
-          ? "bg-kairo-orange text-kairo-primary border border-kairo-orange"
-          : "bg-transparent border border-kairo-gray/30 text-kairo-light-gray hover:border-kairo-orange/50 hover:text-kairo-white"
+        "relative px-4 py-2 rounded-full text-xs font-bold uppercase tracking-widest transition-all duration-300 outline-none shrink-0",
+        selected ? "text-kairo-primary" : "text-kairo-light-gray hover:text-kairo-white"
       )}
     >
-      {label}
+      {selected ? (
+        <motion.div
+          layoutId={`chip-${label}`}
+          className="absolute inset-0 bg-kairo-orange rounded-full shadow-[0_0_15px_rgba(184,168,138,0.4)]"
+          transition={{ type: "spring", bounce: 0.2, duration: 0.6 }}
+        />
+      ) : (
+        <div className="absolute inset-0 bg-kairo-white/5 border border-kairo-white/10 rounded-full hover:bg-kairo-white/10 transition-colors duration-300" />
+      )}
+      <span className="relative z-10">{label}</span>
     </button>
   );
 }
@@ -190,50 +224,57 @@ function RateModal({ forceOnboard = false, onClose }: { forceOnboard?: boolean; 
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
-      className="fixed inset-0 z-[200] flex items-center justify-center bg-kairo-primary/80 backdrop-blur-xl p-4"
+      className="fixed inset-0 z-[200] flex items-end sm:items-center justify-center bg-kairo-primary/40 backdrop-blur-2xl p-4 sm:p-0"
       onClick={() => {
         if (!forceOnboard) onClose();
       }}
     >
       <motion.div
-        initial={{ scale: 0.95, y: 10 }}
-        animate={{ scale: 1, y: 0 }}
-        exit={{ scale: 0.95, y: 10 }}
+        initial={{ y: "100%" }}
+        animate={{ y: 0 }}
+        exit={{ y: "100%" }}
+        transition={{ type: "spring", damping: 25, stiffness: 200 }}
         onClick={(e) => e.stopPropagation()}
-        className="bg-kairo-primary border border-kairo-orange/20 p-8 w-full max-w-sm text-center"
+        className="relative bg-kairo-white/[0.03] border border-kairo-white/[0.08] shadow-2xl p-8 rounded-[2rem] w-full max-w-sm text-center overflow-hidden"
       >
+        <div className="absolute inset-0 bg-gradient-to-b from-white/[0.04] to-transparent pointer-events-none" />
+        
         {submitted ? (
-          <>
-            <CheckCircle2 className="w-10 h-10 text-kairo-orange mx-auto mb-4" />
-            <p className="font-serif text-2xl text-kairo-white uppercase tracking-widest">Thank You!</p>
-            <p className="text-xs text-kairo-light-gray mt-2 tracking-wide">Your feedback means everything to us.</p>
-          </>
+          <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }}>
+            <div className="w-16 h-16 rounded-full bg-kairo-orange/20 flex items-center justify-center mx-auto mb-6">
+              <CheckCircle2 className="w-8 h-8 text-kairo-orange" />
+            </div>
+            <p className="font-serif text-2xl text-kairo-white tracking-wide">Thank You!</p>
+            <p className="text-sm text-kairo-light-gray/60 mt-2">Your feedback means everything to us.</p>
+          </motion.div>
         ) : (
           <>
-            <button onClick={onClose} className="absolute top-4 right-4 text-kairo-light-gray hover:text-kairo-white"><X className="w-4 h-4" /></button>
-            <Star className="w-8 h-8 text-kairo-orange mx-auto mb-4" />
-            <p className="font-serif text-2xl text-kairo-white uppercase tracking-widest mb-2">Rate Kairo</p>
-            <p className="text-xs text-kairo-light-gray tracking-wide mb-6">How would you rate your experience?</p>
-            <div className="flex justify-center gap-2 mb-6">
+            <button onClick={onClose} className="absolute top-6 right-6 w-8 h-8 rounded-full bg-kairo-white/5 flex items-center justify-center text-kairo-light-gray hover:text-kairo-white hover:bg-kairo-white/10 transition-colors z-10"><X className="w-4 h-4" /></button>
+            <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-kairo-white/10 to-transparent flex items-center justify-center mx-auto mb-6 border border-kairo-white/5">
+              <Star className="w-8 h-8 text-kairo-orange" />
+            </div>
+            <p className="font-serif text-2xl text-kairo-white tracking-wide mb-2">Rate Kairo</p>
+            <p className="text-sm text-kairo-light-gray/60 mb-8">How would you rate your experience?</p>
+            <div className="flex justify-center gap-3 mb-8">
               {[1, 2, 3, 4, 5].map((s) => (
                 <button
                   key={s}
                   onMouseEnter={() => setHovered(s)}
                   onMouseLeave={() => setHovered(0)}
                   onClick={() => setSelected(s)}
-                  className="cursor-pointer transition-transform duration-150 hover:scale-110"
+                  className="cursor-pointer transition-transform duration-300 hover:scale-125"
                 >
-                  <Star className={cn("w-8 h-8 transition-colors duration-150",
-                    s <= (hovered || selected) ? "text-kairo-orange fill-kairo-orange" : "text-kairo-gray/40")} />
+                  <Star className={cn("w-8 h-8 transition-all duration-300",
+                    s <= (hovered || selected) ? "text-kairo-orange fill-kairo-orange drop-shadow-[0_0_10px_rgba(184,168,138,0.5)]" : "text-kairo-white/20")} />
                 </button>
               ))}
             </div>
             <button
               onClick={handleSubmit}
               disabled={selected === 0}
-              className="w-full py-3 bg-kairo-orange text-kairo-primary text-xs font-bold uppercase tracking-[0.3em] disabled:opacity-40 transition-opacity"
+              className="relative overflow-hidden w-full py-4 rounded-xl bg-kairo-orange text-kairo-primary font-bold tracking-widest disabled:opacity-50 transition-opacity"
             >
-              Submit Rating
+              <span className="relative z-10">Submit Rating</span>
             </button>
           </>
         )}
@@ -269,7 +310,6 @@ function EditProfileModal({
     const file = e.target.files?.[0];
     if (!file) return;
 
-    // Validate file type and size (max 5MB)
     if (!file.type.startsWith("image/")) return;
     if (file.size > 5 * 1024 * 1024) {
       alert("Image must be under 5MB");
@@ -288,7 +328,6 @@ function EditProfileModal({
     setSaving(true);
     let newAvatarUrl: string | undefined;
 
-    // Upload image to Firebase Storage if a new file was selected
     if (avatarFile) {
       setUploading(true);
       try {
@@ -302,7 +341,7 @@ function EditProfileModal({
       }
     }
 
-       await onSave(name.trim() || user.name, city, newAvatarUrl, selectedInterests.length > 0 ? selectedInterests : undefined);
+    await onSave(name.trim() || user.name, city, newAvatarUrl, selectedInterests.length > 0 ? selectedInterests : undefined);
     setSaving(false);
     onClose();
   };
@@ -318,45 +357,44 @@ function EditProfileModal({
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
-      className="fixed inset-0 z-[200] flex items-center justify-center bg-kairo-primary/80 backdrop-blur-xl p-4"
+      className="fixed inset-0 z-[200] flex items-end sm:items-center justify-center bg-kairo-primary/40 backdrop-blur-2xl p-4 sm:p-0"
       onClick={onClose}
     >
       <motion.div
-        initial={{ scale: 0.95, y: 10 }}
-        animate={{ scale: 1, y: 0 }}
-        exit={{ scale: 0.95, y: 10 }}
+        initial={{ y: "100%" }}
+        animate={{ y: 0 }}
+        exit={{ y: "100%" }}
+        transition={{ type: "spring", damping: 25, stiffness: 200 }}
         onClick={(e) => e.stopPropagation()}
-        className="bg-kairo-primary border border-kairo-orange/20 p-8 w-full max-w-md"
+        className="relative bg-[#151517]/90 border border-kairo-white/[0.08] shadow-2xl p-8 rounded-[2rem] w-full max-w-md max-h-[90vh] overflow-y-auto scrollbar-hide"
       >
-        <div className="flex items-center justify-between mb-6">
-             <h3 className="font-serif text-xl text-kairo-white uppercase tracking-widest">{forceOnboard ? "Complete Your Profile" : "Edit Profile"}</h3>
-             {!forceOnboard && (
-               <button onClick={onClose} className="text-kairo-light-gray hover:text-kairo-white cursor-pointer"><X className="w-4 h-4" /></button>
-             )}
+        <div className="absolute inset-0 bg-gradient-to-b from-white/[0.04] to-transparent pointer-events-none" />
+        
+        <div className="flex items-center justify-between mb-8 relative z-10">
+          <h3 className="font-serif text-2xl text-kairo-white tracking-wide">{forceOnboard ? "Complete Profile" : "Edit Profile"}</h3>
+          {!forceOnboard && (
+            <button onClick={onClose} className="w-8 h-8 rounded-full bg-kairo-white/5 flex items-center justify-center text-kairo-light-gray hover:text-kairo-white hover:bg-kairo-white/10 transition-colors"><X className="w-4 h-4" /></button>
+          )}
         </div>
 
-        {/* Avatar Upload */}
-        <div className="flex justify-center mb-6">
+        <div className="relative z-10 flex flex-col items-center mb-8">
           <button
             type="button"
             onClick={() => fileInputRef.current?.click()}
             className="relative group cursor-pointer"
           >
-            <div className="w-24 h-24 border-2 border-kairo-orange/40 bg-kairo-dark-gray overflow-hidden flex items-center justify-center transition-all duration-300 group-hover:border-kairo-orange">
-              {avatarPreview ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img src={avatarPreview} alt="Avatar" className="w-full h-full object-cover" />
-              ) : (
-                <span className="font-serif text-2xl text-kairo-orange font-light">{initials}</span>
-              )}
+            <div className="w-28 h-28 rounded-full p-[2px] bg-gradient-to-br from-kairo-orange/60 to-kairo-orange/10 group-hover:from-kairo-orange group-hover:to-kairo-orange/40 transition-all duration-300">
+              <div className="w-full h-full rounded-full bg-kairo-dark-gray overflow-hidden flex items-center justify-center">
+                {avatarPreview ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={avatarPreview} alt="Avatar" className="w-full h-full object-cover" />
+                ) : (
+                  <span className="font-serif text-3xl text-kairo-orange font-light">{initials}</span>
+                )}
+              </div>
             </div>
-            {/* Camera overlay */}
-            <div className="absolute inset-0 bg-kairo-primary/60 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-              <Camera className="w-6 h-6 text-kairo-orange" />
-            </div>
-            {/* Badge */}
-            <div className="absolute -bottom-1 -right-1 w-7 h-7 bg-kairo-orange flex items-center justify-center border-2 border-kairo-primary">
-              <Camera className="w-3.5 h-3.5 text-kairo-primary" />
+            <div className="absolute inset-0 rounded-full bg-kairo-primary/60 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300 backdrop-blur-sm">
+              <Camera className="w-8 h-8 text-kairo-orange" />
             </div>
           </button>
           <input
@@ -367,65 +405,60 @@ function EditProfileModal({
             className="hidden"
           />
         </div>
-        <p className="text-center text-[10px] text-kairo-light-gray/50 tracking-wide mb-6 -mt-3">
-          Tap to change profile photo
-        </p>
 
-        <div className="space-y-5">
+        <div className="space-y-6 relative z-10">
           <div>
-            <label className="block text-[10px] font-bold uppercase tracking-[0.25em] text-kairo-light-gray/60 mb-2">Display Name</label>
+            <label className="block text-xs font-bold uppercase tracking-widest text-kairo-light-gray/60 mb-3 ml-1">Display Name</label>
             <input
               value={name}
               onChange={(e) => setName(e.target.value)}
-              className="w-full bg-kairo-dark-gray/50 border border-kairo-gray/30 focus:border-kairo-orange px-4 py-3 text-sm text-kairo-white placeholder-kairo-gray/40 outline-none transition-colors tracking-wide"
+              className="w-full bg-kairo-white/[0.03] border border-kairo-white/10 rounded-xl focus:border-kairo-orange focus:bg-kairo-white/[0.05] px-4 py-4 text-sm text-kairo-white outline-none transition-all shadow-inner"
               placeholder="Your name"
             />
           </div>
           <div>
-            <label className="block text-[10px] font-bold uppercase tracking-[0.25em] text-kairo-light-gray/60 mb-2">City</label>
+            <label className="block text-xs font-bold uppercase tracking-widest text-kairo-light-gray/60 mb-3 ml-1">City</label>
             <select
               value={city}
               onChange={(e) => setCity(e.target.value)}
-              className="w-full bg-kairo-dark-gray/50 border border-kairo-gray/30 focus:border-kairo-orange px-4 py-3 text-sm text-kairo-white outline-none transition-colors tracking-wide appearance-none cursor-pointer"
+              className="w-full bg-kairo-white/[0.03] border border-kairo-white/10 rounded-xl focus:border-kairo-orange focus:bg-kairo-white/[0.05] px-4 py-4 text-sm text-kairo-white outline-none transition-all shadow-inner appearance-none cursor-pointer"
             >
               <option value="">Select city...</option>
               {CITIES.map((c) => (
-                <option key={c} value={c} className="bg-kairo-primary">{c}</option>
+                <option key={c} value={c} className="bg-kairo-primary text-kairo-white">{c}</option>
               ))}
             </select>
           </div>
-          {/* Interests (only during onboarding) */}
+          
           {forceOnboard && (
             <div>
-              <label className="block text-[10px] font-bold uppercase tracking-[0.25em] text-kairo-light-gray/60 mb-2">Interests</label>
+              <label className="block text-xs font-bold uppercase tracking-widest text-kairo-light-gray/60 mb-3 ml-1">Interests</label>
               <div className="flex flex-wrap gap-2">
                 {INTERESTS_LIST.map((i) => (
                   <Chip key={i} label={i} selected={selectedInterests.includes(i)} onClick={() => toggleInterest(i)} />
                 ))}
               </div>
-              <p className="text-[10px] text-kairo-light-gray/50 mt-2">Select at least one interest to finish onboarding.</p>
             </div>
           )}
+          
           <div>
-            <label className="block text-[10px] font-bold uppercase tracking-[0.25em] text-kairo-light-gray/60 mb-2">Email</label>
+            <label className="block text-xs font-bold uppercase tracking-widest text-kairo-light-gray/60 mb-3 ml-1">Email</label>
             <input
               value={user.email}
               disabled
-              className="w-full bg-kairo-dark-gray/20 border border-kairo-gray/20 px-4 py-3 text-sm text-kairo-light-gray/50 tracking-wide cursor-not-allowed"
+              className="w-full bg-kairo-white/[0.01] border border-kairo-white/5 rounded-xl px-4 py-4 text-sm text-kairo-light-gray/40 cursor-not-allowed"
             />
           </div>
         </div>
 
-            <button
-              onClick={handleSave}
-              disabled={
-                saving || uploading || (forceOnboard && (!city || selectedInterests.length === 0))
-              }
-              className="mt-6 w-full py-4 bg-kairo-orange text-kairo-primary text-xs font-bold uppercase tracking-[0.3em] flex items-center justify-center gap-2 disabled:opacity-60 cursor-pointer"
-            >
-              {(saving || uploading) ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle2 className="w-4 h-4" />}
-              {uploading ? "Uploading..." : saving ? "Saving..." : forceOnboard ? "Complete Onboarding" : "Save Changes"}
-            </button>
+        <button
+          onClick={handleSave}
+          disabled={saving || uploading || (forceOnboard && (!city || selectedInterests.length === 0))}
+          className="mt-8 w-full py-4 rounded-xl bg-kairo-orange text-kairo-primary font-bold tracking-widest flex items-center justify-center gap-2 disabled:opacity-50 transition-all relative z-10 shadow-[0_0_20px_rgba(184,168,138,0.2)] hover:shadow-[0_0_30px_rgba(184,168,138,0.4)]"
+        >
+          {(saving || uploading) ? <Loader2 className="w-5 h-5 animate-spin" /> : <CheckCircle2 className="w-5 h-5" />}
+          {uploading ? "Uploading..." : saving ? "Saving..." : forceOnboard ? "Complete Onboarding" : "Save Changes"}
+        </button>
       </motion.div>
     </motion.div>
   );
@@ -434,7 +467,6 @@ function EditProfileModal({
 /* ── Calendar Sync Modal ─────────────────────────────────────────── */
 function CalendarModal({ bookmarkCount, onClose }: { bookmarkCount: number; onClose: () => void }) {
   const handleGoogleSync = () => {
-    // Open Google Calendar to add KAIRO as a reminder
     const url = `https://calendar.google.com/calendar/u/0/r/eventedit?text=KAIRO+Event+Reminder&details=Check+your+saved+events+on+Kairo&location=localhost:3000/saved`;
     window.open(url, "_blank");
     onClose();
@@ -445,439 +477,380 @@ function CalendarModal({ bookmarkCount, onClose }: { bookmarkCount: number; onCl
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
-      className="fixed inset-0 z-[200] flex items-center justify-center bg-kairo-primary/80 backdrop-blur-xl p-4"
+      className="fixed inset-0 z-[200] flex items-end sm:items-center justify-center bg-kairo-primary/40 backdrop-blur-2xl p-4 sm:p-0"
       onClick={onClose}
     >
       <motion.div
-        initial={{ scale: 0.95, y: 10 }}
-        animate={{ scale: 1, y: 0 }}
-        exit={{ scale: 0.95, y: 10 }}
+        initial={{ y: "100%" }}
+        animate={{ y: 0 }}
+        exit={{ y: "100%" }}
+        transition={{ type: "spring", damping: 25, stiffness: 200 }}
         onClick={(e) => e.stopPropagation()}
-        className="bg-kairo-primary border border-kairo-orange/20 p-8 w-full max-w-sm"
+        className="relative bg-kairo-white/[0.03] border border-kairo-white/[0.08] shadow-2xl p-8 rounded-[2rem] w-full max-w-sm overflow-hidden"
       >
-        <div className="flex items-center justify-between mb-6">
-          <h3 className="font-serif text-xl text-kairo-white uppercase tracking-widest">Calendar Sync</h3>
-          <button onClick={onClose} className="text-kairo-light-gray hover:text-kairo-white cursor-pointer"><X className="w-4 h-4" /></button>
+        <div className="absolute inset-0 bg-gradient-to-b from-white/[0.04] to-transparent pointer-events-none" />
+        
+        <button onClick={onClose} className="absolute top-6 right-6 w-8 h-8 rounded-full bg-kairo-white/5 flex items-center justify-center text-kairo-light-gray hover:text-kairo-white hover:bg-kairo-white/10 transition-colors z-10"><X className="w-4 h-4" /></button>
+        
+        <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-kairo-white/10 to-transparent flex items-center justify-center mb-6 border border-kairo-white/5 relative z-10">
+          <Calendar className="w-8 h-8 text-kairo-orange" />
         </div>
-        <p className="text-xs text-kairo-light-gray/70 leading-relaxed mb-6 tracking-wide">
-          You have <span className="text-kairo-orange font-bold">{bookmarkCount} saved events</span>. Sync them to your calendar to never miss a deadline.
+        
+        <h3 className="font-serif text-2xl text-kairo-white tracking-wide mb-3 relative z-10">Calendar Sync</h3>
+        <p className="text-sm text-kairo-light-gray/70 leading-relaxed mb-8 relative z-10">
+          You have <span className="text-kairo-orange font-bold px-1">{bookmarkCount} saved events</span>. Sync them to your calendar to never miss a deadline.
         </p>
+        
         <button
           onClick={handleGoogleSync}
-          className="w-full py-4 bg-kairo-orange text-kairo-primary text-xs font-bold uppercase tracking-[0.3em] flex items-center justify-center gap-2 mb-3 cursor-pointer"
+          className="w-full py-4 rounded-xl bg-kairo-orange text-kairo-primary font-bold tracking-widest flex items-center justify-center gap-3 relative z-10 shadow-[0_0_20px_rgba(184,168,138,0.2)]"
         >
-          <Calendar className="w-4 h-4" />
+          <Calendar className="w-5 h-5" />
           Open Google Calendar
         </button>
-        <p className="text-[10px] text-center text-kairo-light-gray/40 tracking-wide">More calendar integrations coming soon</p>
       </motion.div>
     </motion.div>
   );
 }
 
-/* ── Main Page ───────────────────────────────────────────────────── */
+/* ── Main Profile Page ────────────────────────────────────────────── */
 export default function ProfilePage() {
-  const { user, logout, isLoading, updateAvatar } = useAuthContext();
-  const { bookmarks } = useBookmarkContext();
   const router = useRouter();
+  const { user, isLoading: authLoading, logout } = useAuthContext();
+  const { bookmarks } = useBookmarkContext();
+  
+  const [activeTab, setActiveTab] = useState<"upcoming" | "past">("upcoming");
+  const [emailNotif, setEmailNotif] = useState(true);
+  const [pushNotif, setPushNotif] = useState(false);
+  const [interests, setInterests] = useState<string[]>([]);
+  const [userCity, setUserCity] = useState<string>("");
 
-  // Modal states
   const [showEditProfile, setShowEditProfile] = useState(false);
-  const [forceOnboard, setForceOnboard] = useState(false);
   const [showRate, setShowRate] = useState(false);
   const [showCalendar, setShowCalendar] = useState(false);
   const [shareToast, setShareToast] = useState(false);
-
-  // Profile state
-  const [displayName, setDisplayName] = useState("");
-  const [userCity, setUserCity] = useState("");
-
-  // Preferences state
-  const [preferredCities, setPreferredCities] = useState<string[]>([]);
-  const [interests, setInterests] = useState<string[]>([]);
-  const [emailNotif, setEmailNotif] = useState(true);
-  const [pushNotif, setPushNotif] = useState(true);
   const [isSavingPrefs, setIsSavingPrefs] = useState(false);
   const [prefsSaved, setPrefsSaved] = useState(false);
+  const [forceOnboard, setForceOnboard] = useState(false);
+  const [isMounted, setIsMounted] = useState(false);
 
-  // Recent events state
-  const [recentlyViewed, setRecentlyViewed] = useState<Event[]>([]);
-  const [showRecent, setShowRecent] = useState(false);
+  const [savedEvents, setSavedEvents] = useState<Event[]>([]);
 
-  // Load user data from Firestore
   useEffect(() => {
-    if (!user) return;
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    setDisplayName(user.name);
-    const fetchPrefs = async () => {
+    setIsMounted(true);
+  }, []);
+
+  useEffect(() => {
+    if (!authLoading && !user) {
+      router.replace("/login");
+    }
+  }, [user, authLoading, router]);
+
+  useEffect(() => {
+    async function loadUserData() {
+      if (!user?.id) return;
       try {
-        const userDoc = await getDoc(doc(db, "users", user.id));
-        if (userDoc.exists()) {
-          const data = userDoc.data();
-          setPreferredCities(data.preferredCities || []);
-          setInterests(data.interests || []);
-          setEmailNotif(data.notificationPreferences?.email ?? true);
-          setPushNotif(data.notificationPreferences?.push ?? true);
-          if (data.lastLocation?.city) setUserCity(data.lastLocation.city);
+        const docRef = doc(db, "users", user.id);
+        const docSnap = await getDoc(docRef);
+        if (docSnap.exists()) {
+          const data = docSnap.data();
           if (data.city) setUserCity(data.city);
-          // If the user hasn't completed onboarding (or has no prefs), open edit modal
-          const hasPrefs = (data.preferredCities && data.preferredCities.length > 0) || (data.interests && data.interests.length > 0) || data.city;
-          const onboarded = data.onboarded !== undefined ? data.onboarded : hasPrefs;
-          if (!onboarded) {
+          if (data.interests) setInterests(data.interests);
+          if (data.emailNotif !== undefined) setEmailNotif(data.emailNotif);
+          if (data.pushNotif !== undefined) setPushNotif(data.pushNotif);
+          
+          if (!data.city || !data.interests || data.interests.length === 0) {
             setForceOnboard(true);
             setShowEditProfile(true);
           }
+        } else {
+          setForceOnboard(true);
+          setShowEditProfile(true);
         }
       } catch (err) {
-        console.error("Failed to load prefs:", err);
+        console.error("Error loading user data:", err);
       }
-    };
-    fetchPrefs();
-  }, [user]);
+    }
+    loadUserData();
+  }, [user?.id]);
 
-  // Load recently viewed from localStorage
   useEffect(() => {
-    const fetch = async () => {
-      const raw = localStorage.getItem("kairo-recently-viewed");
-      const ids: string[] = raw ? JSON.parse(raw) : [];
-      if (ids.length > 0) {
-        const all = await getEvents();
-        const items = ids.map((id) => all.find((e) => e.id === id)).filter(Boolean) as Event[];
-        setRecentlyViewed(items);
+    async function loadSavedEvents() {
+      if (bookmarks.length === 0) {
+        setSavedEvents([]);
+        return;
       }
-    };
-    fetch();
-  }, []);
+      try {
+        const events = await getEvents();
+        const filtered = events.filter((e) => bookmarks.includes(e.id));
+        setSavedEvents(filtered);
+      } catch (err) {
+        console.error("Failed to load saved events for profile", err);
+      }
+    }
+    loadSavedEvents();
+  }, [bookmarks]);
 
-  // Redirect if not logged in
-  useEffect(() => {
-    if (!isLoading && !user) router.push("/login");
-  }, [user, isLoading, router]);
-
-  if (isLoading || !user) {
+  if (authLoading || !isMounted) {
     return (
-      <div className="min-h-[80vh] flex items-center justify-center">
-        <Loader2 className="w-8 h-8 animate-spin text-kairo-orange" />
+      <div className="min-h-screen pt-32 pb-24 flex items-center justify-center">
+        <Loader2 className="w-8 h-8 text-kairo-orange animate-spin" />
       </div>
     );
   }
 
-  const name = displayName || user.name;
+  if (!user) return null;
 
-  // Edit profile → save to Firestore
-  const handleEditSave = async (newName: string, newCity: string, newAvatar?: string) => {
+  const handleLogout = async () => {
     try {
-      const updateData: Record<string, string> = { name: newName, city: newCity };
-      if (newAvatar) updateData.avatar = newAvatar;
-
-      // mark user as onboarded when they save profile details
-      await updateDoc(doc(db, "users", user.id), { ...updateData, onboarded: true, onboardedAt: new Date() });
-      setDisplayName(newName);
-      setUserCity(newCity);
-      if (newAvatar) updateAvatar(newAvatar);
-
-      // Invalidate recommendations cache (fire-and-forget)
-      const apiBase = getRecommendationApiBase();
-      void fetch(`${apiBase}/recommendations/invalidate?userId=${user.id}`, {
-        method: "POST"
-      }).catch(() => {});
+      await logout();
+      router.replace("/login");
     } catch (err) {
-      console.error("Edit profile error:", err);
+      console.error(err);
     }
   };
 
-  // Save preferences to Firestore
+  const handleEditSave = async (name: string, city: string, avatarUrl?: string) => {
+    try {
+      if (!user?.id) return;
+      const updates: any = { name, city };
+      if (avatarUrl) updates.avatar = avatarUrl;
+      await updateDoc(doc(db, "users", user.id), updates);
+      setUserCity(city);
+      if (forceOnboard) {
+        setForceOnboard(false);
+      }
+    } catch (err) {
+      console.error("Failed to update profile", err);
+    }
+  };
+
   const handleSavePrefs = async () => {
+    if (!user?.id) return;
     setIsSavingPrefs(true);
     try {
-      // Save preferences and mark onboarding complete
-      await updateDoc(doc(db, "users", user.id), {
-        preferredCities,
-        interests,
-        notificationPreferences: { email: emailNotif, push: pushNotif },
-        onboarded: true,
-        onboardedAt: new Date(),
-      });
+      await updateDoc(doc(db, "users", user.id), { emailNotif, pushNotif });
       setPrefsSaved(true);
-      setTimeout(() => setPrefsSaved(false), 2500);
-
-      // Invalidate recommendations cache (fire-and-forget)
-      const apiBase = getRecommendationApiBase();
-      void fetch(`${apiBase}/recommendations/invalidate?userId=${user.id}`, {
-        method: "POST"
-      }).catch(() => {});
+      setTimeout(() => setPrefsSaved(false), 2000);
     } catch (err) {
-      console.error("Save prefs error:", err);
+      console.error(err);
     } finally {
       setIsSavingPrefs(false);
     }
   };
 
-  // Share KAIRO
-  const handleShare = async () => {
-    const shareData = {
-      title: "Kairo — Event Discovery",
-      text: "Discover underground concerts, hackathons, and exclusive tech events near you.",
-      url: "https://kairo.app",
-    };
-    try {
-      if (navigator.share) {
-        await navigator.share(shareData);
-      } else {
-        await navigator.clipboard.writeText(shareData.url);
-        setShareToast(true);
-        setTimeout(() => setShareToast(false), 2500);
-      }
-    } catch {
-      // user cancelled
-    }
+  const handleShare = () => {
+    navigator.clipboard.writeText("https://kairo.events/invite/ayushman");
+    setShareToast(true);
+    setTimeout(() => setShareToast(false), 3000);
   };
 
-  const handleLogout = async () => {
-    await logout();
-    router.push("/");
-  };
-
-  // Avatar initials fallback
-  const initials = name.split(" ").map((n) => n[0]).join("").slice(0, 2).toUpperCase();
+  const initials = user.name?.split(" ").map((n: string) => n[0]).join("").slice(0, 2).toUpperCase() || "U";
 
   return (
-    <div className="relative z-10 max-w-4xl mx-auto px-4 py-8 sm:px-6 lg:px-8 pb-24">
-
-      {/* ── Profile Header ─────────────────────────────────────────── */}
+    <div className="min-h-screen pt-24 pb-24 max-w-6xl mx-auto px-4 sm:px-6">
+      
+      {/* ── Floating Header ─────────────────────────────────────────── */}
       <motion.div
-        initial={{ opacity: 0, y: -20 }}
+        initial={{ opacity: 0, y: 30 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5 }}
-        className="relative border border-kairo-orange/10 bg-kairo-dark-gray/30 overflow-hidden mb-8"
+        transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
+        className="relative w-full rounded-[2rem] sm:rounded-[3rem] overflow-hidden mb-8"
       >
-        {/* Gold gradient banner */}
-        <div className="h-28 w-full bg-gradient-to-r from-kairo-primary via-kairo-orange/20 to-kairo-primary" />
+        <div className="absolute inset-0 bg-kairo-white/[0.02] backdrop-blur-2xl border border-kairo-white/[0.08]" />
+        
+        {/* Mesh Gradient Background */}
+        <div className="absolute inset-0 overflow-hidden pointer-events-none opacity-40">
+          <div className="absolute top-[-20%] left-[-10%] w-[50%] h-[150%] bg-kairo-orange/20 blur-[120px] rounded-full animate-blob mix-blend-screen" />
+          <div className="absolute bottom-[-20%] right-[-10%] w-[60%] h-[120%] bg-blue-500/10 blur-[120px] rounded-full animate-blob animation-delay-2000 mix-blend-screen" />
+        </div>
 
-        <div className="px-6 pb-6 relative">
+        <div className="relative z-10 px-6 sm:px-12 py-10 sm:py-16 flex flex-col sm:flex-row items-center sm:items-start gap-8">
           {/* Avatar */}
-          <button
-            onClick={() => {
-              setForceOnboard(false);
-              setShowEditProfile(true);
-            }}
-            className="absolute -top-14 left-6 w-28 h-28 border-2 border-kairo-orange/40 bg-kairo-primary overflow-hidden flex items-center justify-center shadow-[0_0_30px_rgba(0,0,0,0.8)] group cursor-pointer"
-          >
-            {user.avatar ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img src={user.avatar} alt={name} className="w-full h-full object-cover" />
-            ) : (
-              <span className="font-serif text-3xl text-kairo-orange font-light">{initials}</span>
-            )}
-            {/* Camera overlay on hover */}
-            <div className="absolute inset-0 bg-kairo-primary/60 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-              <Camera className="w-6 h-6 text-kairo-orange" />
+          <div className="relative group shrink-0">
+            <div className="absolute inset-0 bg-kairo-orange/30 blur-2xl rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-700 pointer-events-none" />
+            <div className="w-28 h-28 sm:w-36 sm:h-36 rounded-full p-1 bg-gradient-to-br from-kairo-orange/50 via-kairo-orange/20 to-transparent relative z-10">
+              <div className="w-full h-full rounded-full bg-kairo-dark-gray overflow-hidden border-2 border-kairo-primary">
+                {user.avatar ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={user.avatar} alt="Avatar" className="w-full h-full object-cover" />
+                ) : (
+                  <div className="w-full h-full flex items-center justify-center font-serif text-4xl text-kairo-orange">{initials}</div>
+                )}
+              </div>
             </div>
-          </button>
-
-          {/* Edit button */}
-          <div className="flex justify-end pt-3">
             <button
-              onClick={() => {
-                setForceOnboard(false);
-                setShowEditProfile(true);
-              }}
-              className="inline-flex items-center gap-2 border border-kairo-orange/20 bg-transparent hover:border-kairo-orange hover:text-kairo-orange px-4 py-2 text-[10px] font-bold uppercase tracking-[0.25em] text-kairo-light-gray transition-all duration-300 cursor-pointer"
+              onClick={() => { setForceOnboard(false); setShowEditProfile(true); }}
+              className="absolute bottom-2 right-2 w-10 h-10 rounded-full bg-kairo-primary border border-kairo-white/10 flex items-center justify-center text-kairo-white hover:bg-kairo-orange hover:border-kairo-orange transition-all shadow-xl z-20 cursor-pointer"
             >
-              <Edit3 className="w-3 h-3" />
-              Edit Profile
+              <Edit3 className="w-4 h-4" />
             </button>
           </div>
 
-          <div className="mt-6">
-            <h1 className="font-serif text-3xl font-light tracking-[0.12em] uppercase text-kairo-white">{name}</h1>
-            <div className="mt-2 flex flex-wrap items-center gap-4">
-              {userCity && (
-                <span className="flex items-center gap-1.5 text-[11px] text-kairo-light-gray/70 tracking-wide">
-                  <MapPin className="w-3 h-3 text-kairo-orange/60" /> {userCity}
-                </span>
-              )}
-              <span className="flex items-center gap-1.5 text-[11px] text-kairo-light-gray/70 tracking-wide">
-                <span className="text-kairo-orange/60">@</span> {user.email}
-              </span>
+          {/* Info */}
+          <div className="flex-1 text-center sm:text-left flex flex-col justify-center pt-2">
+            <h1 className="font-serif text-4xl sm:text-5xl lg:text-6xl text-kairo-white mb-2">{user.name}</h1>
+            <div className="flex flex-col sm:flex-row items-center gap-3 sm:gap-6 text-sm text-kairo-light-gray font-mono">
+              <span>{user.email}</span>
+              <span className="hidden sm:inline w-1 h-1 rounded-full bg-kairo-white/20" />
+              <span className="flex items-center gap-1.5"><MapPin className="w-4 h-4 text-kairo-orange" /> {userCity || "Location not set"}</span>
             </div>
+            
+            {interests.length > 0 && (
+              <div className="mt-6 flex flex-wrap justify-center sm:justify-start gap-2">
+                {interests.map((interest) => (
+                  <span key={interest} className="px-3 py-1 rounded-full border border-kairo-orange/30 bg-kairo-orange/10 text-kairo-orange text-xs font-bold tracking-wider">
+                    {interest}
+                  </span>
+                ))}
+              </div>
+            )}
           </div>
         </div>
       </motion.div>
 
-      {/* ── 4 Cards Grid ────────────────────────────────────────────── */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-
-        {/* ── Card 1: My Events ───────────────────────────────────── */}
-        <SectionCard title="My Events" icon={Ticket} delay={0.05}>
-          <RowItem
-            icon={Heart}
-            label="Saved Events"
-            sublabel="Events you bookmarked"
-            href="/saved"
-            badge={bookmarks.length}
-          />
-          <RowItem
-            icon={Ticket}
-            label="Registered Events"
-            sublabel="Events you signed up for"
-            onClick={() => {}}
-            badge={3}
-          />
-          <RowItem
-            icon={Clock}
-            label="Recently Viewed"
-            sublabel={recentlyViewed.length > 0 ? `${recentlyViewed.length} events` : "None yet"}
-            onClick={() => setShowRecent((v) => !v)}
-          />
-
-          {/* Recently viewed inline expand */}
-          <AnimatePresence>
-            {showRecent && (
-              <motion.div
-                initial={{ opacity: 0, height: 0 }}
-                animate={{ opacity: 1, height: "auto" }}
-                exit={{ opacity: 0, height: 0 }}
-                className="overflow-hidden"
+      {/* ── Bento Box Grid ──────────────────────────────────────────── */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        
+        {/* Column 1 & 2: My Events (Hero Card) */}
+        <BentoCard title="My Events" icon={Ticket} className="md:col-span-2 min-h-[400px]">
+          <div className="flex gap-4 mb-8">
+            {["upcoming", "past"].map((tab) => (
+              <button
+                key={tab}
+                onClick={() => setActiveTab(tab as any)}
+                className={cn(
+                  "relative px-5 py-2 rounded-full text-xs font-bold uppercase tracking-widest transition-all cursor-pointer",
+                  activeTab === tab ? "text-kairo-primary" : "text-kairo-light-gray hover:text-kairo-white"
+                )}
               >
-                <div className="mt-3 pt-3 border-t border-kairo-orange/10 space-y-2">
-                  {recentlyViewed.length > 0 ? (
-                    recentlyViewed.slice(0, 4).map((ev) => (
-                      <Link
-                        key={ev.id}
-                        href={`/event/${ev.id}`}
-                        className="flex items-center gap-3 p-2 hover:bg-kairo-orange/5 transition-colors group"
-                      >
-                        <div className="w-8 h-8 bg-kairo-dark-gray border border-kairo-orange/10 shrink-0 overflow-hidden">
-                          {/* eslint-disable-next-line @next/next/no-img-element */}
-                          <img src={ev.bannerImage} alt="" className="w-full h-full object-cover" />
-                        </div>
-                        <div className="min-w-0">
-                          <p className="text-[11px] text-kairo-white font-bold truncate tracking-wide group-hover:text-kairo-orange transition-colors">{ev.title}</p>
-                          <p className="text-[10px] text-kairo-light-gray/50">{ev.city}</p>
-                        </div>
-                      </Link>
-                    ))
-                  ) : (
-                    <p className="text-[11px] text-kairo-light-gray/40 tracking-wide py-2">No recently viewed events yet.</p>
-                  )}
+                {activeTab === tab && (
+                  <motion.div
+                    layoutId="eventTab"
+                    className="absolute inset-0 bg-kairo-white rounded-full shadow-[0_0_15px_rgba(255,255,255,0.2)]"
+                    transition={{ type: "spring", bounce: 0.2, duration: 0.6 }}
+                  />
+                )}
+                <span className="relative z-10">{tab}</span>
+              </button>
+            ))}
+          </div>
+
+          <div className="flex-1 overflow-x-auto pb-6 scrollbar-hide -mx-6 px-6">
+            <div className="flex gap-4 w-max">
+              {savedEvents.length === 0 ? (
+                <div className="w-[300px] h-[200px] rounded-2xl border border-dashed border-kairo-white/20 flex flex-col items-center justify-center text-kairo-light-gray/60">
+                  <Ticket className="w-8 h-8 mb-3 opacity-50" />
+                  <p className="text-sm font-bold tracking-widest uppercase">No events saved yet</p>
                 </div>
-              </motion.div>
-            )}
-          </AnimatePresence>
-        </SectionCard>
-
-        {/* ── Card 2: Preferences ─────────────────────────────────── */}
-        <SectionCard title="Preferences" icon={Settings} delay={0.1}>
-          {/* Preferred Cities */}
-          <div className="mb-5">
-            <p className="text-[10px] font-bold uppercase tracking-[0.25em] text-kairo-light-gray/50 mb-3 flex items-center gap-1.5">
-              <MapPin className="w-3 h-3" /> Preferred Cities
-            </p>
-            <div className="flex flex-wrap gap-2">
-              {CITIES.map((c) => (
-                <Chip key={c} label={c} selected={preferredCities.includes(c)}
-                  onClick={() => setPreferredCities((p) => p.includes(c) ? p.filter((x) => x !== c) : [...p, c])} />
-              ))}
+              ) : (
+                <AnimatePresence>
+                  {savedEvents.map((event, idx) => (
+                    <motion.div
+                      initial={{ opacity: 0, scale: 0.95 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      transition={{ delay: idx * 0.1 }}
+                      key={event.id}
+                      onClick={() => router.push(`/event/${event.id}`)}
+                      className="w-[280px] shrink-0 rounded-2xl bg-kairo-white/5 border border-kairo-white/10 overflow-hidden cursor-pointer group"
+                    >
+                      <div className="relative h-32 overflow-hidden">
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img src={event.bannerImage} alt={event.title} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" />
+                        <div className="absolute inset-0 bg-gradient-to-t from-kairo-primary/90 to-transparent" />
+                        <div className="absolute bottom-3 left-4 text-xs font-bold text-kairo-white tracking-wider flex items-center gap-1.5">
+                          <Calendar className="w-3.5 h-3.5 text-kairo-orange" /> {event.date}
+                        </div>
+                      </div>
+                      <div className="p-4">
+                        <h3 className="text-sm font-bold text-kairo-white line-clamp-1 mb-1">{event.title}</h3>
+                        <p className="text-xs text-kairo-light-gray line-clamp-1">{event.location}</p>
+                      </div>
+                    </motion.div>
+                  ))}
+                </AnimatePresence>
+              )}
             </div>
-            {preferredCities.length > 0 && (
-              <p className="text-[10px] text-kairo-orange/60 mt-2 tracking-wide">{preferredCities.join(", ")}</p>
-            )}
           </div>
+        </BentoCard>
 
-          {/* Interests */}
-          <div className="mb-5 pt-4 border-t border-kairo-orange/5">
-            <p className="text-[10px] font-bold uppercase tracking-[0.25em] text-kairo-light-gray/50 mb-3 flex items-center gap-1.5">
-              🎯 Interests
-            </p>
-            <div className="flex flex-wrap gap-2">
-              {INTERESTS_LIST.map((i) => (
-                <Chip key={i} label={i}
-                  selected={interests.some((x) => x.toLowerCase() === i.toLowerCase())}
-                  onClick={() => setInterests((p) => p.some((x) => x.toLowerCase() === i.toLowerCase())
-                    ? p.filter((x) => x.toLowerCase() !== i.toLowerCase())
-                    : [...p, i.toLowerCase()])} />
-              ))}
-            </div>
-            {interests.length > 0 && (
-              <p className="text-[10px] text-kairo-orange/60 mt-2 tracking-wide capitalize">{interests.join(", ")}</p>
-            )}
+        {/* Column 3: Tools */}
+        <BentoCard title="Tools" icon={MapPin} delay={0.1}>
+          <div className="space-y-1">
+            <RowItem
+              icon={Calendar}
+              label="Calendar Sync"
+              sublabel="Add saved events to your calendar"
+              onClick={() => setShowCalendar(true)}
+            />
+            <RowItem
+              icon={Share2}
+              label="Share KAIRO"
+              sublabel="Invite friends to the enclave"
+              onClick={handleShare}
+            />
+            <RowItem
+              icon={Star}
+              label="Rate App"
+              sublabel="Tell us what you think"
+              onClick={() => setShowRate(true)}
+            />
           </div>
+        </BentoCard>
 
-          {/* Notifications */}
-          <div className="pt-4 border-t border-kairo-orange/5">
-            <p className="text-[10px] font-bold uppercase tracking-[0.25em] text-kairo-light-gray/50 mb-3 flex items-center gap-1.5">
-              <Bell className="w-3 h-3" /> Notifications
-            </p>
+        {/* Column 1: Preferences */}
+        <BentoCard title="Preferences" icon={Settings} delay={0.15}>
+          <div className="space-y-1 mb-6">
             <ToggleSwitch checked={emailNotif} onChange={setEmailNotif} label="Email Alerts" sublabel="Registration deadlines & new events" />
             <ToggleSwitch checked={pushNotif} onChange={setPushNotif} label="Push Notifications" sublabel="Browser notifications for saved events" />
           </div>
+          <div className="mt-auto">
+            <button
+              onClick={handleSavePrefs}
+              disabled={isSavingPrefs}
+              className="w-full py-4 rounded-xl bg-kairo-white/5 border border-kairo-white/10 hover:bg-kairo-orange/10 hover:border-kairo-orange/30 hover:text-kairo-orange text-kairo-white font-bold tracking-widest flex items-center justify-center gap-2 transition-all cursor-pointer"
+            >
+              {isSavingPrefs ? <Loader2 className="w-4 h-4 animate-spin" /> :
+                prefsSaved ? <CheckCircle2 className="w-4 h-4" /> : null}
+              {isSavingPrefs ? "Saving..." : prefsSaved ? "Saved!" : "Save Preferences"}
+            </button>
+          </div>
+        </BentoCard>
 
-          {/* Save button */}
-          <button
-            onClick={handleSavePrefs}
-            disabled={isSavingPrefs}
-            className="mt-5 w-full py-3 bg-kairo-orange text-kairo-primary text-[10px] font-bold uppercase tracking-[0.3em] flex items-center justify-center gap-2 disabled:opacity-50 cursor-pointer transition-all"
-          >
-            {isSavingPrefs ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> :
-              prefsSaved ? <CheckCircle2 className="w-3.5 h-3.5" /> : null}
-            {isSavingPrefs ? "Saving..." : prefsSaved ? "Saved!" : "Save Preferences"}
-          </button>
-        </SectionCard>
+        {/* Column 2 & 3: Account */}
+        <BentoCard title="Account" icon={User} delay={0.2} className="md:col-span-2">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-1">
+            <RowItem
+              icon={Edit3}
+              label="Edit Profile"
+              sublabel="Update your info and avatar"
+              onClick={() => {
+                setForceOnboard(false);
+                setShowEditProfile(true);
+              }}
+            />
+            <RowItem
+              icon={FileText}
+              label="Privacy Policy"
+              sublabel="How we handle your data"
+              onClick={() => router.push("/privacy")}
+            />
+            <RowItem
+              icon={Shield}
+              label="Terms of Service"
+              sublabel="Usage terms & conditions"
+              onClick={() => router.push("/terms")}
+            />
+            <RowItem
+              icon={LogOut}
+              label="Logout"
+              sublabel="Sign out of your account"
+              onClick={handleLogout}
+              danger
+            />
+          </div>
+        </BentoCard>
 
-        {/* ── Card 3: Tools ───────────────────────────────────────── */}
-        <SectionCard title="Tools" icon={Calendar} delay={0.15}>
-          <RowItem
-            icon={Calendar}
-            label="Calendar Sync"
-            sublabel="Add saved events to your calendar"
-            onClick={() => setShowCalendar(true)}
-          />
-          <RowItem
-            icon={Share2}
-            label="Share KAIRO"
-            sublabel="Invite friends to the enclave"
-            onClick={handleShare}
-          />
-          <RowItem
-            icon={Star}
-            label="Rate App"
-            sublabel="Tell us what you think"
-            onClick={() => setShowRate(true)}
-          />
-        </SectionCard>
-
-        {/* ── Card 4: Account ─────────────────────────────────────── */}
-        <SectionCard title="Account" icon={User} delay={0.2}>
-          <RowItem
-            icon={Settings}
-            label="Settings"
-            sublabel="App settings & preferences"
-            onClick={() => {
-              setForceOnboard(false);
-              setShowEditProfile(true);
-            }}
-          />
-          <RowItem
-            icon={FileText}
-            label="Privacy Policy"
-            sublabel="How we handle your data"
-            onClick={() => router.push("/privacy")}
-          />
-          <RowItem
-            icon={Shield}
-            label="Terms of Service"
-            sublabel="Usage terms & conditions"
-            onClick={() => router.push("/terms")}
-          />
-          <RowItem
-            icon={LogOut}
-            label="Logout"
-            sublabel="Sign out of your account"
-            onClick={handleLogout}
-            danger
-          />
-        </SectionCard>
       </div>
 
       {/* ── Modals ──────────────────────────────────────────────────── */}
@@ -911,12 +884,15 @@ export default function ProfilePage() {
       <AnimatePresence>
         {shareToast && (
           <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: 20 }}
-            className="fixed bottom-24 md:bottom-6 left-1/2 -translate-x-1/2 z-[300] bg-kairo-dark-gray border border-kairo-orange/30 px-6 py-3 text-xs font-bold uppercase tracking-[0.2em] text-kairo-orange flex items-center gap-2"
+            initial={{ opacity: 0, y: 20, scale: 0.9 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: 20, scale: 0.9 }}
+            className="fixed bottom-8 left-1/2 -translate-x-1/2 z-[300] bg-kairo-white/10 backdrop-blur-md border border-kairo-orange/30 shadow-2xl px-6 py-4 rounded-2xl text-xs font-bold tracking-widest text-kairo-white flex items-center gap-3"
           >
-            <CheckCircle2 className="w-4 h-4" /> Link copied to clipboard!
+            <div className="w-8 h-8 rounded-full bg-kairo-orange/20 flex items-center justify-center">
+              <CheckCircle2 className="w-5 h-5 text-kairo-orange" />
+            </div>
+            Link copied to clipboard
           </motion.div>
         )}
       </AnimatePresence>

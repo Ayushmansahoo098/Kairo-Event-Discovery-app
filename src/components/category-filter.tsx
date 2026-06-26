@@ -12,79 +12,110 @@ interface CategoryFilterProps {
 }
 
 const iconMap: Record<string, React.ReactNode> = {
-  hackathon: <Code2 className="w-3.5 h-3.5" />,
-  workshop: <BookOpen className="w-3.5 h-3.5" />,
-  meetup: <Users className="w-3.5 h-3.5" />,
-  startup: <Rocket className="w-3.5 h-3.5" />,
-  conference: <Presentation className="w-3.5 h-3.5" />,
-  concert: <Music className="w-3.5 h-3.5" />,
-  comedy: <Laugh className="w-3.5 h-3.5" />,
-  "food-festival": <Utensils className="w-3.5 h-3.5" />,
-  party: <Sparkles className="w-3.5 h-3.5" />,
-  networking: <Share2 className="w-3.5 h-3.5" />,
-  "tech-talk": <MessageSquare className="w-3.5 h-3.5" />,
-  "ai-ml": <Brain className="w-3.5 h-3.5" />,
-  gaming: <Gamepad2 className="w-3.5 h-3.5" />,
+  hackathon: <Code2 className="w-[16px] h-[16px]" />,
+  workshop: <BookOpen className="w-[16px] h-[16px]" />,
+  meetup: <Users className="w-[16px] h-[16px]" />,
+  startup: <Rocket className="w-[16px] h-[16px]" />,
+  conference: <Presentation className="w-[16px] h-[16px]" />,
+  concert: <Music className="w-[16px] h-[16px]" />,
+  comedy: <Laugh className="w-[16px] h-[16px]" />,
+  "food-festival": <Utensils className="w-[16px] h-[16px]" />,
+  party: <Sparkles className="w-[16px] h-[16px]" />,
+  networking: <Share2 className="w-[16px] h-[16px]" />,
+  "tech-talk": <MessageSquare className="w-[16px] h-[16px]" />,
+  "ai-ml": <Brain className="w-[16px] h-[16px]" />,
+  gaming: <Gamepad2 className="w-[16px] h-[16px]" />,
 };
+
+const categoryGroups = [
+  {
+    name: "Tech & Professional",
+    ids: ["hackathon", "tech-talk", "ai-ml", "startup", "conference", "workshop"],
+  },
+  {
+    name: "Social & Lifestyle",
+    ids: ["meetup", "networking", "party", "gaming", "concert", "comedy", "food-festival"],
+  }
+];
 
 export function CategoryFilter({ selectedCategory, onSelectCategory }: CategoryFilterProps) {
   return (
-    <div className="relative w-full flex justify-center py-4">
-      {/* Premium fade edge mask for mobile horizontal scrolling */}
-      <div className="absolute left-0 top-0 bottom-0 w-16 bg-gradient-to-r from-kairo-primary via-kairo-primary/70 to-transparent pointer-events-none z-10 md:hidden" />
-      <div className="absolute right-0 top-0 bottom-0 w-16 bg-gradient-to-l from-kairo-primary via-kairo-primary/70 to-transparent pointer-events-none z-10 md:hidden" />
-
-      {/* Main Glassmorphic Capsule Container */}
-      <div className="flex items-center gap-1.5 bg-kairo-dark-gray/40 border border-kairo-gray/10 rounded-full p-1.5 overflow-x-auto scrollbar-hide max-w-full mx-4 md:mx-0 shadow-[0_8px_32px_rgba(0,0,0,0.4)] backdrop-blur-md">
-        {/* ALL EVENTS Button */}
-        <motion.button
-          whileTap={{ scale: 0.96 }}
+    <div className="relative w-full py-8 max-w-5xl mx-auto flex flex-col gap-8">
+      {/* ALL EVENTS Top Bar */}
+      <div className="flex justify-center">
+        <button
           onClick={() => onSelectCategory(null)}
           className={cn(
-            "relative px-4 py-2 transition-all duration-300 text-[10.5px] font-bold uppercase tracking-wider rounded-full cursor-pointer select-none",
+            "relative group flex items-center gap-2.5 px-8 py-3 rounded-full transition-all duration-500 font-medium text-[13px] tracking-wide uppercase shrink-0 outline-none",
             selectedCategory === null
               ? "text-kairo-primary"
-              : "text-kairo-light-gray hover:text-kairo-white hover:bg-white/5"
+              : "text-kairo-light-gray hover:text-kairo-white"
           )}
         >
-          {selectedCategory === null && (
+          {selectedCategory === null ? (
             <motion.div
-              layoutId="active-pill"
-              className="absolute inset-0 bg-kairo-orange rounded-full shadow-[0_2px_12px_rgba(184,168,138,0.3)]"
-              transition={{ type: "spring", stiffness: 380, damping: 28 }}
+              layoutId="activeFilterBubble"
+              className="absolute inset-0 bg-gradient-to-r from-kairo-white to-white/90 rounded-full shadow-[0_0_20px_rgba(255,255,255,0.2)]"
+              transition={{ type: "spring", bounce: 0.2, duration: 0.6 }}
             />
+          ) : (
+            <div className="absolute inset-0 bg-kairo-white/5 rounded-full border border-kairo-white/10 group-hover:bg-kairo-white/10 group-hover:border-kairo-white/20 transition-all duration-300" />
           )}
-          <span className="relative z-10 flex items-center gap-2 whitespace-nowrap">
-            <LayoutGrid className="w-3.5 h-3.5" />
+          
+          <span className="relative z-10 flex items-center gap-2">
+            <LayoutGrid className={cn("w-[16px] h-[16px] transition-transform duration-300", selectedCategory === null ? "scale-110 text-kairo-primary" : "group-hover:scale-110 group-hover:text-kairo-orange")} />
             All Events
           </span>
-        </motion.button>
+        </button>
+      </div>
 
-        {/* Dynamic Category Buttons */}
-        {categories.map((cat: CategoryInfo) => (
-          <motion.button
-            whileTap={{ scale: 0.96 }}
-            key={cat.id}
-            onClick={() => onSelectCategory(cat.id)}
-            className={cn(
-              "relative px-4 py-2 transition-all duration-300 text-[10.5px] font-bold uppercase tracking-wider rounded-full cursor-pointer select-none",
-              selectedCategory === cat.id
-                ? "text-kairo-primary"
-                : "text-kairo-light-gray hover:text-kairo-white hover:bg-white/5"
-            )}
-          >
-            {selectedCategory === cat.id && (
-              <motion.div
-                layoutId="active-pill"
-                className="absolute inset-0 bg-kairo-orange rounded-full shadow-[0_2px_12px_rgba(184,168,138,0.3)]"
-                transition={{ type: "spring", stiffness: 380, damping: 28 }}
-              />
-            )}
-            <span className="relative z-10 flex items-center gap-2 whitespace-nowrap">
-              {iconMap[cat.id]}
-              {cat.name}
-            </span>
-          </motion.button>
+      <div className="flex flex-col md:flex-row gap-8 justify-center w-full">
+        {categoryGroups.map((group, i) => (
+          <div key={group.name} className="flex flex-col items-center gap-4 flex-1">
+            <h3 className="text-[10px] tracking-[0.2em] uppercase font-bold text-kairo-gray/60 px-4">
+              {group.name}
+            </h3>
+            <div className="flex flex-wrap justify-center gap-2 sm:gap-3">
+              {group.ids.map((id) => {
+                const cat = categories.find((c) => c.id === id);
+                if (!cat) return null;
+                const isSelected = selectedCategory === cat.id;
+                
+                return (
+                  <button
+                    key={cat.id}
+                    onClick={() => onSelectCategory(cat.id)}
+                    className={cn(
+                      "relative group flex items-center gap-2 px-4 py-2.5 rounded-full transition-all duration-500 font-medium text-xs tracking-wide shrink-0 outline-none",
+                      isSelected
+                        ? "text-kairo-primary"
+                        : "text-kairo-light-gray hover:text-kairo-white"
+                    )}
+                  >
+                    {isSelected ? (
+                      <motion.div
+                        layoutId="activeFilterBubble"
+                        className="absolute inset-0 bg-gradient-to-r from-kairo-white to-white/90 rounded-full shadow-[0_0_15px_rgba(255,255,255,0.15)]"
+                        transition={{ type: "spring", bounce: 0.2, duration: 0.6 }}
+                      />
+                    ) : (
+                      <div className="absolute inset-0 bg-kairo-white/5 rounded-full border border-kairo-white/10 group-hover:bg-kairo-white/10 group-hover:border-kairo-white/20 transition-all duration-300" />
+                    )}
+
+                    <span className="relative z-10 flex items-center gap-2">
+                      <span className={cn(
+                        "transition-all duration-300",
+                        isSelected ? "scale-110 text-kairo-primary" : `group-hover:scale-110 ${cat.color}`
+                      )}>
+                        {iconMap[cat.id]}
+                      </span>
+                      {cat.name}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
         ))}
       </div>
     </div>

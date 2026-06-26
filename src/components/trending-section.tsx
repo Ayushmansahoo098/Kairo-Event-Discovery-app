@@ -62,7 +62,7 @@ export function TrendingSection({ onHoverEvent }: TrendingSectionProps) {
     <motion.section 
       ref={containerRef}
       style={{ opacity, y }}
-      className="py-32 relative bg-transparent border-y border-kairo-dark-gray/30 z-10"
+      className="py-32 relative bg-transparent z-10"
       onMouseLeave={() => onHoverEvent?.(null)}
     >
       <div className="max-w-7xl mx-auto px-6 sm:px-10 mb-12 flex items-center justify-between gap-4">
@@ -89,11 +89,11 @@ export function TrendingSection({ onHoverEvent }: TrendingSectionProps) {
             >
               <Link 
                 href={`/events/${event.id}`}
-                className="group block relative w-[85vw] sm:w-[450px] rounded-none overflow-hidden transition-all duration-500 shadow-2xl border border-kairo-orange/10 hover:border-kairo-orange/30"
+                className="group block relative w-[85vw] sm:w-[450px] rounded-3xl overflow-hidden transition-all duration-500 shadow-[0_20px_50px_rgba(0,0,0,0.5)] bg-white/5 backdrop-blur-sm hover:bg-white/10"
               >
                 {/* Magnetic / 3D Hover container */}
                 <motion.div 
-                  className="relative h-[320px] w-full bg-black"
+                  className="relative h-[320px] w-full"
                   whileHover={{ scale: 0.99 }}
                   transition={{ type: "spring", stiffness: 400, damping: 30 }}
                 >
@@ -108,7 +108,7 @@ export function TrendingSection({ onHoverEvent }: TrendingSectionProps) {
                   <div className="absolute inset-0 bg-gradient-to-t from-kairo-primary via-kairo-primary/40 to-transparent opacity-90 group-hover:opacity-75 transition-opacity duration-500" />
                   
                   <div className="absolute top-6 left-6">
-                    <span className="px-3 py-1 rounded-none text-[9px] font-bold tracking-widest bg-kairo-primary border border-kairo-orange/25 text-kairo-orange shadow-md uppercase">
+                    <span className="px-3 py-1 rounded-full text-[9px] font-bold tracking-widest bg-kairo-orange/20 backdrop-blur-md text-kairo-orange uppercase">
                       HOT
                     </span>
                   </div>

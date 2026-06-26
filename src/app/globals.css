@@ -50,9 +50,9 @@
 
   --color-kairo-orange: #b8a88a;
   --color-kairo-primary: #0c0c0d;
-  --color-kairo-white: #f4f4f4;
-  --color-kairo-light-gray: #a08a75;
-  --color-kairo-gray: #574c3e;
+  --color-kairo-white: #fcfcfc;
+  --color-kairo-light-gray: #d4c5b3;
+  --color-kairo-gray: #7a6e5d;
   --color-kairo-dark-gray: #1c1c1e;
   --color-kairo-grad-1: #0c0c0d;
   --color-kairo-grad-2: #8c775d;
@@ -134,7 +134,7 @@
     @apply border-border outline-ring/50;
   }
   body {
-    @apply bg-kairo-primary text-kairo-white;
+    @apply bg-kairo-primary text-kairo-white leading-relaxed;
   }
   html {
     @apply font-sans;
@@ -142,8 +142,12 @@
   h1, h2, h3, h4, h5, h6, .font-serif {
     @apply font-serif;
   }
+
 }
 
 @utility animate-ping-once {
   animation: ping 0.3s cubic-bezier(0, 0, 0.2, 1) 1;
+}
+@utility mask-edges {
+  mask-image: linear-gradient(to right, transparent, black 5%, black 95%, transparent);
 }

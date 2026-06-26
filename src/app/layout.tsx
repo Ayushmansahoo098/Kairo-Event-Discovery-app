@@ -4,7 +4,6 @@ import "./globals.css";
 import { BookmarkProvider } from "@/context/bookmark-context";
 import { AuthProvider } from "@/context/auth-context";
 import { Navbar } from "@/components/navbar";
-import { InitialLoader } from "@/components/initial-loader";
 import { VisualGrid } from "@/components/visual-grid";
 import { cn } from "@/lib/utils";
 import { Analytics } from "@vercel/analytics/next";
@@ -47,7 +46,6 @@ export default function RootLayout({
   return (
     <html lang="en" className={cn(plusJakarta.variable, cormorantGaramond.variable, "font-sans")}>
       <body className="min-h-screen bg-kairo-primary font-sans text-kairo-white antialiased cursor-default relative overflow-x-hidden">
-        <InitialLoader />
         <VisualGrid />
         <AuthProvider>
           <BookmarkProvider>

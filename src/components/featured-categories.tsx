@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, useRef, MouseEvent } from "react";
-import { categories } from "@/lib/mock-data";
+import { useState, useRef, useEffect, MouseEvent } from "react";
+import { categories, getEvents } from "@/lib/mock-data";
 import Link from "next/link";
 import { motion, AnimatePresence, useSpring } from "framer-motion";
 import { ArrowRight } from "lucide-react";
@@ -26,7 +26,22 @@ const categoryImages: Record<string, string> = {
 
 export function FeaturedCategories() {
   const [hoveredCategory, setHoveredCategory] = useState<string | null>(null);
+  const [counts, setCounts] = useState<Record<string, number>>({});
   const containerRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    getEvents().then((eventsList) => {
+      const tally: Record<string, number> = {};
+      eventsList.forEach((e) => {
+        if (e.category) {
+          tally[e.category] = (tally[e.category] || 0) + 1;
+        }
+      });
+      setCounts(tally);
+    }).catch((err) => {
+      console.warn("Failed to compute dynamic category counts:", err);
+    });
+  }, []);
 
   // Mouse tracking for the floating image
   const mouseX = useSpring(0, { damping: 20, stiffness: 100, mass: 0.5 });
@@ -81,7 +96,7 @@ export function FeaturedCategories() {
                     ${isHovered ? 'text-kairo-orange' : 'text-kairo-gray/50'}
                     ${isOtherHovered ? 'opacity-30' : 'opacity-100'}
                   `}>
-                    ({cat.count})
+                    ({counts[cat.id] ?? cat.count})
                   </span>
                 </div>
               </Link>

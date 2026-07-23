@@ -415,19 +415,19 @@ export const staticEvents: Event[] = [
 export const events: Event[] = staticEvents;
 
 export const categories: CategoryInfo[] = [
-  { id: "hackathon", name: "Hackathons", icon: "Code2", color: "text-violet-500", count: 3 },
-  { id: "workshop", name: "Workshops", icon: "BookOpen", color: "text-blue-500", count: 3 },
-  { id: "meetup", name: "Meetups", icon: "Users", color: "text-green-500", count: 3 },
-  { id: "startup", name: "Startup Events", icon: "Rocket", color: "text-cyan-500", count: 3 },
-  { id: "conference", name: "Conferences", icon: "Presentation", color: "text-indigo-500", count: 3 },
-  { id: "concert", name: "Concerts", icon: "Music", color: "text-pink-500", count: 3 },
-  { id: "comedy", name: "Comedy Shows", icon: "Laugh", color: "text-amber-500", count: 3 },
-  { id: "food-festival", name: "Food Festivals", icon: "Utensils", color: "text-red-500", count: 3 },
-  { id: "party", name: "Parties", icon: "Sparkles", color: "text-yellow-500", count: 3 },
-  { id: "networking", name: "Networking Events", icon: "Share2", color: "text-teal-500", count: 3 },
-  { id: "tech-talk", name: "Tech Talks", icon: "MessageSquare", color: "text-purple-500", count: 3 },
-  { id: "ai-ml", name: "AI/ML Events", icon: "Brain", color: "text-emerald-500", count: 3 },
-  { id: "gaming", name: "Gaming Events", icon: "Gamepad2", color: "text-rose-500", count: 3 },
+  { id: "hackathon", name: "Hackathons", icon: "Code2", color: "text-violet-500", count: 24 },
+  { id: "workshop", name: "Workshops", icon: "BookOpen", color: "text-blue-500", count: 18 },
+  { id: "meetup", name: "Meetups", icon: "Users", color: "text-green-500", count: 15 },
+  { id: "startup", name: "Startup Events", icon: "Rocket", color: "text-cyan-500", count: 12 },
+  { id: "conference", name: "Conferences", icon: "Presentation", color: "text-indigo-500", count: 19 },
+  { id: "concert", name: "Concerts", icon: "Music", color: "text-pink-500", count: 28 },
+  { id: "comedy", name: "Comedy Shows", icon: "Laugh", color: "text-amber-500", count: 14 },
+  { id: "food-festival", name: "Food Festivals", icon: "Utensils", color: "text-red-500", count: 9 },
+  { id: "party", name: "Parties", icon: "Sparkles", color: "text-yellow-500", count: 22 },
+  { id: "networking", name: "Networking Events", icon: "Share2", color: "text-teal-500", count: 16 },
+  { id: "tech-talk", name: "Tech Talks", icon: "MessageSquare", color: "text-purple-500", count: 20 },
+  { id: "ai-ml", name: "AI/ML Events", icon: "Brain", color: "text-emerald-500", count: 25 },
+  { id: "gaming", name: "Gaming Events", icon: "Gamepad2", color: "text-rose-500", count: 10 },
 ];
 
 const isProduction = process.env.NODE_ENV === "production" || process.env.NEXT_PUBLIC_VERCEL_ENV === "production";

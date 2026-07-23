@@ -159,18 +159,6 @@ export function HeroSection() {
       {/* Background now handled globally in page.tsx */}
       {/* ── MAIN HERO CONTENT ── */}
       <div className="relative flex-1 flex flex-col items-center justify-center text-center px-6 pt-32 pb-24 z-10 max-w-5xl mx-auto">
-        <motion.div
-          initial={{ opacity: 0, scale: 0.9 }}
-          animate={{ opacity: 1, scale: 1 }}
-          transition={{ duration: 1, ease: "easeOut" }}
-          className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full border border-kairo-orange/30 bg-white/5 backdrop-blur-xl mb-8 shadow-xl"
-        >
-          <Sparkles className="w-4 h-4 text-kairo-orange" />
-          <span className="text-xs font-medium text-kairo-light-gray uppercase tracking-widest">
-            Premium Event Discovery
-          </span>
-        </motion.div>
-
         {/* Masked Headline Reveal */}
         <motion.h1 
           variants={containerVariants}

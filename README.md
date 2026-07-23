@@ -79,8 +79,7 @@ Finding the right tech event means hopping across 5+ fragmented directories dail
 *   👥 **Centroid-Based Behavioral User Profiles**: Dynamically weights and combines user interactions from Firestore (Explicit Interests: 4.0, Searches: 2.0, Views: 3.0, Bookmarks: 7.0, Registrations: 10.0) into a user profile centroid vector within the TF-IDF feature space.
 *   ⚡ **Two-Tier Caching & Invalidation**: Accelerates recommendation loads with in-memory user profile centroid caching (30-minute TTL). Fires a completely non-blocking, fire-and-forget `POST /recommendations/invalidate` request on any user activity to keep listings fresh.
 *   🎯 **Four-Factor Scoring Formula**: Ranks recommendations via a weighted score combining TF-IDF Cosine Similarity (70%), Popularity (15%), Event Proximity/Recency (10%), and Location Match (5%).
-*   💬 **Kairo AI Event Assistant**: Floating glassmorphic chat drawer mounted globally and lazy-loaded dynamically to conserve client-side performance. Includes auto-focus inputs, double-submit protection, smooth scroll, and ChatGPT-style typing status animations.
-*   🛡️ **Connection-Safe Client Routing**: Integrates a Next.js runtime API rewrite proxy (`/api/recommendation-proxy/*`) to route chat/recommendation requests. Resolves CORS issues and avoids build-time environment variable compilation conflicts.
+*   🛡️ **Connection-Safe Client Routing**: Integrates a Next.js runtime API rewrite proxy (`/api/recommendation-proxy/*`) to route recommendation requests. Resolves CORS issues and avoids build-time environment variable compilation conflicts.
 
 
 ---

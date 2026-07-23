@@ -68,9 +68,11 @@
 
 Finding the right tech event means hopping across 5+ fragmented directories daily. Kairo resolves this through a highly optimized, production-ready backend sync architecture:
 
-*   🕷️ **Multi-Source Crawling**: In-memory scrapers execute headless browser crawls using **Playwright Chromium** to harvest events from Devfolio, Unstop, HackerEarth, Meetup, and Paytm Insider (District), while querying the Eventbrite API.
+*   🕷️ **Multi-Source Crawling**: In-memory scrapers execute headless browser crawls using **Playwright Chromium** to harvest events from Devfolio, Unstop, HackerEarth, Meetup, BookMyShow, Luma, GDG, and Paytm Insider (District), while querying the Eventbrite API.
 *   🧹 **Jaccard Fuzzy Deduplication**: Merges events in-memory using **Jaccard Title Token overlap index ($\ge$ 70%)** combined with matching calendar dates or exact registration links.
 *   💾 **Content-Hash Skip Writes**: Computes a SHA-256 `contentHash` on merged schemas and compares it to database values to **skip redundant writes**, reducing Firestore write costs to near-zero.
+*   ⏱️ **Real-Time Active Date Filtering**: Client-side feed pipeline automatically evaluates event date boundaries (`event.expiresAt || event.date >= today`) and applies a heavy score penalty in ranking, ensuring completed or expired events are never rendered on the user discovery feed.
+*   🐳 **Lean Container Pipeline**: Optimized Docker multi-stage build skips Playwright browser binary downloads (`PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD=1`) and clears package caches during image construction, keeping production images lightweight and compliant with Render storage quotas.
 *   🔄 **Soft-Expiry Archiving**: Instead of deleting expired events (which breaks historical analytics and recommendations), stale documents are soft-expired (`status: "expired"`) and automatically pruned after **30 days**.
 *   🔒 **Distributed Concurrency Lock**: A Firestore-based mutex prevents race conditions or overlapping scraper schedules.
 *   🧠 **AI Event Recommendation Engine**: Integrates an optimized **FastAPI microservice** utilizing **Scikit-Learn TF-IDF vectorization** to construct lightweight and high-speed term-frequency representations of event attributes (Title, Description, Category, Tags), reducing RAM requirements from 800MB to <60MB.

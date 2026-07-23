@@ -443,6 +443,7 @@ function isFirebaseConfigured(): boolean {
  * Fetches all events from Cloud Firestore with staticEvents fallback.
  */
 export async function getEvents(): Promise<Event[]> {
+  const todayStr = new Date().toISOString().split("T")[0];
   let list: Event[] = [];
   if (!isFirebaseConfigured()) {
     list = isProduction ? [] : staticEvents;
@@ -469,15 +470,22 @@ export async function getEvents(): Promise<Event[]> {
     }
   }
 
+  // Filter out completed or past events (event date/deadline strictly before today)
+  const activeEvents = list.filter((event) => {
+    const eventDate = event.expiresAt || event.date;
+    if (!eventDate) return true;
+    return eventDate >= todayStr;
+  });
+
   // Execute Ingestion & Intelligence Feed Pipeline
   try {
-    const cleanList = dedupeEvents(list);
+    const cleanList = dedupeEvents(activeEvents);
     const trendingList = updateTrendingEvents(cleanList);
     const rankedList = rankEvents(trendingList);
     return rankedList;
   } catch (pipeErr) {
     console.error("Feed Pipeline execution failed, returning raw list:", pipeErr);
-    return list;
+    return activeEvents;
   }
 }
 

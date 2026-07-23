@@ -37,6 +37,9 @@ export function calculateEventScore(event: Event): number {
       if (daysToEvent >= 0) {
         // Events in the next 30 days get higher urgency ranking
         score += Math.max(0, 30 - daysToEvent) * 2;
+      } else {
+        // Past events get heavily penalized
+        score -= 500;
       }
     } catch {
       // Ignore
